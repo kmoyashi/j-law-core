@@ -1,0 +1,13 @@
+[package]
+name = "j_law_core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "j_law_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+magnus = { version = "0.7" }
+j-law-core = { path = "../../../j-law-core" }
+j-law-registry = { path = "../../../j-law-registry" }

@@ -1,0 +1,10 @@
+[workspace]
+members = [
+    "crates/j-law-core",
+    "crates/j-law-registry",
+    "crates/j-law-python",
+    "crates/j-law-wasm",
+    "crates/j-law-ruby/ext/j_law_core",
+    "crates/j-law-cgo",
+]
+resolver = "2"

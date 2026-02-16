@@ -1,0 +1,10 @@
+# frozen_string_literal: true
+
+require "rake/extensiontask"
+require "rb_sys/extensiontask"
+
+RbSys::ExtensionTask.new("j_law_core", Gem::Specification.load("j_law_core.gemspec")) do |ext|
+  ext.lib_dir = "lib/j_law_core"
+end
+
+task default: :compile

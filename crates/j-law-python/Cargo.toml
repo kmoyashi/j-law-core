@@ -1,0 +1,13 @@
+[package]
+name = "j-law-python"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "j_law_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+j-law-core = { path = "../j-law-core" }
+j-law-registry = { path = "../j-law-registry" }
+pyo3 = { version = "0.21", features = ["extension-module"] }

@@ -1,0 +1,14 @@
+[package]
+name = "j-law-cgo"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "j_law_cgo"
+# staticlib: Go の CGo 静的リンク用 (.a)
+# cdylib:    動的リンク用 (.so / .dylib) ── 将来の用途に備えて残す
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+j-law-core     = { path = "../j-law-core" }
+j-law-registry = { path = "../j-law-registry" }
