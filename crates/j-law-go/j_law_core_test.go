@@ -1,129 +1,194 @@
 package jlawcore_test
 
 import (
+	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
 	jlawcore "github.com/j-law-core/j-law-go"
 )
 
-// ─── 正常系 ──────────────────────────────────────────────────────────────────
+// ─── フィクスチャ型定義 ──────────────────────────────────────────────────────
 
-// TestCalcBrokerageFee_5M は国土交通省告示の計算例（500万円）を検証する。
-//
-// 計算根拠:
-//   - tier1: 2,000,000 × 5/100 = 100,000
-//   - tier2: 2,000,000 × 4/100 =  80,000
-//   - tier3: 1,000,000 × 3/100 =  30,000
-//   - 税抜合計: 210,000
-//   - 消費税: 21,000
-//   - 税込合計: 231,000
-func TestCalcBrokerageFee_5M(t *testing.T) {
-	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false)
+type brokerageFeeInput struct {
+	Price                uint64 `json:"price"`
+	Year                 int    `json:"year"`
+	Month                int    `json:"month"`
+	Day                  int    `json:"day"`
+	IsLowCostVacantHouse bool   `json:"is_low_cost_vacant_house"`
+}
+
+type brokerageFeeExpected struct {
+	TotalWithoutTax       *uint64  `json:"total_without_tax"`
+	TaxAmount             *uint64  `json:"tax_amount"`
+	TotalWithTax          *uint64  `json:"total_with_tax"`
+	LowCostSpecialApplied *bool    `json:"low_cost_special_applied"`
+	BreakdownResults      []uint64 `json:"breakdown_results"`
+}
+
+type brokerageFeeCase struct {
+	ID          string               `json:"id"`
+	Description string               `json:"description"`
+	Input       brokerageFeeInput    `json:"input"`
+	Expected    brokerageFeeExpected `json:"expected"`
+}
+
+type realEstateFixtures struct {
+	BrokerageFee []brokerageFeeCase `json:"brokerage_fee"`
+}
+
+type incomeTaxInput struct {
+	TaxableIncome          uint64 `json:"taxable_income"`
+	Year                   int    `json:"year"`
+	Month                  int    `json:"month"`
+	Day                    int    `json:"day"`
+	ApplyReconstructionTax bool   `json:"apply_reconstruction_tax"`
+}
+
+type incomeTaxExpected struct {
+	BaseTax                  uint64 `json:"base_tax"`
+	ReconstructionTax        uint64 `json:"reconstruction_tax"`
+	TotalTax                 uint64 `json:"total_tax"`
+	ReconstructionTaxApplied bool   `json:"reconstruction_tax_applied"`
+}
+
+type incomeTaxCase struct {
+	ID          string            `json:"id"`
+	Description string            `json:"description"`
+	Input       incomeTaxInput    `json:"input"`
+	Expected    incomeTaxExpected `json:"expected"`
+}
+
+type incomeTaxFixtures struct {
+	IncomeTax []incomeTaxCase `json:"income_tax"`
+}
+
+// ─── フィクスチャ読み込み ────────────────────────────────────────────────────
+
+func loadRealEstateFixtures(t *testing.T) realEstateFixtures {
+	t.Helper()
+	data, err := os.ReadFile("../../tests/fixtures/real_estate.json")
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Fatalf("failed to read real_estate.json: %v", err)
 	}
-	if result.TotalWithoutTax != 210_000 {
-		t.Errorf("TotalWithoutTax: got %d, want 210000", result.TotalWithoutTax)
+	var f realEstateFixtures
+	if err := json.Unmarshal(data, &f); err != nil {
+		t.Fatalf("failed to parse real_estate.json: %v", err)
 	}
-	if result.TotalWithTax != 231_000 {
-		t.Errorf("TotalWithTax: got %d, want 231000", result.TotalWithTax)
+	return f
+}
+
+func loadIncomeTaxFixtures(t *testing.T) incomeTaxFixtures {
+	t.Helper()
+	data, err := os.ReadFile("../../tests/fixtures/income_tax.json")
+	if err != nil {
+		t.Fatalf("failed to read income_tax.json: %v", err)
 	}
-	if result.TaxAmount != 21_000 {
-		t.Errorf("TaxAmount: got %d, want 21000", result.TaxAmount)
+	var f incomeTaxFixtures
+	if err := json.Unmarshal(data, &f); err != nil {
+		t.Fatalf("failed to parse income_tax.json: %v", err)
 	}
-	if result.LowCostSpecialApplied {
-		t.Error("LowCostSpecialApplied: got true, want false")
-	}
-	if len(result.Breakdown) != 3 {
-		t.Fatalf("Breakdown length: got %d, want 3", len(result.Breakdown))
-	}
-	if result.Breakdown[0].Result != 100_000 {
-		t.Errorf("tier1 result: got %d, want 100000", result.Breakdown[0].Result)
-	}
-	if result.Breakdown[1].Result != 80_000 {
-		t.Errorf("tier2 result: got %d, want 80000", result.Breakdown[1].Result)
-	}
-	if result.Breakdown[2].Result != 30_000 {
-		t.Errorf("tier3 result: got %d, want 30000", result.Breakdown[2].Result)
+	return f
+}
+
+// ─── 不動産: データ駆動テスト ─────────────────────────────────────────────────
+
+func TestBrokerageFee(t *testing.T) {
+	fixtures := loadRealEstateFixtures(t)
+
+	for _, tc := range fixtures.BrokerageFee {
+		t.Run(tc.ID, func(t *testing.T) {
+			result, err := jlawcore.CalcBrokerageFee(
+				tc.Input.Price,
+				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				tc.Input.IsLowCostVacantHouse,
+			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			exp := tc.Expected
+			if exp.TotalWithoutTax != nil {
+				if result.TotalWithoutTax != *exp.TotalWithoutTax {
+					t.Errorf("TotalWithoutTax: got %d, want %d", result.TotalWithoutTax, *exp.TotalWithoutTax)
+				}
+			}
+			if exp.TaxAmount != nil {
+				if result.TaxAmount != *exp.TaxAmount {
+					t.Errorf("TaxAmount: got %d, want %d", result.TaxAmount, *exp.TaxAmount)
+				}
+			}
+			if exp.TotalWithTax != nil {
+				if result.TotalWithTax != *exp.TotalWithTax {
+					t.Errorf("TotalWithTax: got %d, want %d", result.TotalWithTax, *exp.TotalWithTax)
+				}
+			}
+			if exp.LowCostSpecialApplied != nil {
+				if result.LowCostSpecialApplied != *exp.LowCostSpecialApplied {
+					t.Errorf("LowCostSpecialApplied: got %v, want %v", result.LowCostSpecialApplied, *exp.LowCostSpecialApplied)
+				}
+			}
+			if exp.BreakdownResults != nil {
+				if len(result.Breakdown) != len(exp.BreakdownResults) {
+					t.Fatalf("Breakdown length: got %d, want %d", len(result.Breakdown), len(exp.BreakdownResults))
+				}
+				for i, want := range exp.BreakdownResults {
+					if result.Breakdown[i].Result != want {
+						t.Errorf("Breakdown[%d].Result: got %d, want %d", i, result.Breakdown[i].Result, want)
+					}
+				}
+			}
+		})
 	}
 }
 
-// TestCalcBrokerageFee_LowCostSpecial_8M は低廉な空き家特例（800万円）を検証する。
-//
-// 通常計算:
-//   - tier1: 2,000,000 × 5/100 = 100,000
-//   - tier2: 2,000,000 × 4/100 =  80,000
-//   - tier3: 4,000,000 × 3/100 = 120,000  ← tier3 の対象は (8M - 4M) = 4M 円
-//   - 税抜合計: 300,000
-//
-// 特例適用 (flag=true, 2024-07-01~):
-//   - max(300,000, 330,000) = 330,000（保証額に引き上げ）
-//   - 消費税: 33,000
-//   - 税込合計: 363,000
-func TestCalcBrokerageFee_LowCostSpecial_8M(t *testing.T) {
-	result, err := jlawcore.CalcBrokerageFee(8_000_000, 2024, 8, 1, true)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result.TotalWithoutTax != 330_000 {
-		t.Errorf("TotalWithoutTax: got %d, want 330000", result.TotalWithoutTax)
-	}
-	if result.TotalWithTax != 363_000 {
-		t.Errorf("TotalWithTax: got %d, want 363000", result.TotalWithTax)
-	}
-	if result.TaxAmount != 33_000 {
-		t.Errorf("TaxAmount: got %d, want 33000", result.TaxAmount)
-	}
-	if !result.LowCostSpecialApplied {
-		t.Error("LowCostSpecialApplied: got false, want true")
+// ─── 所得税: データ駆動テスト ─────────────────────────────────────────────────
+
+func TestIncomeTax(t *testing.T) {
+	fixtures := loadIncomeTaxFixtures(t)
+
+	for _, tc := range fixtures.IncomeTax {
+		t.Run(tc.ID, func(t *testing.T) {
+			result, err := jlawcore.CalcIncomeTax(
+				tc.Input.TaxableIncome,
+				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				tc.Input.ApplyReconstructionTax,
+			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			exp := tc.Expected
+			if result.BaseTax != exp.BaseTax {
+				t.Errorf("BaseTax: got %d, want %d", result.BaseTax, exp.BaseTax)
+			}
+			if result.ReconstructionTax != exp.ReconstructionTax {
+				t.Errorf("ReconstructionTax: got %d, want %d", result.ReconstructionTax, exp.ReconstructionTax)
+			}
+			if result.TotalTax != exp.TotalTax {
+				t.Errorf("TotalTax: got %d, want %d", result.TotalTax, exp.TotalTax)
+			}
+			if result.ReconstructionTaxApplied != exp.ReconstructionTaxApplied {
+				t.Errorf("ReconstructionTaxApplied: got %v, want %v", result.ReconstructionTaxApplied, exp.ReconstructionTaxApplied)
+			}
+		})
 	}
 }
 
-// TestCalcBrokerageFee_LowCostSpecialNotApplied は特例フラグなしの場合に通常計算になることを検証する。
-//
-// 計算根拠（8,000,000円、フラグなし）:
-//   - tier1: 2,000,000 × 5/100 = 100,000
-//   - tier2: 2,000,000 × 4/100 =  80,000
-//   - tier3: 4,000,000 × 3/100 = 120,000
-//   - 税抜合計: 300,000
-//   - 消費税: 30,000
-//   - 税込合計: 330,000
-func TestCalcBrokerageFee_LowCostSpecialNotApplied(t *testing.T) {
-	result, err := jlawcore.CalcBrokerageFee(8_000_000, 2024, 8, 1, false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+// ─── 言語固有テスト ──────────────────────────────────────────────────────────
+
+func TestBrokerageFee_ErrorDateOutOfRange(t *testing.T) {
+	_, err := jlawcore.CalcBrokerageFee(5_000_000, 2019, 9, 30, false)
+	if err == nil {
+		t.Fatal("expected error for date out of range, got nil")
 	}
-	if result.TotalWithoutTax != 300_000 {
-		t.Errorf("TotalWithoutTax: got %d, want 300000", result.TotalWithoutTax)
-	}
-	if result.TotalWithTax != 330_000 {
-		t.Errorf("TotalWithTax: got %d, want 330000", result.TotalWithTax)
-	}
-	if result.TaxAmount != 30_000 {
-		t.Errorf("TaxAmount: got %d, want 30000", result.TaxAmount)
-	}
-	if result.LowCostSpecialApplied {
-		t.Error("LowCostSpecialApplied: got true, want false")
+	if !strings.Contains(err.Error(), "2019-09-30") {
+		t.Errorf("error message should contain the invalid date, got: %s", err.Error())
 	}
 }
 
-// TestCalcBrokerageFee_2019 は 2024-07-01 施行前のパラメータを検証する（特例なし）。
-func TestCalcBrokerageFee_2019(t *testing.T) {
-	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2019, 12, 1, false)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if result.TotalWithoutTax != 210_000 {
-		t.Errorf("TotalWithoutTax: got %d, want 210000", result.TotalWithoutTax)
-	}
-	if result.LowCostSpecialApplied {
-		t.Error("LowCostSpecialApplied: should be false for 2019 params")
-	}
-}
-
-// TestCalcBrokerageFee_Breakdown は内訳の基本フィールドを検証する。
-func TestCalcBrokerageFee_Breakdown(t *testing.T) {
+func TestBrokerageFee_BreakdownFields(t *testing.T) {
 	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -138,15 +203,27 @@ func TestCalcBrokerageFee_Breakdown(t *testing.T) {
 	}
 }
 
-// ─── 異常系 ──────────────────────────────────────────────────────────────────
-
-// TestCalcBrokerageFee_DateOutOfRange は対象日が範囲外の場合にエラーを返すことを検証する。
-func TestCalcBrokerageFee_DateOutOfRange(t *testing.T) {
-	_, err := jlawcore.CalcBrokerageFee(5_000_000, 2019, 9, 30, false)
+func TestIncomeTax_ErrorDateOutOfRange(t *testing.T) {
+	_, err := jlawcore.CalcIncomeTax(5_000_000, 2014, 12, 31, true)
 	if err == nil {
 		t.Fatal("expected error for date out of range, got nil")
 	}
-	if !strings.Contains(err.Error(), "2019-09-30") {
-		t.Errorf("error message should contain the invalid date, got: %s", err.Error())
+}
+
+func TestIncomeTax_BreakdownFields(t *testing.T) {
+	result, err := jlawcore.CalcIncomeTax(5_000_000, 2024, 1, 1, true)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Breakdown) == 0 {
+		t.Fatal("Breakdown must not be empty")
+	}
+	for _, step := range result.Breakdown {
+		if step.Label == "" {
+			t.Error("IncomeTaxStep.Label must not be empty")
+		}
+		if step.RateDenom == 0 {
+			t.Error("IncomeTaxStep.RateDenom must not be zero")
+		}
 	}
 }

@@ -7,7 +7,13 @@ use j_law_core::domains::real_estate::{
     policy::StandardMliitPolicy,
     RealEstateFlag,
 };
+use j_law_core::domains::income_tax::{
+    calculator::calculate_income_tax,
+    context::{IncomeTaxContext, IncomeTaxFlag},
+    policy::StandardIncomeTaxPolicy,
+};
 use j_law_registry::load_brokerage_fee_params;
+use j_law_registry::load_income_tax_params;
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
 
@@ -161,6 +167,129 @@ pub unsafe extern "C" fn j_law_calc_brokerage_fee(
         out.breakdown[i].base_amount = step.base_amount;
         out.breakdown[i].rate_numer = step.rate_numer;
         out.breakdown[i].rate_denom = step.rate_denom;
+        out.breakdown[i].result = step.result.as_yen();
+        copy_str_to_fixed_buf(&step.label, &mut out.breakdown[i].label);
+    }
+
+    0
+}
+
+// ─── 所得税 C 互換型定義 ────────────────────────────────────────────────────────
+
+/// 所得税の計算内訳（速算表の適用結果・C 互換）。
+#[repr(C)]
+pub struct JLawIncomeTaxStep {
+    /// ラベル（NUL 終端・最大 63 文字）。
+    pub label: [c_char; J_LAW_LABEL_LEN],
+    /// 課税所得金額（円）。
+    pub taxable_income: u64,
+    pub rate_numer: u64,
+    pub rate_denom: u64,
+    /// 速算表の控除額（円）。
+    pub deduction: u64,
+    /// 算出税額（円）。
+    pub result: u64,
+}
+
+/// 所得税の計算結果（C 互換）。
+#[repr(C)]
+pub struct JLawIncomeTaxResult {
+    /// 基準所得税額（円）。
+    pub base_tax: u64,
+    /// 復興特別所得税額（円）。
+    pub reconstruction_tax: u64,
+    /// 申告納税額（円・100円未満切り捨て）。
+    pub total_tax: u64,
+    /// 復興特別所得税が適用されたか（0 = false, 1 = true）。
+    pub reconstruction_tax_applied: c_int,
+    /// 計算内訳。
+    pub breakdown: [JLawIncomeTaxStep; J_LAW_MAX_TIERS],
+    /// breakdown の有効件数。
+    pub breakdown_len: c_int,
+}
+
+// ─── 所得税 C FFI 公開関数 ──────────────────────────────────────────────────────
+
+/// 所得税法第89条に基づく所得税額を計算する。
+///
+/// # 法的根拠
+/// 所得税法 第89条第1項 / 復興財源確保法 第13条
+///
+/// # 引数
+/// - `taxable_income`: 課税所得金額（円）
+/// - `year`, `month`, `day`: 基準日
+/// - `apply_reconstruction_tax`: 復興特別所得税を適用するか（0 = false, 非0 = true）
+/// - `out_result`: [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
+/// - `error_buf`: [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
+/// - `error_buf_len`: `error_buf` のバイト長（推奨: `J_LAW_ERROR_BUF_LEN` = 256）
+///
+/// # 戻り値
+/// - `0`: 成功。`out_result` にデータが書き込まれている。
+/// - `非0`: 失敗。`error_buf` に NUL 終端エラーメッセージが書き込まれている。
+///
+/// # Safety
+/// - `out_result` は呼び出し元が所有する有効なポインタであること。
+/// - `error_buf` は `error_buf_len` バイト以上の領域を指していること。
+/// - `error_buf_len` は 1 以上であること。
+#[no_mangle]
+pub unsafe extern "C" fn j_law_calc_income_tax(
+    taxable_income: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    apply_reconstruction_tax: c_int,
+    out_result: *mut JLawIncomeTaxResult,
+    error_buf: *mut c_char,
+    error_buf_len: c_int,
+) -> c_int {
+    if out_result.is_null() || error_buf.is_null() || error_buf_len <= 0 {
+        return -1;
+    }
+
+    // パラメータロード
+    let params = match load_income_tax_params((year, month, day)) {
+        Ok(p) => p,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    // フラグ構築
+    let mut flags = HashSet::new();
+    if apply_reconstruction_tax != 0 {
+        flags.insert(IncomeTaxFlag::ApplyReconstructionTax);
+    }
+
+    let ctx = IncomeTaxContext {
+        taxable_income,
+        target_date: (year, month, day),
+        flags,
+        policy: Box::new(StandardIncomeTaxPolicy),
+    };
+
+    // 計算実行
+    let result = match calculate_income_tax(&ctx, &params) {
+        Ok(r) => r,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    // 結果を out_result に書き込む
+    let out = &mut *out_result;
+    out.base_tax = result.base_tax.as_yen();
+    out.reconstruction_tax = result.reconstruction_tax.as_yen();
+    out.total_tax = result.total_tax.as_yen();
+    out.reconstruction_tax_applied = if result.reconstruction_tax_applied { 1 } else { 0 };
+    out.breakdown_len = result.breakdown.len().min(J_LAW_MAX_TIERS) as c_int;
+
+    for (i, step) in result.breakdown.iter().take(J_LAW_MAX_TIERS).enumerate() {
+        out.breakdown[i].taxable_income = step.taxable_income;
+        out.breakdown[i].rate_numer = step.rate_numer;
+        out.breakdown[i].rate_denom = step.rate_denom;
+        out.breakdown[i].deduction = step.deduction;
         out.breakdown[i].result = step.result.as_yen();
         copy_str_to_fixed_buf(&step.label, &mut out.breakdown[i].label);
     }

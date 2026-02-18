@@ -1,0 +1,40 @@
+services:
+  test-rust:
+    build:
+      context: .
+      target: test-rust
+
+  test-python:
+    build:
+      context: .
+      target: test-python
+
+  test-wasm:
+    build:
+      context: .
+      target: test-wasm
+
+  test-ruby:
+    build:
+      context: .
+      target: test-ruby
+
+  test-go:
+    build:
+      context: .
+      target: test-go
+
+  test-all:
+    depends_on:
+      test-rust:
+        condition: service_completed_successfully
+      test-python:
+        condition: service_completed_successfully
+      test-wasm:
+        condition: service_completed_successfully
+      test-ruby:
+        condition: service_completed_successfully
+      test-go:
+        condition: service_completed_successfully
+    image: busybox
+    command: echo "All tests passed!"

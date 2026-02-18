@@ -1,4 +1,4 @@
-// Package jlawcore は、宅建業法第46条に基づく媒介報酬計算を提供する。
+// Package jlawcore は、日本の法令に基づく各種計算を提供する。
 //
 // j-law-cgo（Rust staticlib）を CGo 経由で静的リンクしている。
 // 使用前に `make build-rust` を実行して静的ライブラリをビルドすること。
@@ -10,6 +10,12 @@
 //	    log.Fatal(err)
 //	}
 //	fmt.Println(result.TotalWithTax) // 231000
+//
+//	taxResult, err := jlawcore.CalcIncomeTax(5_000_000, 2024, 1, 1, true)
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	fmt.Println(taxResult.TotalTax) // 584500
 package jlawcore
 
 // #cgo CFLAGS: -I${SRCDIR}/../j-law-cgo
@@ -95,7 +101,105 @@ func CalcBrokerageFee(
 	return toGoResult(&cResult), nil
 }
 
+// ─── 所得税 Go 公開型 ───────────────────────────────────────────────────────────
+
+// IncomeTaxStep は所得税の計算内訳（速算表の適用結果）を表す。
+type IncomeTaxStep struct {
+	// Label は内訳の名称。
+	Label string
+	// TaxableIncome は課税所得金額（円）。
+	TaxableIncome uint64
+	RateNumer     uint64
+	RateDenom     uint64
+	// Deduction は速算表の控除額（円）。
+	Deduction uint64
+	// Result は算出税額（円）。
+	Result uint64
+}
+
+// IncomeTaxResult は所得税の計算結果を表す。
+type IncomeTaxResult struct {
+	// BaseTax は基準所得税額（円）。
+	BaseTax uint64
+	// ReconstructionTax は復興特別所得税額（円）。
+	ReconstructionTax uint64
+	// TotalTax は申告納税額（円・100円未満切り捨て）。
+	TotalTax uint64
+	// ReconstructionTaxApplied は復興特別所得税が適用されたかを示す。
+	ReconstructionTaxApplied bool
+	// Breakdown は計算内訳。
+	Breakdown []IncomeTaxStep
+}
+
+// ─── 所得税 Go 公開関数 ─────────────────────────────────────────────────────────
+
+// CalcIncomeTax は所得税法第89条に基づく所得税額を計算する。
+//
+// 法的根拠: 所得税法 第89条第1項 / 復興財源確保法 第13条
+//
+// 引数:
+//   - taxableIncome: 課税所得金額（円）
+//   - year, month, day: 基準日
+//   - applyReconstructionTax: 復興特別所得税を適用するか
+//
+// エラー: 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合。
+func CalcIncomeTax(
+	taxableIncome uint64,
+	year, month, day int,
+	applyReconstructionTax bool,
+) (*IncomeTaxResult, error) {
+	var cResult C.JLawIncomeTaxResult
+	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
+	defer C.free(unsafe.Pointer(errorBuf))
+
+	applyFlag := C.int(0)
+	if applyReconstructionTax {
+		applyFlag = 1
+	}
+
+	ret := C.j_law_calc_income_tax(
+		C.uint64_t(taxableIncome),
+		C.uint16_t(year),
+		C.uint8_t(month),
+		C.uint8_t(day),
+		applyFlag,
+		&cResult,
+		errorBuf,
+		C.J_LAW_ERROR_BUF_LEN,
+	)
+	if ret != 0 {
+		return nil, errors.New(C.GoString(errorBuf))
+	}
+
+	return toGoIncomeTaxResult(&cResult), nil
+}
+
 // ─── 内部変換 ───────────────────────────────────────────────────────────────────
+
+// toGoIncomeTaxResult は所得税の C 構造体を Go 構造体に変換する。
+func toGoIncomeTaxResult(c *C.JLawIncomeTaxResult) *IncomeTaxResult {
+	breakdownLen := int(c.breakdown_len)
+	breakdown := make([]IncomeTaxStep, breakdownLen)
+	for i := 0; i < breakdownLen; i++ {
+		step := &c.breakdown[i]
+		breakdown[i] = IncomeTaxStep{
+			Label:         C.GoString(&step.label[0]),
+			TaxableIncome: uint64(step.taxable_income),
+			RateNumer:     uint64(step.rate_numer),
+			RateDenom:     uint64(step.rate_denom),
+			Deduction:     uint64(step.deduction),
+			Result:        uint64(step.result),
+		}
+	}
+
+	return &IncomeTaxResult{
+		BaseTax:                  uint64(c.base_tax),
+		ReconstructionTax:        uint64(c.reconstruction_tax),
+		TotalTax:                 uint64(c.total_tax),
+		ReconstructionTaxApplied: c.reconstruction_tax_applied != 0,
+		Breakdown:                breakdown,
+	}
+}
 
 // toGoResult は C 構造体を Go 構造体に変換する。
 func toGoResult(c *C.JLawBrokerageFeeResult) *BrokerageFeeResult {

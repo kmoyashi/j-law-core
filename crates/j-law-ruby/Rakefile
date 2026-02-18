@@ -1,10 +1,17 @@
 # frozen_string_literal: true
 
 require "rake/extensiontask"
+require "rake/testtask"
 require "rb_sys/extensiontask"
 
 RbSys::ExtensionTask.new("j_law_core", Gem::Specification.load("j_law_core.gemspec")) do |ext|
   ext.lib_dir = "lib/j_law_core"
 end
 
-task default: :compile
+Rake::TestTask.new(:test) do |t|
+  t.libs << "lib"
+  t.test_files = FileList["test/test_*.rb"]
+end
+
+task test: :compile
+task default: :test

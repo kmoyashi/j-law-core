@@ -81,6 +81,70 @@ int j_law_calc_brokerage_fee(
     int      error_buf_len
 );
 
+/* ─── 所得税 構造体 ───────────────────────────────────────────────────────── */
+
+/**
+ * 所得税の計算内訳（速算表の適用結果）。
+ */
+typedef struct {
+    /** ラベル（NUL 終端・最大 63 文字）。 */
+    char     label[J_LAW_LABEL_LEN];
+    /** 課税所得金額（円）。 */
+    uint64_t taxable_income;
+    uint64_t rate_numer;
+    uint64_t rate_denom;
+    /** 速算表の控除額（円）。 */
+    uint64_t deduction;
+    /** 算出税額（円）。 */
+    uint64_t result;
+} JLawIncomeTaxStep;
+
+/**
+ * 所得税の計算結果。
+ */
+typedef struct {
+    /** 基準所得税額（円）。 */
+    uint64_t base_tax;
+    /** 復興特別所得税額（円）。 */
+    uint64_t reconstruction_tax;
+    /** 申告納税額（円・100円未満切り捨て）。 */
+    uint64_t total_tax;
+    /** 復興特別所得税が適用されたか（0 = false, 1 = true）。 */
+    int      reconstruction_tax_applied;
+    /** 計算内訳（breakdown_len 件が有効）。 */
+    JLawIncomeTaxStep breakdown[J_LAW_MAX_TIERS];
+    /** breakdown の有効件数。 */
+    int      breakdown_len;
+} JLawIncomeTaxResult;
+
+/* ─── 所得税 関数 ─────────────────────────────────────────────────────────── */
+
+/**
+ * 所得税法第89条に基づく所得税額を計算する。
+ *
+ * 法的根拠: 所得税法 第89条第1項 / 復興財源確保法 第13条
+ *
+ * @param taxable_income          課税所得金額（円）
+ * @param year                    対象年度（年）
+ * @param month                   基準日（月）
+ * @param day                     基準日（日）
+ * @param apply_reconstruction_tax 復興特別所得税を適用するか（0 = false, 非0 = true）
+ * @param out_result              [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
+ * @param error_buf               [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
+ * @param error_buf_len           error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
+ * @return                        成功時 0、失敗時 非0
+ */
+int j_law_calc_income_tax(
+    uint64_t taxable_income,
+    uint16_t year,
+    uint8_t  month,
+    uint8_t  day,
+    int      apply_reconstruction_tax,
+    JLawIncomeTaxResult *out_result,
+    char    *error_buf,
+    int      error_buf_len
+);
+
 #ifdef __cplusplus
 }
 #endif

@@ -8,9 +8,17 @@ use ::j_law_core::domains::real_estate::{
     policy::StandardMliitPolicy,
     RealEstateFlag,
 };
+use ::j_law_core::domains::income_tax::{
+    calculator::calculate_income_tax,
+    context::{IncomeTaxContext, IncomeTaxFlag},
+    policy::StandardIncomeTaxPolicy,
+};
 use ::j_law_registry::load_brokerage_fee_params;
+use ::j_law_registry::load_income_tax_params;
 
-// ─── Python公開型 ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  不動産（宅建業法）
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /// 1ティアの計算内訳。
 #[pyclass]
@@ -74,8 +82,6 @@ impl BrokerageFeeResult {
         )
     }
 }
-
-// ─── Python公開関数 ────────────────────────────────────────────────────────────
 
 /// 宅建業法第46条に基づく媒介報酬を計算する。
 ///
@@ -143,15 +149,174 @@ fn calc_brokerage_fee(
     })
 }
 
-// ─── モジュール定義 ────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  所得税
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// 所得税の計算内訳（速算表の適用結果）。
+#[pyclass]
+#[derive(Clone)]
+struct IncomeTaxStep {
+    #[pyo3(get)]
+    label: String,
+    /// 課税所得金額（円）
+    #[pyo3(get)]
+    taxable_income: u64,
+    #[pyo3(get)]
+    rate_numer: u64,
+    #[pyo3(get)]
+    rate_denom: u64,
+    /// 速算表の控除額（円）
+    #[pyo3(get)]
+    deduction: u64,
+    /// 算出税額（円）
+    #[pyo3(get)]
+    result: u64,
+}
+
+#[pymethods]
+impl IncomeTaxStep {
+    fn __repr__(&self) -> String {
+        format!(
+            "IncomeTaxStep(label={:?}, taxable_income={}, rate={}/{}, deduction={}, result={})",
+            self.label, self.taxable_income, self.rate_numer, self.rate_denom,
+            self.deduction, self.result
+        )
+    }
+}
+
+/// 所得税の計算結果。
+///
+/// Attributes:
+///     base_tax (int): 基準所得税額（円）
+///     reconstruction_tax (int): 復興特別所得税額（円）
+///     total_tax (int): 申告納税額（円・100円未満切り捨て）
+///     reconstruction_tax_applied (bool): 復興特別所得税が適用されたか
+///     breakdown (list[IncomeTaxStep]): 計算内訳
+#[pyclass]
+struct IncomeTaxResult {
+    #[pyo3(get)]
+    base_tax: u64,
+    #[pyo3(get)]
+    reconstruction_tax: u64,
+    #[pyo3(get)]
+    total_tax: u64,
+    #[pyo3(get)]
+    reconstruction_tax_applied: bool,
+    #[pyo3(get)]
+    breakdown: Vec<IncomeTaxStep>,
+}
+
+#[pymethods]
+impl IncomeTaxResult {
+    fn __repr__(&self) -> String {
+        format!(
+            "IncomeTaxResult(base_tax={}, reconstruction_tax={}, total_tax={}, reconstruction_tax_applied={})",
+            self.base_tax,
+            self.reconstruction_tax,
+            self.total_tax,
+            self.reconstruction_tax_applied,
+        )
+    }
+}
+
+/// 所得税法第89条に基づく所得税額を計算する。
+///
+/// # 法的根拠
+/// 所得税法 第89条第1項 / 復興財源確保法 第13条
+///
+/// Args:
+///     taxable_income (int): 課税所得金額（円・1,000円未満切り捨て済み）
+///     year (int): 対象年度（年）
+///     month (int): 基準日（月）
+///     day (int): 基準日（日）
+///     apply_reconstruction_tax (bool): 復興特別所得税を適用するか（デフォルト: True）
+///
+/// Returns:
+///     IncomeTaxResult
+///
+/// Raises:
+///     ValueError: 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合
+#[pyfunction]
+#[pyo3(signature = (taxable_income, year, month, day, apply_reconstruction_tax=true))]
+fn calc_income_tax(
+    taxable_income: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    apply_reconstruction_tax: bool,
+) -> PyResult<IncomeTaxResult> {
+    let params = load_income_tax_params((year, month, day))
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+    let mut flags = HashSet::new();
+    if apply_reconstruction_tax {
+        flags.insert(IncomeTaxFlag::ApplyReconstructionTax);
+    }
+
+    let ctx = IncomeTaxContext {
+        taxable_income,
+        target_date: (year, month, day),
+        flags,
+        policy: Box::new(StandardIncomeTaxPolicy),
+    };
+
+    let result = calculate_income_tax(&ctx, &params)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+    let breakdown = result
+        .breakdown
+        .iter()
+        .map(|step| IncomeTaxStep {
+            label: step.label.clone(),
+            taxable_income: step.taxable_income,
+            rate_numer: step.rate_numer,
+            rate_denom: step.rate_denom,
+            deduction: step.deduction,
+            result: step.result.as_yen(),
+        })
+        .collect();
+
+    Ok(IncomeTaxResult {
+        base_tax: result.base_tax.as_yen(),
+        reconstruction_tax: result.reconstruction_tax.as_yen(),
+        total_tax: result.total_tax.as_yen(),
+        reconstruction_tax_applied: result.reconstruction_tax_applied,
+        breakdown,
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  モジュール定義
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /// 不動産ドメイン（宅建業法）サブモジュール。
 fn register_real_estate(parent: &Bound<'_, PyModule>) -> PyResult<()> {
-    let m = PyModule::new_bound(parent.py(), "real_estate")?;
+    let py = parent.py();
+    let m = PyModule::new_bound(py, "real_estate")?;
     m.add_class::<BrokerageFeeResult>()?;
     m.add_class::<BreakdownStep>()?;
     m.add_function(wrap_pyfunction!(calc_brokerage_fee, &m)?)?;
     parent.add_submodule(&m)?;
+    // sys.modules に登録して `from j_law_core.real_estate import ...` を有効にする
+    py.import_bound("sys")?
+        .getattr("modules")?
+        .set_item("j_law_core.real_estate", &m)?;
+    Ok(())
+}
+
+/// 所得税ドメインサブモジュール。
+fn register_income_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
+    let py = parent.py();
+    let m = PyModule::new_bound(py, "income_tax")?;
+    m.add_class::<IncomeTaxResult>()?;
+    m.add_class::<IncomeTaxStep>()?;
+    m.add_function(wrap_pyfunction!(calc_income_tax, &m)?)?;
+    parent.add_submodule(&m)?;
+    // sys.modules に登録して `from j_law_core.income_tax import ...` を有効にする
+    py.import_bound("sys")?
+        .getattr("modules")?
+        .set_item("j_law_core.income_tax", &m)?;
     Ok(())
 }
 
@@ -163,10 +328,15 @@ fn register_real_estate(parent: &Bound<'_, PyModule>) -> PyResult<()> {
 ///     result = j_law_core.real_estate.calc_brokerage_fee(
 ///         price=5_000_000, year=2024, month=8, day=1
 ///     )
-///     print(result.total_without_tax)  # 210000
 ///     print(result.total_with_tax)     # 231000
+///
+///     result = j_law_core.income_tax.calc_income_tax(
+///         taxable_income=5_000_000, year=2024, month=1, day=1
+///     )
+///     print(result.total_tax)          # 584500
 #[pymodule]
 fn j_law_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     register_real_estate(m)?;
+    register_income_tax(m)?;
     Ok(())
 }

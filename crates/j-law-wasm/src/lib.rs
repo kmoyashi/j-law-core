@@ -9,9 +9,17 @@ use ::j_law_core::domains::real_estate::{
     policy::StandardMliitPolicy,
     RealEstateFlag,
 };
+use ::j_law_core::domains::income_tax::{
+    calculator::calculate_income_tax,
+    context::{IncomeTaxContext, IncomeTaxFlag},
+    policy::StandardIncomeTaxPolicy,
+};
 use ::j_law_registry::load_brokerage_fee_params;
+use ::j_law_registry::load_income_tax_params;
 
-// ─── JavaScript公開型 ──────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+//  不動産（宅建業法）
+// ═══════════════════════════════════════════════════════════════════════════════
 
 /// 媒介報酬の計算結果。
 ///
@@ -31,12 +39,9 @@ pub struct BrokerageFeeResult {
     total_with_tax: u32,
     tax_amount: u32,
     low_cost_special_applied: bool,
-    // breakdown は Vec<T> をそのまま JS に返せないため、内部データとして保持し
-    // breakdown() メソッドで Plain JS オブジェクトの配列に変換して返す。
     breakdown_data: Vec<BreakdownStepData>,
 }
 
-/// breakdown() で使う内部データ型（wasm_bindgen 不要）。
 struct BreakdownStepData {
     label: String,
     base_amount: u32,
@@ -47,44 +52,31 @@ struct BreakdownStepData {
 
 #[wasm_bindgen]
 impl BrokerageFeeResult {
-    /// 税抜合計額（円）
     #[wasm_bindgen(getter, js_name = "totalWithoutTax")]
     pub fn total_without_tax(&self) -> u32 {
         self.total_without_tax
     }
 
-    /// 税込合計額（円）
     #[wasm_bindgen(getter, js_name = "totalWithTax")]
     pub fn total_with_tax(&self) -> u32 {
         self.total_with_tax
     }
 
-    /// 消費税額（円）
     #[wasm_bindgen(getter, js_name = "taxAmount")]
     pub fn tax_amount(&self) -> u32 {
         self.tax_amount
     }
 
-    /// 低廉な空き家特例が適用されたか
     #[wasm_bindgen(getter, js_name = "lowCostSpecialApplied")]
     pub fn low_cost_special_applied(&self) -> bool {
         self.low_cost_special_applied
     }
 
-    /// 各ティアの計算内訳を Plain JS オブジェクトの配列で返す。
-    ///
-    /// 各オブジェクトのプロパティ:
-    /// - `label`: string
-    /// - `baseAmount`: number（ティア対象金額・円）
-    /// - `rateNumer`: number
-    /// - `rateDenom`: number
-    /// - `result`: number（ティア計算結果・円）
     pub fn breakdown(&self) -> Array {
         self.breakdown_data
             .iter()
             .map(|step| {
                 let obj = js_sys::Object::new();
-                // plain object への文字列キー設定は失敗しないため _ で無視する
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("label"),
@@ -116,21 +108,6 @@ impl BrokerageFeeResult {
     }
 }
 
-// ─── JavaScript公開関数 ────────────────────────────────────────────────────────
-
-/// 宅建業法第46条に基づく媒介報酬を計算する。
-///
-/// # 法的根拠
-/// 宅地建物取引業法 第46条第1項 / 国土交通省告示
-///
-/// @param price - 売買価格（円）※ u32 上限: 約42.9億円
-/// @param year - 基準日（年）
-/// @param month - 基準日（月）
-/// @param day - 基準日（日）
-/// @param isLowCostVacantHouse - 低廉な空き家特例フラグ（デフォルト: false）
-///   WARNING: 対象物件が「低廉な空き家」に該当するかの事実認定は呼び出し元の責任。
-/// @returns BrokerageFeeResult
-/// @throws 売買価格が不正、または対象日に有効な法令パラメータが存在しない場合
 #[wasm_bindgen(js_name = "calcBrokerageFee")]
 pub fn calc_brokerage_fee(
     price: u32,
@@ -174,6 +151,156 @@ pub fn calc_brokerage_fee(
         total_with_tax: result.total_with_tax.as_yen() as u32,
         tax_amount: result.tax_amount.as_yen() as u32,
         low_cost_special_applied: result.low_cost_special_applied,
+        breakdown_data,
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  所得税
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// 所得税の計算結果。
+///
+/// Properties:
+/// - `baseTax`: 基準所得税額（円）
+/// - `reconstructionTax`: 復興特別所得税額（円）
+/// - `totalTax`: 申告納税額（円・100円未満切り捨て）
+/// - `reconstructionTaxApplied`: 復興特別所得税が適用されたか
+/// - `breakdown()`: 計算内訳（`{ label, taxableIncome, rateNumer, rateDenom, deduction, result }[]`）
+#[wasm_bindgen]
+pub struct IncomeTaxResult {
+    base_tax: u32,
+    reconstruction_tax: u32,
+    total_tax: u32,
+    reconstruction_tax_applied: bool,
+    breakdown_data: Vec<IncomeTaxStepData>,
+}
+
+struct IncomeTaxStepData {
+    label: String,
+    taxable_income: u32,
+    rate_numer: u32,
+    rate_denom: u32,
+    deduction: u32,
+    result: u32,
+}
+
+#[wasm_bindgen]
+impl IncomeTaxResult {
+    #[wasm_bindgen(getter, js_name = "baseTax")]
+    pub fn base_tax(&self) -> u32 {
+        self.base_tax
+    }
+
+    #[wasm_bindgen(getter, js_name = "reconstructionTax")]
+    pub fn reconstruction_tax(&self) -> u32 {
+        self.reconstruction_tax
+    }
+
+    #[wasm_bindgen(getter, js_name = "totalTax")]
+    pub fn total_tax(&self) -> u32 {
+        self.total_tax
+    }
+
+    #[wasm_bindgen(getter, js_name = "reconstructionTaxApplied")]
+    pub fn reconstruction_tax_applied(&self) -> bool {
+        self.reconstruction_tax_applied
+    }
+
+    pub fn breakdown(&self) -> Array {
+        self.breakdown_data
+            .iter()
+            .map(|step| {
+                let obj = js_sys::Object::new();
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("label"),
+                    &JsValue::from_str(&step.label),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("taxableIncome"),
+                    &JsValue::from_f64(step.taxable_income as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("rateNumer"),
+                    &JsValue::from_f64(step.rate_numer as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("rateDenom"),
+                    &JsValue::from_f64(step.rate_denom as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("deduction"),
+                    &JsValue::from_f64(step.deduction as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("result"),
+                    &JsValue::from_f64(step.result as f64),
+                );
+                JsValue::from(obj)
+            })
+            .collect()
+    }
+}
+
+/// 所得税法第89条に基づく所得税額を計算する。
+///
+/// @param taxableIncome - 課税所得金額（円）
+/// @param year - 対象年度（年）
+/// @param month - 基準日（月）
+/// @param day - 基準日（日）
+/// @param applyReconstructionTax - 復興特別所得税を適用するか
+/// @returns IncomeTaxResult
+/// @throws 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合
+#[wasm_bindgen(js_name = "calcIncomeTax")]
+pub fn calc_income_tax(
+    taxable_income: u32,
+    year: u16,
+    month: u8,
+    day: u8,
+    apply_reconstruction_tax: bool,
+) -> Result<IncomeTaxResult, JsValue> {
+    let params = load_income_tax_params((year, month, day))
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let mut flags = HashSet::new();
+    if apply_reconstruction_tax {
+        flags.insert(IncomeTaxFlag::ApplyReconstructionTax);
+    }
+
+    let ctx = IncomeTaxContext {
+        taxable_income: taxable_income as u64,
+        target_date: (year, month, day),
+        flags,
+        policy: Box::new(StandardIncomeTaxPolicy),
+    };
+
+    let result = calculate_income_tax(&ctx, &params)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let breakdown_data = result
+        .breakdown
+        .iter()
+        .map(|step| IncomeTaxStepData {
+            label: step.label.clone(),
+            taxable_income: step.taxable_income as u32,
+            rate_numer: step.rate_numer as u32,
+            rate_denom: step.rate_denom as u32,
+            deduction: step.deduction as u32,
+            result: step.result.as_yen() as u32,
+        })
+        .collect();
+
+    Ok(IncomeTaxResult {
+        base_tax: result.base_tax.as_yen() as u32,
+        reconstruction_tax: result.reconstruction_tax.as_yen() as u32,
+        total_tax: result.total_tax.as_yen() as u32,
+        reconstruction_tax_applied: result.reconstruction_tax_applied,
         breakdown_data,
     })
 }

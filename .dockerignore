@@ -1,0 +1,11 @@
+target/
+.git/
+.venv/
+__pycache__/
+crates/j-law-wasm/pkg/
+crates/j-law-ruby/tmp/
+crates/j-law-ruby/.bundle/
+.claude/
+docs/
+*.md
+!crates/**/README.md

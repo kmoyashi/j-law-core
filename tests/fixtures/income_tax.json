@@ -1,0 +1,154 @@
+{
+  "income_tax": [
+    {
+      "id": "bracket1_1m",
+      "description": "課税所得 1,000,000円（税率5%・控除0円・復興税あり）",
+      "input": {
+        "taxable_income": 1000000,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 50000,
+        "reconstruction_tax": 1050,
+        "total_tax": 51000,
+        "reconstruction_tax_applied": true
+      }
+    },
+    {
+      "id": "bracket3_5m",
+      "description": "課税所得 5,000,000円（税率20%・控除427,500円・復興税あり）",
+      "input": {
+        "taxable_income": 5000000,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 572500,
+        "reconstruction_tax": 12022,
+        "total_tax": 584500,
+        "reconstruction_tax_applied": true
+      }
+    },
+    {
+      "id": "bracket4_8m",
+      "description": "課税所得 8,000,000円（税率23%・控除636,000円・復興税あり）",
+      "input": {
+        "taxable_income": 8000000,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 1204000,
+        "reconstruction_tax": 25284,
+        "total_tax": 1229200,
+        "reconstruction_tax_applied": true
+      }
+    },
+    {
+      "id": "bracket5_10m",
+      "description": "課税所得 10,000,000円（税率33%・控除1,536,000円・復興税あり）",
+      "input": {
+        "taxable_income": 10000000,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 1764000,
+        "reconstruction_tax": 37044,
+        "total_tax": 1801000,
+        "reconstruction_tax_applied": true
+      }
+    },
+    {
+      "id": "bracket6_20m",
+      "description": "課税所得 20,000,000円（税率40%・控除2,796,000円・復興税あり）",
+      "input": {
+        "taxable_income": 20000000,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 5204000,
+        "reconstruction_tax": 109284,
+        "total_tax": 5313200,
+        "reconstruction_tax_applied": true
+      }
+    },
+    {
+      "id": "bracket7_50m",
+      "description": "課税所得 50,000,000円（税率45%・控除4,796,000円・復興税あり）",
+      "input": {
+        "taxable_income": 50000000,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 17704000,
+        "reconstruction_tax": 371784,
+        "total_tax": 18075700,
+        "reconstruction_tax_applied": true
+      }
+    },
+    {
+      "id": "no_reconstruction_5m",
+      "description": "課税所得 5,000,000円（復興特別所得税なし）",
+      "input": {
+        "taxable_income": 5000000,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 572500,
+        "reconstruction_tax": 0,
+        "total_tax": 572500,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "zero_income",
+      "description": "課税所得 0円（全て0）",
+      "input": {
+        "taxable_income": 0,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 0,
+        "reconstruction_tax": 0,
+        "total_tax": 0,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "bracket1_upper_195m",
+      "description": "課税所得 1,950,000円（第1段階上限境界）",
+      "input": {
+        "taxable_income": 1950000,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 97500,
+        "reconstruction_tax": 2047,
+        "total_tax": 99500,
+        "reconstruction_tax_applied": true
+      }
+    },
+    {
+      "id": "bracket2_lower_195m_plus1",
+      "description": "課税所得 1,950,001円（第2段階下限境界）",
+      "input": {
+        "taxable_income": 1950001,
+        "year": 2024, "month": 1, "day": 1,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 97500,
+        "reconstruction_tax": 2047,
+        "total_tax": 99500,
+        "reconstruction_tax_applied": true
+      }
+    }
+  ]
+}

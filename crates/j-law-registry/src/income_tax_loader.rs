@@ -1,0 +1,105 @@
+use crate::income_tax_schema::{IncomeTaxHistoryEntry, IncomeTaxRegistry};
+use j_law_core::domains::income_tax::params::{
+    IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams,
+};
+use j_law_core::{InputError, JLawError, RegistryError};
+
+/// `income_tax.json` をロードして `target_date` に対応するパラメータを返す。
+///
+/// # 法的根拠
+/// 所得税法 第89条第1項
+///
+/// # エラー
+/// - `target_date` がどの有効期間にも該当しない → `InputError::DateOutOfRange`
+pub fn load_income_tax_params(
+    target_date: (u16, u8, u8),
+) -> Result<IncomeTaxParams, JLawError> {
+    let json_str = include_str!("../data/income_tax/income_tax.json");
+
+    let registry: IncomeTaxRegistry =
+        serde_json::from_str(json_str).map_err(|e| RegistryError::FileNotFound {
+            path: format!("income_tax/income_tax.json: {}", e),
+        })?;
+
+    let date_str = format!(
+        "{:04}-{:02}-{:02}",
+        target_date.0, target_date.1, target_date.2
+    );
+
+    let entry = find_entry(&registry, &date_str).ok_or_else(|| InputError::DateOutOfRange {
+        date: date_str.clone(),
+    })?;
+
+    Ok(to_params(entry))
+}
+
+fn find_entry<'a>(registry: &'a IncomeTaxRegistry, date_str: &str) -> Option<&'a IncomeTaxHistoryEntry> {
+    registry.history.iter().find(|entry| {
+        let from_ok = entry.effective_from.as_str() <= date_str;
+        let until_ok = match &entry.effective_until {
+            Some(until) => date_str <= until.as_str(),
+            None => true,
+        };
+        from_ok && until_ok
+    })
+}
+
+fn to_params(entry: &IncomeTaxHistoryEntry) -> IncomeTaxParams {
+    let brackets = entry
+        .params
+        .brackets
+        .iter()
+        .map(|b| IncomeTaxBracket {
+            label: b.label.clone(),
+            income_from: b.income_from,
+            income_to_inclusive: b.income_to_inclusive,
+            rate_numer: b.rate.numer,
+            rate_denom: b.rate.denom,
+            deduction: b.deduction,
+        })
+        .collect();
+
+    let reconstruction_tax = entry.params.reconstruction_tax.as_ref().map(|rt| {
+        ReconstructionTaxParams {
+            rate_numer: rt.rate.numer,
+            rate_denom: rt.rate.denom,
+            effective_from_year: rt.effective_from_year,
+            effective_to_year_inclusive: rt.effective_to_year_inclusive,
+        }
+    });
+
+    IncomeTaxParams {
+        brackets,
+        reconstruction_tax,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn load_2024_params() {
+        let params = load_income_tax_params((2024, 1, 1)).unwrap();
+        assert_eq!(params.brackets.len(), 7);
+        assert!(params.reconstruction_tax.is_some());
+        let rt = params.reconstruction_tax.unwrap();
+        assert_eq!(rt.rate_numer, 21);
+        assert_eq!(rt.rate_denom, 1000);
+    }
+
+    #[test]
+    fn load_2015_params() {
+        let params = load_income_tax_params((2015, 1, 1)).unwrap();
+        assert_eq!(params.brackets.len(), 7);
+    }
+
+    #[test]
+    fn date_out_of_range_returns_error() {
+        let result = load_income_tax_params((2014, 12, 31));
+        assert!(matches!(
+            result,
+            Err(JLawError::Input(InputError::DateOutOfRange { .. }))
+        ));
+    }
+}

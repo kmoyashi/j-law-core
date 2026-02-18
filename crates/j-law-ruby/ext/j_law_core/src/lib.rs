@@ -8,7 +8,13 @@ use ::j_law_core::domains::real_estate::{
     policy::StandardMliitPolicy,
     RealEstateFlag,
 };
+use ::j_law_core::domains::income_tax::{
+    calculator::calculate_income_tax,
+    context::{IncomeTaxContext, IncomeTaxFlag},
+    policy::StandardIncomeTaxPolicy,
+};
 use ::j_law_registry::load_brokerage_fee_params;
+use ::j_law_registry::load_income_tax_params;
 
 fn into_runtime_error<E: std::fmt::Debug>(e: E) -> Error {
     Error::new(magnus::exception::runtime_error(), format!("{e:?}"))
@@ -157,6 +163,150 @@ fn calc_brokerage_fee(
     })
 }
 
+// ─── 所得税 内部データ型 ──────────────────────────────────────────────────────
+
+struct IncomeTaxStepData {
+    label: String,
+    taxable_income: u64,
+    rate_numer: u64,
+    rate_denom: u64,
+    deduction: u64,
+    result: u64,
+}
+
+// ─── 所得税 Ruby公開型 ──────────────────────────────────────────────────────────
+
+/// 所得税の計算結果。
+///
+/// メソッド:
+/// - `base_tax` → Integer（基準所得税額・円）
+/// - `reconstruction_tax` → Integer（復興特別所得税額・円）
+/// - `total_tax` → Integer（申告納税額・円・100円未満切り捨て）
+/// - `reconstruction_tax_applied?` → true/false
+/// - `breakdown` → Array<Hash>（計算内訳）
+#[magnus::wrap(class = "JLawCore::IncomeTax::IncomeTaxResult", free_immediately, frozen_shareable)]
+pub struct RbIncomeTaxResult {
+    base_tax: u64,
+    reconstruction_tax: u64,
+    total_tax: u64,
+    reconstruction_tax_applied: bool,
+    breakdown: Vec<IncomeTaxStepData>,
+}
+
+impl RbIncomeTaxResult {
+    fn base_tax(&self) -> u64 {
+        self.base_tax
+    }
+
+    fn reconstruction_tax(&self) -> u64 {
+        self.reconstruction_tax
+    }
+
+    fn total_tax(&self) -> u64 {
+        self.total_tax
+    }
+
+    fn reconstruction_tax_applied(&self) -> bool {
+        self.reconstruction_tax_applied
+    }
+
+    /// 計算内訳を Hash の Array で返す。
+    ///
+    /// 各 Hash のキー:
+    /// - `:label`          String
+    /// - `:taxable_income` Integer（課税所得金額・円）
+    /// - `:rate_numer`     Integer
+    /// - `:rate_denom`     Integer
+    /// - `:deduction`      Integer（速算表の控除額・円）
+    /// - `:result`         Integer（算出税額・円）
+    fn breakdown(&self) -> RArray {
+        let ruby = unsafe { Ruby::get_unchecked() };
+        let arr = ruby.ary_new();
+        for step in &self.breakdown {
+            let hash = ruby.hash_new();
+            hash.aset(Symbol::new("label"), step.label.as_str()).unwrap();
+            hash.aset(Symbol::new("taxable_income"), step.taxable_income).unwrap();
+            hash.aset(Symbol::new("rate_numer"), step.rate_numer).unwrap();
+            hash.aset(Symbol::new("rate_denom"), step.rate_denom).unwrap();
+            hash.aset(Symbol::new("deduction"), step.deduction).unwrap();
+            hash.aset(Symbol::new("result"), step.result).unwrap();
+            arr.push(hash).unwrap();
+        }
+        arr
+    }
+
+    fn inspect(&self) -> String {
+        format!(
+            "#<JLawCore::IncomeTax::IncomeTaxResult base_tax={} reconstruction_tax={} total_tax={} reconstruction_tax_applied={}>",
+            self.base_tax,
+            self.reconstruction_tax,
+            self.total_tax,
+            self.reconstruction_tax_applied,
+        )
+    }
+}
+
+// ─── 所得税 Ruby公開関数 ────────────────────────────────────────────────────────
+
+/// 所得税法第89条に基づく所得税額を計算する。
+///
+/// # 法的根拠
+/// 所得税法 第89条第1項 / 復興財源確保法 第13条
+///
+/// @param taxable_income [Integer] 課税所得金額（円）
+/// @param year  [Integer] 対象年度（年）
+/// @param month [Integer] 基準日（月）
+/// @param day   [Integer] 基準日（日）
+/// @param apply_reconstruction_tax [true, false] 復興特別所得税を適用するか
+/// @return [JLawCore::IncomeTax::IncomeTaxResult]
+/// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
+fn calc_income_tax(
+    taxable_income: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    apply_reconstruction_tax: bool,
+) -> Result<RbIncomeTaxResult, Error> {
+    let params =
+        load_income_tax_params((year, month, day)).map_err(into_runtime_error)?;
+
+    let mut flags = HashSet::new();
+    if apply_reconstruction_tax {
+        flags.insert(IncomeTaxFlag::ApplyReconstructionTax);
+    }
+
+    let ctx = IncomeTaxContext {
+        taxable_income,
+        target_date: (year, month, day),
+        flags,
+        policy: Box::new(StandardIncomeTaxPolicy),
+    };
+
+    let result =
+        calculate_income_tax(&ctx, &params).map_err(into_runtime_error)?;
+
+    let breakdown = result
+        .breakdown
+        .iter()
+        .map(|step| IncomeTaxStepData {
+            label: step.label.clone(),
+            taxable_income: step.taxable_income,
+            rate_numer: step.rate_numer,
+            rate_denom: step.rate_denom,
+            deduction: step.deduction,
+            result: step.result.as_yen(),
+        })
+        .collect();
+
+    Ok(RbIncomeTaxResult {
+        base_tax: result.base_tax.as_yen(),
+        reconstruction_tax: result.reconstruction_tax.as_yen(),
+        total_tax: result.total_tax.as_yen(),
+        reconstruction_tax_applied: result.reconstruction_tax_applied,
+        breakdown,
+    })
+}
+
 // ─── モジュール定義 ────────────────────────────────────────────────────────────
 
 #[magnus::init]
@@ -200,6 +350,47 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     real_estate.define_module_function(
         "calc_brokerage_fee",
         function!(calc_brokerage_fee, 5),
+    )?;
+
+    // ─── 所得税 ───────────────────────────────────────────────────────────────
+    let income_tax = j_law_core.define_module("IncomeTax")?;
+
+    // IncomeTaxResult クラス
+    let income_tax_result_class =
+        income_tax.define_class("IncomeTaxResult", ruby.class_object())?;
+    income_tax_result_class.define_method(
+        "base_tax",
+        method!(RbIncomeTaxResult::base_tax, 0),
+    )?;
+    income_tax_result_class.define_method(
+        "reconstruction_tax",
+        method!(RbIncomeTaxResult::reconstruction_tax, 0),
+    )?;
+    income_tax_result_class.define_method(
+        "total_tax",
+        method!(RbIncomeTaxResult::total_tax, 0),
+    )?;
+    income_tax_result_class.define_method(
+        "reconstruction_tax_applied?",
+        method!(RbIncomeTaxResult::reconstruction_tax_applied, 0),
+    )?;
+    income_tax_result_class.define_method(
+        "breakdown",
+        method!(RbIncomeTaxResult::breakdown, 0),
+    )?;
+    income_tax_result_class.define_method(
+        "inspect",
+        method!(RbIncomeTaxResult::inspect, 0),
+    )?;
+    income_tax_result_class.define_method(
+        "to_s",
+        method!(RbIncomeTaxResult::inspect, 0),
+    )?;
+
+    // モジュール関数: JLawCore::IncomeTax.calc_income_tax(...)
+    income_tax.define_module_function(
+        "calc_income_tax",
+        function!(calc_income_tax, 5),
     )?;
 
     Ok(())
