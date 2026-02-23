@@ -64,6 +64,30 @@ type incomeTaxFixtures struct {
 	IncomeTax []incomeTaxCase `json:"income_tax"`
 }
 
+type stampTaxInput struct {
+	ContractAmount            uint64 `json:"contract_amount"`
+	Year                      int    `json:"year"`
+	Month                     int    `json:"month"`
+	Day                       int    `json:"day"`
+	IsReducedRateApplicable   bool   `json:"is_reduced_rate_applicable"`
+}
+
+type stampTaxExpected struct {
+	TaxAmount          uint64 `json:"tax_amount"`
+	ReducedRateApplied bool   `json:"reduced_rate_applied"`
+}
+
+type stampTaxCase struct {
+	ID          string           `json:"id"`
+	Description string           `json:"description"`
+	Input       stampTaxInput    `json:"input"`
+	Expected    stampTaxExpected `json:"expected"`
+}
+
+type stampTaxFixtures struct {
+	StampTax []stampTaxCase `json:"stamp_tax"`
+}
+
 // ─── フィクスチャ読み込み ────────────────────────────────────────────────────
 
 func loadRealEstateFixtures(t *testing.T) realEstateFixtures {
@@ -88,6 +112,19 @@ func loadIncomeTaxFixtures(t *testing.T) incomeTaxFixtures {
 	var f incomeTaxFixtures
 	if err := json.Unmarshal(data, &f); err != nil {
 		t.Fatalf("failed to parse income_tax.json: %v", err)
+	}
+	return f
+}
+
+func loadStampTaxFixtures(t *testing.T) stampTaxFixtures {
+	t.Helper()
+	data, err := os.ReadFile("../../tests/fixtures/stamp_tax.json")
+	if err != nil {
+		t.Fatalf("failed to read stamp_tax.json: %v", err)
+	}
+	var f stampTaxFixtures
+	if err := json.Unmarshal(data, &f); err != nil {
+		t.Fatalf("failed to parse stamp_tax.json: %v", err)
 	}
 	return f
 }
@@ -225,5 +262,51 @@ func TestIncomeTax_BreakdownFields(t *testing.T) {
 		if step.RateDenom == 0 {
 			t.Error("IncomeTaxStep.RateDenom must not be zero")
 		}
+	}
+}
+
+// ─── 印紙税: データ駆動テスト ─────────────────────────────────────────────────
+
+func TestStampTax(t *testing.T) {
+	fixtures := loadStampTaxFixtures(t)
+
+	for _, tc := range fixtures.StampTax {
+		t.Run(tc.ID, func(t *testing.T) {
+			result, err := jlawcore.CalcStampTax(
+				tc.Input.ContractAmount,
+				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				tc.Input.IsReducedRateApplicable,
+			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			exp := tc.Expected
+			if result.TaxAmount != exp.TaxAmount {
+				t.Errorf("TaxAmount: got %d, want %d", result.TaxAmount, exp.TaxAmount)
+			}
+			if result.ReducedRateApplied != exp.ReducedRateApplied {
+				t.Errorf("ReducedRateApplied: got %v, want %v", result.ReducedRateApplied, exp.ReducedRateApplied)
+			}
+		})
+	}
+}
+
+// ─── 印紙税: 言語固有テスト ────────────────────────────────────────────────────
+
+func TestStampTax_ErrorDateOutOfRange(t *testing.T) {
+	_, err := jlawcore.CalcStampTax(5_000_000, 2014, 3, 31, false)
+	if err == nil {
+		t.Fatal("expected error for date out of range, got nil")
+	}
+}
+
+func TestStampTax_BracketLabelPresent(t *testing.T) {
+	result, err := jlawcore.CalcStampTax(5_000_000, 2024, 8, 1, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.BracketLabel == "" {
+		t.Error("BracketLabel must not be empty")
 	}
 }

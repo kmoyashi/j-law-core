@@ -224,3 +224,63 @@ func toGoResult(c *C.JLawBrokerageFeeResult) *BrokerageFeeResult {
 		Breakdown:             breakdown,
 	}
 }
+
+// ─── 印紙税 Go 公開型 ───────────────────────────────────────────────────────────
+
+// StampTaxResult は印紙税の計算結果を表す。
+type StampTaxResult struct {
+	// TaxAmount は印紙税額（円）。
+	TaxAmount uint64
+	// BracketLabel は適用されたブラケットの表示名。
+	BracketLabel string
+	// ReducedRateApplied は軽減税率が適用されたかを示す。
+	ReducedRateApplied bool
+}
+
+// ─── 印紙税 Go 公開関数 ─────────────────────────────────────────────────────────
+
+// CalcStampTax は印紙税法 別表第一に基づく印紙税額を計算する。
+//
+// 法的根拠: 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
+//
+// 引数:
+//   - contractAmount: 契約金額（円）
+//   - year, month, day: 契約書作成日
+//   - isReducedRateApplicable: 軽減税率適用フラグ
+//     WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
+//
+// エラー: 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合。
+func CalcStampTax(
+	contractAmount uint64,
+	year, month, day int,
+	isReducedRateApplicable bool,
+) (*StampTaxResult, error) {
+	var cResult C.JLawStampTaxResult
+	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
+	defer C.free(unsafe.Pointer(errorBuf))
+
+	isReduced := C.int(0)
+	if isReducedRateApplicable {
+		isReduced = 1
+	}
+
+	ret := C.j_law_calc_stamp_tax(
+		C.uint64_t(contractAmount),
+		C.uint16_t(year),
+		C.uint8_t(month),
+		C.uint8_t(day),
+		isReduced,
+		&cResult,
+		errorBuf,
+		C.J_LAW_ERROR_BUF_LEN,
+	)
+	if ret != 0 {
+		return nil, errors.New(C.GoString(errorBuf))
+	}
+
+	return &StampTaxResult{
+		TaxAmount:          uint64(cResult.tax_amount),
+		BracketLabel:       C.GoString(&cResult.bracket_label[0]),
+		ReducedRateApplied: cResult.reduced_rate_applied != 0,
+	}, nil
+}

@@ -1,0 +1,107 @@
+{
+  "domain": "stamp_tax",
+  "description": "印紙税法 別表第一 第1号文書（不動産の譲渡に関する契約書）の印紙税額",
+  "history": [
+    {
+      "effective_from": "2014-04-01",
+      "effective_until": null,
+      "status": "active",
+      "citation": {
+        "law_id": "stamp-tax-schedule1-1",
+        "law_name": "印紙税法",
+        "article": "別表第一 第1号",
+        "ministry": "国税庁"
+      },
+      "params": {
+        "brackets": [
+          {
+            "label": "1万円未満（非課税）",
+            "amount_from": 0,
+            "amount_to_inclusive": 9999,
+            "tax_amount": 0,
+            "reduced_tax_amount": null
+          },
+          {
+            "label": "10万円以下",
+            "amount_from": 10000,
+            "amount_to_inclusive": 100000,
+            "tax_amount": 200,
+            "reduced_tax_amount": null
+          },
+          {
+            "label": "50万円以下",
+            "amount_from": 100001,
+            "amount_to_inclusive": 500000,
+            "tax_amount": 400,
+            "reduced_tax_amount": 200
+          },
+          {
+            "label": "100万円以下",
+            "amount_from": 500001,
+            "amount_to_inclusive": 1000000,
+            "tax_amount": 1000,
+            "reduced_tax_amount": 500
+          },
+          {
+            "label": "500万円以下",
+            "amount_from": 1000001,
+            "amount_to_inclusive": 5000000,
+            "tax_amount": 2000,
+            "reduced_tax_amount": 1000
+          },
+          {
+            "label": "1,000万円以下",
+            "amount_from": 5000001,
+            "amount_to_inclusive": 10000000,
+            "tax_amount": 10000,
+            "reduced_tax_amount": 5000
+          },
+          {
+            "label": "5,000万円以下",
+            "amount_from": 10000001,
+            "amount_to_inclusive": 50000000,
+            "tax_amount": 20000,
+            "reduced_tax_amount": 10000
+          },
+          {
+            "label": "1億円以下",
+            "amount_from": 50000001,
+            "amount_to_inclusive": 100000000,
+            "tax_amount": 60000,
+            "reduced_tax_amount": 30000
+          },
+          {
+            "label": "5億円以下",
+            "amount_from": 100000001,
+            "amount_to_inclusive": 500000000,
+            "tax_amount": 100000,
+            "reduced_tax_amount": 60000
+          },
+          {
+            "label": "10億円以下",
+            "amount_from": 500000001,
+            "amount_to_inclusive": 1000000000,
+            "tax_amount": 200000,
+            "reduced_tax_amount": 160000
+          },
+          {
+            "label": "50億円以下",
+            "amount_from": 1000000001,
+            "amount_to_inclusive": 5000000000,
+            "tax_amount": 400000,
+            "reduced_tax_amount": 320000
+          },
+          {
+            "label": "50億円超",
+            "amount_from": 5000000001,
+            "amount_to_inclusive": null,
+            "tax_amount": 600000,
+            "reduced_tax_amount": 480000
+          }
+        ],
+        "reduced_rate_from": "2014-04-01",
+        "reduced_rate_until": "2027-03-31"
+      }
+    }
+  ]
+}

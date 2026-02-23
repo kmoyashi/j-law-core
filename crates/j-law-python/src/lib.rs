@@ -13,8 +13,14 @@ use ::j_law_core::domains::income_tax::{
     context::{IncomeTaxContext, IncomeTaxFlag},
     policy::StandardIncomeTaxPolicy,
 };
+use ::j_law_core::domains::stamp_tax::{
+    calculator::calculate_stamp_tax,
+    context::{StampTaxContext, StampTaxFlag},
+    policy::StandardNtaPolicy,
+};
 use ::j_law_registry::load_brokerage_fee_params;
 use ::j_law_registry::load_income_tax_params;
+use ::j_law_registry::load_stamp_tax_params;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  不動産（宅建業法）
@@ -287,6 +293,89 @@ fn calc_income_tax(
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+//  印紙税
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// 印紙税の計算結果。
+///
+/// Attributes:
+///     tax_amount (int): 印紙税額（円）
+///     bracket_label (str): 適用されたブラケットの表示名
+///     reduced_rate_applied (bool): 軽減税率が適用されたか
+#[pyclass]
+struct StampTaxResult {
+    #[pyo3(get)]
+    tax_amount: u64,
+    #[pyo3(get)]
+    bracket_label: String,
+    #[pyo3(get)]
+    reduced_rate_applied: bool,
+}
+
+#[pymethods]
+impl StampTaxResult {
+    fn __repr__(&self) -> String {
+        format!(
+            "StampTaxResult(tax_amount={}, bracket_label={:?}, reduced_rate_applied={})",
+            self.tax_amount, self.bracket_label, self.reduced_rate_applied
+        )
+    }
+}
+
+/// 印紙税法 別表第一に基づく印紙税額を計算する。
+///
+/// # 法的根拠
+/// 印紙税法 別表第一 第1号文書（不動産の譲渡に関する契約書）
+/// 租税特別措置法 第91条（軽減措置）
+///
+/// Args:
+///     contract_amount (int): 契約金額（円）
+///     year (int): 契約書作成日（年）
+///     month (int): 契約書作成日（月）
+///     day (int): 契約書作成日（日）
+///     is_reduced_rate_applicable (bool): 軽減税率適用フラグ（デフォルト: False）
+///         WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
+///
+/// Returns:
+///     StampTaxResult
+///
+/// Raises:
+///     ValueError: 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合
+#[pyfunction]
+#[pyo3(signature = (contract_amount, year, month, day, is_reduced_rate_applicable=false))]
+fn calc_stamp_tax(
+    contract_amount: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    is_reduced_rate_applicable: bool,
+) -> PyResult<StampTaxResult> {
+    let params = load_stamp_tax_params((year, month, day))
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+    let mut flags = HashSet::new();
+    if is_reduced_rate_applicable {
+        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
+    }
+
+    let ctx = StampTaxContext {
+        contract_amount,
+        target_date: (year, month, day),
+        flags,
+        policy: Box::new(StandardNtaPolicy),
+    };
+
+    let result = calculate_stamp_tax(&ctx, &params)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+    Ok(StampTaxResult {
+        tax_amount: result.tax_amount.as_yen(),
+        bracket_label: result.bracket_label,
+        reduced_rate_applied: result.reduced_rate_applied,
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 //  モジュール定義
 // ═══════════════════════════════════════════════════════════════════════════════
 
@@ -320,6 +409,20 @@ fn register_income_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
     Ok(())
 }
 
+/// 印紙税ドメインサブモジュール。
+fn register_stamp_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
+    let py = parent.py();
+    let m = PyModule::new_bound(py, "stamp_tax")?;
+    m.add_class::<StampTaxResult>()?;
+    m.add_function(wrap_pyfunction!(calc_stamp_tax, &m)?)?;
+    parent.add_submodule(&m)?;
+    // sys.modules に登録して `from j_law_core.stamp_tax import ...` を有効にする
+    py.import_bound("sys")?
+        .getattr("modules")?
+        .set_item("j_law_core.stamp_tax", &m)?;
+    Ok(())
+}
+
 /// j_law_core Python モジュール。
 ///
 /// 使用例::
@@ -334,9 +437,15 @@ fn register_income_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
 ///         taxable_income=5_000_000, year=2024, month=1, day=1
 ///     )
 ///     print(result.total_tax)          # 584500
+///
+///     result = j_law_core.stamp_tax.calc_stamp_tax(
+///         contract_amount=5_000_000, year=2024, month=8, day=1
+///     )
+///     print(result.tax_amount)         # 2000
 #[pymodule]
 fn j_law_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     register_real_estate(m)?;
     register_income_tax(m)?;
+    register_stamp_tax(m)?;
     Ok(())
 }

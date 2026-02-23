@@ -14,8 +14,14 @@ use ::j_law_core::domains::income_tax::{
     context::{IncomeTaxContext, IncomeTaxFlag},
     policy::StandardIncomeTaxPolicy,
 };
+use ::j_law_core::domains::stamp_tax::{
+    calculator::calculate_stamp_tax,
+    context::{StampTaxContext, StampTaxFlag},
+    policy::StandardNtaPolicy,
+};
 use ::j_law_registry::load_brokerage_fee_params;
 use ::j_law_registry::load_income_tax_params;
+use ::j_law_registry::load_stamp_tax_params;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  不動産（宅建業法）
@@ -302,5 +308,82 @@ pub fn calc_income_tax(
         total_tax: result.total_tax.as_yen() as u32,
         reconstruction_tax_applied: result.reconstruction_tax_applied,
         breakdown_data,
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  印紙税
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// 印紙税の計算結果。
+///
+/// Properties:
+/// - `taxAmount`: 印紙税額（円）
+/// - `bracketLabel`: 適用されたブラケットの表示名
+/// - `reducedRateApplied`: 軽減税率が適用されたか
+#[wasm_bindgen]
+pub struct StampTaxResult {
+    tax_amount: u32,
+    bracket_label: String,
+    reduced_rate_applied: bool,
+}
+
+#[wasm_bindgen]
+impl StampTaxResult {
+    #[wasm_bindgen(getter, js_name = "taxAmount")]
+    pub fn tax_amount(&self) -> u32 {
+        self.tax_amount
+    }
+
+    #[wasm_bindgen(getter, js_name = "bracketLabel")]
+    pub fn bracket_label(&self) -> String {
+        self.bracket_label.clone()
+    }
+
+    #[wasm_bindgen(getter, js_name = "reducedRateApplied")]
+    pub fn reduced_rate_applied(&self) -> bool {
+        self.reduced_rate_applied
+    }
+}
+
+/// 印紙税法 別表第一に基づく印紙税額を計算する。
+///
+/// @param contractAmount - 契約金額（円）
+/// @param year - 契約書作成日（年）
+/// @param month - 契約書作成日（月）
+/// @param day - 契約書作成日（日）
+/// @param isReducedRateApplicable - 軽減税率適用フラグ
+/// @returns StampTaxResult
+/// @throws 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合
+#[wasm_bindgen(js_name = "calcStampTax")]
+pub fn calc_stamp_tax(
+    contract_amount: u32,
+    year: u16,
+    month: u8,
+    day: u8,
+    is_reduced_rate_applicable: bool,
+) -> Result<StampTaxResult, JsValue> {
+    let params = load_stamp_tax_params((year, month, day))
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let mut flags = HashSet::new();
+    if is_reduced_rate_applicable {
+        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
+    }
+
+    let ctx = StampTaxContext {
+        contract_amount: contract_amount as u64,
+        target_date: (year, month, day),
+        flags,
+        policy: Box::new(StandardNtaPolicy),
+    };
+
+    let result = calculate_stamp_tax(&ctx, &params)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    Ok(StampTaxResult {
+        tax_amount: result.tax_amount.as_yen() as u32,
+        bracket_label: result.bracket_label,
+        reduced_rate_applied: result.reduced_rate_applied,
     })
 }

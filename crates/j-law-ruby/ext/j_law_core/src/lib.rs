@@ -13,8 +13,14 @@ use ::j_law_core::domains::income_tax::{
     context::{IncomeTaxContext, IncomeTaxFlag},
     policy::StandardIncomeTaxPolicy,
 };
+use ::j_law_core::domains::stamp_tax::{
+    calculator::calculate_stamp_tax,
+    context::{StampTaxContext, StampTaxFlag},
+    policy::StandardNtaPolicy,
+};
 use ::j_law_registry::load_brokerage_fee_params;
 use ::j_law_registry::load_income_tax_params;
+use ::j_law_registry::load_stamp_tax_params;
 
 fn into_runtime_error<E: std::fmt::Debug>(e: E) -> Error {
     Error::new(magnus::exception::runtime_error(), format!("{e:?}"))
@@ -307,6 +313,91 @@ fn calc_income_tax(
     })
 }
 
+// ─── 印紙税 Ruby公開型 ──────────────────────────────────────────────────────────
+
+/// 印紙税の計算結果。
+///
+/// メソッド:
+/// - `tax_amount` → Integer（印紙税額・円）
+/// - `bracket_label` → String（適用されたブラケットの表示名）
+/// - `reduced_rate_applied?` → true/false
+#[magnus::wrap(class = "JLawCore::StampTax::StampTaxResult", free_immediately, frozen_shareable)]
+pub struct RbStampTaxResult {
+    tax_amount: u64,
+    bracket_label: String,
+    reduced_rate_applied: bool,
+}
+
+impl RbStampTaxResult {
+    fn tax_amount(&self) -> u64 {
+        self.tax_amount
+    }
+
+    fn bracket_label(&self) -> String {
+        self.bracket_label.clone()
+    }
+
+    fn reduced_rate_applied(&self) -> bool {
+        self.reduced_rate_applied
+    }
+
+    fn inspect(&self) -> String {
+        format!(
+            "#<JLawCore::StampTax::StampTaxResult tax_amount={} bracket_label={:?} reduced_rate_applied={}>",
+            self.tax_amount,
+            self.bracket_label,
+            self.reduced_rate_applied,
+        )
+    }
+}
+
+// ─── 印紙税 Ruby公開関数 ────────────────────────────────────────────────────────
+
+/// 印紙税法 別表第一に基づく印紙税額を計算する。
+///
+/// # 法的根拠
+/// 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
+///
+/// @param contract_amount [Integer] 契約金額（円）
+/// @param year  [Integer] 契約書作成日（年）
+/// @param month [Integer] 契約書作成日（月）
+/// @param day   [Integer] 契約書作成日（日）
+/// @param is_reduced_rate_applicable [true, false] 軽減税率適用フラグ
+///   WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
+/// @return [JLawCore::StampTax::StampTaxResult]
+/// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
+fn calc_stamp_tax(
+    contract_amount: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    is_reduced_rate_applicable: bool,
+) -> Result<RbStampTaxResult, Error> {
+    let params =
+        load_stamp_tax_params((year, month, day)).map_err(into_runtime_error)?;
+
+    let mut flags = HashSet::new();
+    if is_reduced_rate_applicable {
+        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
+    }
+
+    let ctx = StampTaxContext {
+        contract_amount,
+        target_date: (year, month, day),
+        flags,
+        policy: Box::new(StandardNtaPolicy),
+    };
+
+    let result =
+        calculate_stamp_tax(&ctx, &params).map_err(into_runtime_error)?;
+
+    Ok(RbStampTaxResult {
+        tax_amount: result.tax_amount.as_yen(),
+        bracket_label: result.bracket_label,
+        reduced_rate_applied: result.reduced_rate_applied,
+    })
+}
+
 // ─── モジュール定義 ────────────────────────────────────────────────────────────
 
 #[magnus::init]
@@ -391,6 +482,39 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     income_tax.define_module_function(
         "calc_income_tax",
         function!(calc_income_tax, 5),
+    )?;
+
+    // ─── 印紙税 ───────────────────────────────────────────────────────────────
+    let stamp_tax = j_law_core.define_module("StampTax")?;
+
+    // StampTaxResult クラス
+    let stamp_tax_result_class =
+        stamp_tax.define_class("StampTaxResult", ruby.class_object())?;
+    stamp_tax_result_class.define_method(
+        "tax_amount",
+        method!(RbStampTaxResult::tax_amount, 0),
+    )?;
+    stamp_tax_result_class.define_method(
+        "bracket_label",
+        method!(RbStampTaxResult::bracket_label, 0),
+    )?;
+    stamp_tax_result_class.define_method(
+        "reduced_rate_applied?",
+        method!(RbStampTaxResult::reduced_rate_applied, 0),
+    )?;
+    stamp_tax_result_class.define_method(
+        "inspect",
+        method!(RbStampTaxResult::inspect, 0),
+    )?;
+    stamp_tax_result_class.define_method(
+        "to_s",
+        method!(RbStampTaxResult::inspect, 0),
+    )?;
+
+    // モジュール関数: JLawCore::StampTax.calc_stamp_tax(...)
+    stamp_tax.define_module_function(
+        "calc_stamp_tax",
+        function!(calc_stamp_tax, 5),
     )?;
 
     Ok(())

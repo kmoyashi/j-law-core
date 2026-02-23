@@ -12,8 +12,14 @@ use j_law_core::domains::income_tax::{
     context::{IncomeTaxContext, IncomeTaxFlag},
     policy::StandardIncomeTaxPolicy,
 };
+use j_law_core::domains::stamp_tax::{
+    calculator::calculate_stamp_tax,
+    context::{StampTaxContext, StampTaxFlag},
+    policy::StandardNtaPolicy,
+};
 use j_law_registry::load_brokerage_fee_params;
 use j_law_registry::load_income_tax_params;
+use j_law_registry::load_stamp_tax_params;
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
 
@@ -293,6 +299,97 @@ pub unsafe extern "C" fn j_law_calc_income_tax(
         out.breakdown[i].result = step.result.as_yen();
         copy_str_to_fixed_buf(&step.label, &mut out.breakdown[i].label);
     }
+
+    0
+}
+
+// ─── 印紙税 C 互換型定義 ────────────────────────────────────────────────────────
+
+/// 印紙税の計算結果（C 互換）。
+#[repr(C)]
+pub struct JLawStampTaxResult {
+    /// 印紙税額（円）。
+    pub tax_amount: u64,
+    /// 適用されたブラケットの表示名（NUL 終端・最大 63 文字）。
+    pub bracket_label: [c_char; J_LAW_LABEL_LEN],
+    /// 軽減税率が適用されたか（0 = false, 1 = true）。
+    pub reduced_rate_applied: c_int,
+}
+
+// ─── 印紙税 C FFI 公開関数 ──────────────────────────────────────────────────────
+
+/// 印紙税法 別表第一に基づく印紙税額を計算する。
+///
+/// # 法的根拠
+/// 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
+///
+/// # 引数
+/// - `contract_amount`: 契約金額（円）
+/// - `year`, `month`, `day`: 契約書作成日
+/// - `is_reduced_rate_applicable`: 軽減税率適用フラグ（0 = false, 非0 = true）
+/// - `out_result`: [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
+/// - `error_buf`: [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
+/// - `error_buf_len`: `error_buf` のバイト長（推奨: `J_LAW_ERROR_BUF_LEN` = 256）
+///
+/// # 戻り値
+/// - `0`: 成功。`out_result` にデータが書き込まれている。
+/// - `非0`: 失敗。`error_buf` に NUL 終端エラーメッセージが書き込まれている。
+///
+/// # Safety
+/// - `out_result` は呼び出し元が所有する有効なポインタであること。
+/// - `error_buf` は `error_buf_len` バイト以上の領域を指していること。
+/// - `error_buf_len` は 1 以上であること。
+#[no_mangle]
+pub unsafe extern "C" fn j_law_calc_stamp_tax(
+    contract_amount: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    is_reduced_rate_applicable: c_int,
+    out_result: *mut JLawStampTaxResult,
+    error_buf: *mut c_char,
+    error_buf_len: c_int,
+) -> c_int {
+    if out_result.is_null() || error_buf.is_null() || error_buf_len <= 0 {
+        return -1;
+    }
+
+    // パラメータロード
+    let params = match load_stamp_tax_params((year, month, day)) {
+        Ok(p) => p,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    // フラグ構築
+    let mut flags = HashSet::new();
+    if is_reduced_rate_applicable != 0 {
+        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
+    }
+
+    let ctx = StampTaxContext {
+        contract_amount,
+        target_date: (year, month, day),
+        flags,
+        policy: Box::new(StandardNtaPolicy),
+    };
+
+    // 計算実行
+    let result = match calculate_stamp_tax(&ctx, &params) {
+        Ok(r) => r,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    // 結果を out_result に書き込む
+    let out = &mut *out_result;
+    out.tax_amount = result.tax_amount.as_yen();
+    copy_str_to_fixed_buf(&result.bracket_label, &mut out.bracket_label);
+    out.reduced_rate_applied = if result.reduced_rate_applied { 1 } else { 0 };
 
     0
 }
