@@ -2,6 +2,7 @@
 name = "j-law-registry"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 j-law-core = { path = "../j-law-core" }

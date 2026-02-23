@@ -2,6 +2,7 @@
 name = "j-law-python"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
 
 [lib]
 name = "j_law_core"
