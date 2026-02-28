@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-require "test_helper"
+require "minitest/autorun"
 require "json"
+require "j_law_core"
 
 # 印紙税法 別表第一に基づく印紙税額計算のテスト。
 #

@@ -355,9 +355,12 @@ impl StampTaxResult {
 /// @param isReducedRateApplicable - 軽減税率適用フラグ
 /// @returns StampTaxResult
 /// @throws 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合
+/// JavaScript の Number 型は 53bit 整数精度のため u64 を直接受け取れない。
+/// 印紙税の最高ブラケット（50億円超）は u32 (最大約42.9億円) を超えるため、
+/// f64 で受け取り u64 に変換する。
 #[wasm_bindgen(js_name = "calcStampTax")]
 pub fn calc_stamp_tax(
-    contract_amount: u32,
+    contract_amount: f64,
     year: u16,
     month: u8,
     day: u8,
