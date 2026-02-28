@@ -1,5 +1,4 @@
 # このCIはAGENTS.mdのコーディングルールを自動検証します。
-# Rule 2チェック（panic!禁止）は rounding.rs:21 の assert! 修正まで失敗します。
 
 name: CI
 

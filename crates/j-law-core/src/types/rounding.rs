@@ -15,11 +15,13 @@ pub enum RoundingStrategy {
 impl RoundingStrategy {
     /// `numer / denom` を整数で丸める（整数演算のみ・float不使用）。
     ///
-    /// # パニック
-    /// `denom == 0` の場合はパニックする（呼び出し元で保証すること）。
-    pub(crate) fn apply_ratio(self, numer: u64, denom: u64) -> u64 {
-        assert!(denom != 0, "denom must not be zero");
-        match self {
+    /// # エラー
+    /// `denom == 0` の場合は `InputError::ZeroDenominator` を返す。
+    pub(crate) fn apply_ratio(self, numer: u64, denom: u64) -> Result<u64, crate::error::InputError> {
+        if denom == 0 {
+            return Err(crate::error::InputError::ZeroDenominator);
+        }
+        Ok(match self {
             RoundingStrategy::Floor => numer / denom,
             RoundingStrategy::Ceil => (numer + denom - 1) / denom,
             RoundingStrategy::HalfUp => {
@@ -28,7 +30,7 @@ impl RoundingStrategy {
                 // (denom は通常小さい値のため問題ない)
                 (numer + denom / 2) / denom
             }
-        }
+        })
     }
 }
 
@@ -38,27 +40,34 @@ mod tests {
 
     #[test]
     fn floor_truncates() {
-        assert_eq!(RoundingStrategy::Floor.apply_ratio(10, 3), 3);
-        assert_eq!(RoundingStrategy::Floor.apply_ratio(9, 3), 3);
-        assert_eq!(RoundingStrategy::Floor.apply_ratio(0, 5), 0);
+        assert_eq!(RoundingStrategy::Floor.apply_ratio(10, 3).unwrap(), 3);
+        assert_eq!(RoundingStrategy::Floor.apply_ratio(9, 3).unwrap(), 3);
+        assert_eq!(RoundingStrategy::Floor.apply_ratio(0, 5).unwrap(), 0);
     }
 
     #[test]
     fn ceil_rounds_up() {
-        assert_eq!(RoundingStrategy::Ceil.apply_ratio(10, 3), 4);
-        assert_eq!(RoundingStrategy::Ceil.apply_ratio(9, 3), 3);
-        assert_eq!(RoundingStrategy::Ceil.apply_ratio(1, 5), 1);
+        assert_eq!(RoundingStrategy::Ceil.apply_ratio(10, 3).unwrap(), 4);
+        assert_eq!(RoundingStrategy::Ceil.apply_ratio(9, 3).unwrap(), 3);
+        assert_eq!(RoundingStrategy::Ceil.apply_ratio(1, 5).unwrap(), 1);
     }
 
     #[test]
     fn half_up_rounds() {
         // 5 / 2 = 2.5 → 3
-        assert_eq!(RoundingStrategy::HalfUp.apply_ratio(5, 2), 3);
+        assert_eq!(RoundingStrategy::HalfUp.apply_ratio(5, 2).unwrap(), 3);
         // 4 / 2 = 2.0 → 2
-        assert_eq!(RoundingStrategy::HalfUp.apply_ratio(4, 2), 2);
+        assert_eq!(RoundingStrategy::HalfUp.apply_ratio(4, 2).unwrap(), 2);
         // 7 / 3 = 2.333... → 2
-        assert_eq!(RoundingStrategy::HalfUp.apply_ratio(7, 3), 2);
+        assert_eq!(RoundingStrategy::HalfUp.apply_ratio(7, 3).unwrap(), 2);
         // 8 / 3 = 2.666... → 3
-        assert_eq!(RoundingStrategy::HalfUp.apply_ratio(8, 3), 3);
+        assert_eq!(RoundingStrategy::HalfUp.apply_ratio(8, 3).unwrap(), 3);
+    }
+
+    #[test]
+    fn zero_denominator_returns_error() {
+        let result = RoundingStrategy::Floor.apply_ratio(10, 0);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), crate::error::InputError::ZeroDenominator));
     }
 }

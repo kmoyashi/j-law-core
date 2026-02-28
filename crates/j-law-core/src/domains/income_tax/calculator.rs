@@ -109,8 +109,8 @@ pub fn calculate_income_tax(
             &IntermediateAmount::from_exact(income),
             MultiplyOrder::MultiplyFirst,
             tax_rounding,
-        )
-        .finalize(tax_rounding);
+        )?
+        .finalize(tax_rounding)?;
 
     let base_tax_yen = gross_tax
         .as_yen()
@@ -148,8 +148,8 @@ pub fn calculate_income_tax(
                     &IntermediateAmount::from_exact(base_tax_yen),
                     MultiplyOrder::MultiplyFirst,
                     rt_rounding,
-                )
-                .finalize(rt_rounding)
+                )?
+                .finalize(rt_rounding)?
                 .as_yen()
         } else {
             return Err(CalculationError::PolicyNotApplicable {

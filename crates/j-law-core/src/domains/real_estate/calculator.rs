@@ -65,8 +65,8 @@ pub fn calculate_brokerage_fee(
 
         let rate = Rate { numer: tier.rate_numer, denom: tier.rate_denom };
         let amount = IntermediateAmount::from_exact(tier_base);
-        let tier_result = rate.apply(&amount, MultiplyOrder::MultiplyFirst, tier_rounding);
-        let tier_final = tier_result.finalize(tier_rounding);
+        let tier_result = rate.apply(&amount, MultiplyOrder::MultiplyFirst, tier_rounding)?;
+        let tier_final = tier_result.finalize(tier_rounding)?;
 
         subtotal = subtotal.checked_add(tier_final.as_yen()).ok_or_else(|| {
             CalculationError::Overflow { step: tier.label.clone() }
@@ -107,8 +107,8 @@ pub fn calculate_brokerage_fee(
             &IntermediateAmount::from_exact(subtotal),
             MultiplyOrder::MultiplyFirst,
             tax_rounding,
-        )
-        .finalize(tax_rounding);
+        )?
+        .finalize(tax_rounding)?;
 
     let total_with_tax = FinalAmount::new(
         subtotal.checked_add(tax_amount.as_yen()).ok_or_else(|| {

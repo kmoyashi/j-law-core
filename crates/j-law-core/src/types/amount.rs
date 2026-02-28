@@ -57,13 +57,16 @@ impl IntermediateAmount {
     }
 
     /// 端数処理して [`FinalAmount`] に変換する。
-    pub fn finalize(&self, rounding: RoundingStrategy) -> FinalAmount {
+    ///
+    /// # エラー
+    /// `self.denom == 0` の場合は `InputError::ZeroDenominator` を返す。
+    pub fn finalize(&self, rounding: RoundingStrategy) -> Result<FinalAmount, InputError> {
         let frac = if self.numer == 0 {
             0
         } else {
-            rounding.apply_ratio(self.numer, self.denom)
+            rounding.apply_ratio(self.numer, self.denom)?
         };
-        FinalAmount::new(self.whole + frac)
+        Ok(FinalAmount::new(self.whole + frac))
     }
 
     /// 加算（整数部分同士を加える）。
@@ -111,31 +114,31 @@ mod tests {
     fn finalize_floor() {
         // 100 + 1/3 → Floor → 100
         let a = IntermediateAmount::try_new(100, 1, 3).unwrap();
-        assert_eq!(a.finalize(RoundingStrategy::Floor).as_yen(), 100);
+        assert_eq!(a.finalize(RoundingStrategy::Floor).unwrap().as_yen(), 100);
     }
 
     #[test]
     fn finalize_ceil() {
         // 100 + 1/3 → Ceil → 101
         let a = IntermediateAmount::try_new(100, 1, 3).unwrap();
-        assert_eq!(a.finalize(RoundingStrategy::Ceil).as_yen(), 101);
+        assert_eq!(a.finalize(RoundingStrategy::Ceil).unwrap().as_yen(), 101);
     }
 
     #[test]
     fn finalize_half_up() {
         // 100 + 1/2 = 100.5 → HalfUp → 101
         let a = IntermediateAmount::try_new(100, 1, 2).unwrap();
-        assert_eq!(a.finalize(RoundingStrategy::HalfUp).as_yen(), 101);
+        assert_eq!(a.finalize(RoundingStrategy::HalfUp).unwrap().as_yen(), 101);
 
         // 100 + 1/3 = 100.333 → HalfUp → 100
         let b = IntermediateAmount::try_new(100, 1, 3).unwrap();
-        assert_eq!(b.finalize(RoundingStrategy::HalfUp).as_yen(), 100);
+        assert_eq!(b.finalize(RoundingStrategy::HalfUp).unwrap().as_yen(), 100);
     }
 
     #[test]
     fn finalize_no_fraction() {
         let a = IntermediateAmount::from_exact(5_000);
-        assert_eq!(a.finalize(RoundingStrategy::Floor).as_yen(), 5_000);
+        assert_eq!(a.finalize(RoundingStrategy::Floor).unwrap().as_yen(), 5_000);
     }
 
     #[test]
@@ -143,7 +146,7 @@ mod tests {
         let a = IntermediateAmount::from_exact(100);
         let b = IntermediateAmount::from_exact(200);
         let c = a.add(&b);
-        assert_eq!(c.finalize(RoundingStrategy::Floor).as_yen(), 300);
+        assert_eq!(c.finalize(RoundingStrategy::Floor).unwrap().as_yen(), 300);
     }
 
     #[test]
@@ -154,6 +157,6 @@ mod tests {
         let c = a.add(&b);
         assert_eq!(c.whole, 1);
         // finalize Floor → 1
-        assert_eq!(c.finalize(RoundingStrategy::Floor).as_yen(), 1);
+        assert_eq!(c.finalize(RoundingStrategy::Floor).unwrap().as_yen(), 1);
     }
 }
