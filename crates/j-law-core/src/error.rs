@@ -11,7 +11,9 @@ pub enum RegistryError {
         until: String,
     },
 
-    #[error("法令データに適用期間の空白があります: domain={domain}, end={end}, next_start={next_start}")]
+    #[error(
+        "法令データに適用期間の空白があります: domain={domain}, end={end}, next_start={next_start}"
+    )]
     PeriodGap {
         domain: String,
         end: String,
@@ -90,7 +92,9 @@ mod tests {
 
     #[test]
     fn calculation_error_display() {
-        let e = CalculationError::Overflow { step: "tier1".into() };
+        let e = CalculationError::Overflow {
+            step: "tier1".into(),
+        };
         assert!(e.to_string().contains("tier1"));
     }
 

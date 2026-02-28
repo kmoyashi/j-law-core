@@ -132,9 +132,9 @@ pub fn calculate_income_tax(
 
     // --- 復興特別所得税 ---
     let target_year = ctx.target_date.0;
-    let apply_reconstruction =
-        ctx.policy
-            .should_apply_reconstruction_tax(target_year, &ctx.flags);
+    let apply_reconstruction = ctx
+        .policy
+        .should_apply_reconstruction_tax(target_year, &ctx.flags);
 
     let reconstruction_tax_yen = if apply_reconstruction {
         if let Some(rt_params) = &params.reconstruction_tax {

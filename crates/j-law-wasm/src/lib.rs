@@ -3,16 +3,14 @@ use std::collections::HashSet;
 use js_sys::Array;
 use wasm_bindgen::prelude::*;
 
-use ::j_law_core::domains::real_estate::{
-    calculator::calculate_brokerage_fee,
-    context::RealEstateContext,
-    policy::StandardMliitPolicy,
-    RealEstateFlag,
-};
 use ::j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
     policy::StandardIncomeTaxPolicy,
+};
+use ::j_law_core::domains::real_estate::{
+    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
+    RealEstateFlag,
 };
 use ::j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
@@ -137,8 +135,8 @@ pub fn calc_brokerage_fee(
         policy: Box::new(StandardMliitPolicy),
     };
 
-    let result = calculate_brokerage_fee(&ctx, &params)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let result =
+        calculate_brokerage_fee(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let breakdown_data = result
         .breakdown
@@ -286,8 +284,8 @@ pub fn calc_income_tax(
         policy: Box::new(StandardIncomeTaxPolicy),
     };
 
-    let result = calculate_income_tax(&ctx, &params)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let result =
+        calculate_income_tax(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let breakdown_data = result
         .breakdown
@@ -363,8 +361,8 @@ pub fn calc_stamp_tax(
     day: u8,
     is_reduced_rate_applicable: bool,
 ) -> Result<StampTaxResult, JsValue> {
-    let params = load_stamp_tax_params((year, month, day))
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let params =
+        load_stamp_tax_params((year, month, day)).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let mut flags = HashSet::new();
     if is_reduced_rate_applicable {
@@ -378,8 +376,8 @@ pub fn calc_stamp_tax(
         policy: Box::new(StandardNtaPolicy),
     };
 
-    let result = calculate_stamp_tax(&ctx, &params)
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let result =
+        calculate_stamp_tax(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     Ok(StampTaxResult {
         tax_amount: result.tax_amount.as_yen() as u32,

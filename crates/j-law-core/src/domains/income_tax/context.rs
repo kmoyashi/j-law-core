@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use crate::domains::income_tax::policy::IncomeTaxPolicy;
+use std::collections::HashSet;
 
 /// 所得税計算に関わる法的フラグ。
 ///

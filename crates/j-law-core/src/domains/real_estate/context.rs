@@ -1,5 +1,5 @@
-use std::collections::HashSet;
 use crate::domains::real_estate::policy::RealEstatePolicy;
+use std::collections::HashSet;
 
 /// 不動産取引計算に関わる法的フラグ。
 ///

@@ -76,16 +76,14 @@ mod tests {
     #[test]
     fn params_with_reconstruction_tax() {
         let params = IncomeTaxParams {
-            brackets: vec![
-                IncomeTaxBracket {
-                    label: "195万円以下".into(),
-                    income_from: 0,
-                    income_to_inclusive: Some(1_950_000),
-                    rate_numer: 5,
-                    rate_denom: 100,
-                    deduction: 0,
-                },
-            ],
+            brackets: vec![IncomeTaxBracket {
+                label: "195万円以下".into(),
+                income_from: 0,
+                income_to_inclusive: Some(1_950_000),
+                rate_numer: 5,
+                rate_denom: 100,
+                deduction: 0,
+            }],
             reconstruction_tax: Some(ReconstructionTaxParams {
                 rate_numer: 21,
                 rate_denom: 1000,

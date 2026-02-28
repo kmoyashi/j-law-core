@@ -1,6 +1,6 @@
-use std::collections::HashSet;
 use crate::domains::income_tax::context::IncomeTaxFlag;
 use crate::types::rounding::RoundingStrategy;
+use std::collections::HashSet;
 
 /// 所得税計算のポリシーインターフェース。
 ///
@@ -95,6 +95,9 @@ mod tests {
     #[test]
     fn rounding_strategies() {
         assert_eq!(policy().tax_rounding(), RoundingStrategy::Floor);
-        assert_eq!(policy().reconstruction_tax_rounding(), RoundingStrategy::Floor);
+        assert_eq!(
+            policy().reconstruction_tax_rounding(),
+            RoundingStrategy::Floor
+        );
     }
 }

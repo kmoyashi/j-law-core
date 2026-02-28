@@ -2,16 +2,14 @@ use std::collections::HashSet;
 
 use magnus::{function, method, Error, Module, RArray, RHash, Ruby, Symbol};
 
-use ::j_law_core::domains::real_estate::{
-    calculator::calculate_brokerage_fee,
-    context::RealEstateContext,
-    policy::StandardMliitPolicy,
-    RealEstateFlag,
-};
 use ::j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
     policy::StandardIncomeTaxPolicy,
+};
+use ::j_law_core::domains::real_estate::{
+    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
+    RealEstateFlag,
 };
 use ::j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
@@ -46,7 +44,11 @@ struct BreakdownStepData {
 /// - `tax_amount`        → Integer（消費税額・円）
 /// - `low_cost_special_applied?` → true/false
 /// - `breakdown` → Array<Hash>（各ティアの内訳）
-#[magnus::wrap(class = "JLawCore::RealEstate::BrokerageFeeResult", free_immediately, frozen_shareable)]
+#[magnus::wrap(
+    class = "JLawCore::RealEstate::BrokerageFeeResult",
+    free_immediately,
+    frozen_shareable
+)]
 pub struct RbBrokerageFeeResult {
     total_without_tax: u64,
     total_with_tax: u64,
@@ -87,10 +89,14 @@ impl RbBrokerageFeeResult {
         let arr = ruby.ary_new();
         for step in &self.breakdown {
             let hash = ruby.hash_new();
-            hash.aset(Symbol::new("label"), step.label.as_str()).unwrap();
-            hash.aset(Symbol::new("base_amount"), step.base_amount).unwrap();
-            hash.aset(Symbol::new("rate_numer"), step.rate_numer).unwrap();
-            hash.aset(Symbol::new("rate_denom"), step.rate_denom).unwrap();
+            hash.aset(Symbol::new("label"), step.label.as_str())
+                .unwrap();
+            hash.aset(Symbol::new("base_amount"), step.base_amount)
+                .unwrap();
+            hash.aset(Symbol::new("rate_numer"), step.rate_numer)
+                .unwrap();
+            hash.aset(Symbol::new("rate_denom"), step.rate_denom)
+                .unwrap();
             hash.aset(Symbol::new("result"), step.result).unwrap();
             arr.push(hash).unwrap();
         }
@@ -130,8 +136,7 @@ fn calc_brokerage_fee(
     day: u8,
     is_low_cost_vacant_house: bool,
 ) -> Result<RbBrokerageFeeResult, Error> {
-    let params =
-        load_brokerage_fee_params((year, month, day)).map_err(into_runtime_error)?;
+    let params = load_brokerage_fee_params((year, month, day)).map_err(into_runtime_error)?;
 
     let mut flags = HashSet::new();
     if is_low_cost_vacant_house {
@@ -145,8 +150,7 @@ fn calc_brokerage_fee(
         policy: Box::new(StandardMliitPolicy),
     };
 
-    let result =
-        calculate_brokerage_fee(&ctx, &params).map_err(into_runtime_error)?;
+    let result = calculate_brokerage_fee(&ctx, &params).map_err(into_runtime_error)?;
 
     let breakdown = result
         .breakdown
@@ -190,7 +194,11 @@ struct IncomeTaxStepData {
 /// - `total_tax` → Integer（申告納税額・円・100円未満切り捨て）
 /// - `reconstruction_tax_applied?` → true/false
 /// - `breakdown` → Array<Hash>（計算内訳）
-#[magnus::wrap(class = "JLawCore::IncomeTax::IncomeTaxResult", free_immediately, frozen_shareable)]
+#[magnus::wrap(
+    class = "JLawCore::IncomeTax::IncomeTaxResult",
+    free_immediately,
+    frozen_shareable
+)]
 pub struct RbIncomeTaxResult {
     base_tax: u64,
     reconstruction_tax: u64,
@@ -230,10 +238,14 @@ impl RbIncomeTaxResult {
         let arr = ruby.ary_new();
         for step in &self.breakdown {
             let hash = ruby.hash_new();
-            hash.aset(Symbol::new("label"), step.label.as_str()).unwrap();
-            hash.aset(Symbol::new("taxable_income"), step.taxable_income).unwrap();
-            hash.aset(Symbol::new("rate_numer"), step.rate_numer).unwrap();
-            hash.aset(Symbol::new("rate_denom"), step.rate_denom).unwrap();
+            hash.aset(Symbol::new("label"), step.label.as_str())
+                .unwrap();
+            hash.aset(Symbol::new("taxable_income"), step.taxable_income)
+                .unwrap();
+            hash.aset(Symbol::new("rate_numer"), step.rate_numer)
+                .unwrap();
+            hash.aset(Symbol::new("rate_denom"), step.rate_denom)
+                .unwrap();
             hash.aset(Symbol::new("deduction"), step.deduction).unwrap();
             hash.aset(Symbol::new("result"), step.result).unwrap();
             arr.push(hash).unwrap();
@@ -273,8 +285,7 @@ fn calc_income_tax(
     day: u8,
     apply_reconstruction_tax: bool,
 ) -> Result<RbIncomeTaxResult, Error> {
-    let params =
-        load_income_tax_params((year, month, day)).map_err(into_runtime_error)?;
+    let params = load_income_tax_params((year, month, day)).map_err(into_runtime_error)?;
 
     let mut flags = HashSet::new();
     if apply_reconstruction_tax {
@@ -288,8 +299,7 @@ fn calc_income_tax(
         policy: Box::new(StandardIncomeTaxPolicy),
     };
 
-    let result =
-        calculate_income_tax(&ctx, &params).map_err(into_runtime_error)?;
+    let result = calculate_income_tax(&ctx, &params).map_err(into_runtime_error)?;
 
     let breakdown = result
         .breakdown
@@ -321,7 +331,11 @@ fn calc_income_tax(
 /// - `tax_amount` → Integer（印紙税額・円）
 /// - `bracket_label` → String（適用されたブラケットの表示名）
 /// - `reduced_rate_applied?` → true/false
-#[magnus::wrap(class = "JLawCore::StampTax::StampTaxResult", free_immediately, frozen_shareable)]
+#[magnus::wrap(
+    class = "JLawCore::StampTax::StampTaxResult",
+    free_immediately,
+    frozen_shareable
+)]
 pub struct RbStampTaxResult {
     tax_amount: u64,
     bracket_label: String,
@@ -373,8 +387,7 @@ fn calc_stamp_tax(
     day: u8,
     is_reduced_rate_applicable: bool,
 ) -> Result<RbStampTaxResult, Error> {
-    let params =
-        load_stamp_tax_params((year, month, day)).map_err(into_runtime_error)?;
+    let params = load_stamp_tax_params((year, month, day)).map_err(into_runtime_error)?;
 
     let mut flags = HashSet::new();
     if is_reduced_rate_applicable {
@@ -388,8 +401,7 @@ fn calc_stamp_tax(
         policy: Box::new(StandardNtaPolicy),
     };
 
-    let result =
-        calculate_stamp_tax(&ctx, &params).map_err(into_runtime_error)?;
+    let result = calculate_stamp_tax(&ctx, &params).map_err(into_runtime_error)?;
 
     Ok(RbStampTaxResult {
         tax_amount: result.tax_amount.as_yen(),
@@ -406,8 +418,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     let real_estate = j_law_core.define_module("RealEstate")?;
 
     // BrokerageFeeResult クラス
-    let result_class =
-        real_estate.define_class("BrokerageFeeResult", ruby.class_object())?;
+    let result_class = real_estate.define_class("BrokerageFeeResult", ruby.class_object())?;
     result_class.define_method(
         "total_without_tax",
         method!(RbBrokerageFeeResult::total_without_tax, 0),
@@ -416,32 +427,17 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
         "total_with_tax",
         method!(RbBrokerageFeeResult::total_with_tax, 0),
     )?;
-    result_class.define_method(
-        "tax_amount",
-        method!(RbBrokerageFeeResult::tax_amount, 0),
-    )?;
+    result_class.define_method("tax_amount", method!(RbBrokerageFeeResult::tax_amount, 0))?;
     result_class.define_method(
         "low_cost_special_applied?",
         method!(RbBrokerageFeeResult::low_cost_special_applied, 0),
     )?;
-    result_class.define_method(
-        "breakdown",
-        method!(RbBrokerageFeeResult::breakdown, 0),
-    )?;
-    result_class.define_method(
-        "inspect",
-        method!(RbBrokerageFeeResult::inspect, 0),
-    )?;
-    result_class.define_method(
-        "to_s",
-        method!(RbBrokerageFeeResult::inspect, 0),
-    )?;
+    result_class.define_method("breakdown", method!(RbBrokerageFeeResult::breakdown, 0))?;
+    result_class.define_method("inspect", method!(RbBrokerageFeeResult::inspect, 0))?;
+    result_class.define_method("to_s", method!(RbBrokerageFeeResult::inspect, 0))?;
 
     // モジュール関数: JLawCore::RealEstate.calc_brokerage_fee(...)
-    real_estate.define_module_function(
-        "calc_brokerage_fee",
-        function!(calc_brokerage_fee, 5),
-    )?;
+    real_estate.define_module_function("calc_brokerage_fee", function!(calc_brokerage_fee, 5))?;
 
     // ─── 所得税 ───────────────────────────────────────────────────────────────
     let income_tax = j_law_core.define_module("IncomeTax")?;
@@ -449,73 +445,40 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     // IncomeTaxResult クラス
     let income_tax_result_class =
         income_tax.define_class("IncomeTaxResult", ruby.class_object())?;
-    income_tax_result_class.define_method(
-        "base_tax",
-        method!(RbIncomeTaxResult::base_tax, 0),
-    )?;
+    income_tax_result_class.define_method("base_tax", method!(RbIncomeTaxResult::base_tax, 0))?;
     income_tax_result_class.define_method(
         "reconstruction_tax",
         method!(RbIncomeTaxResult::reconstruction_tax, 0),
     )?;
-    income_tax_result_class.define_method(
-        "total_tax",
-        method!(RbIncomeTaxResult::total_tax, 0),
-    )?;
+    income_tax_result_class.define_method("total_tax", method!(RbIncomeTaxResult::total_tax, 0))?;
     income_tax_result_class.define_method(
         "reconstruction_tax_applied?",
         method!(RbIncomeTaxResult::reconstruction_tax_applied, 0),
     )?;
-    income_tax_result_class.define_method(
-        "breakdown",
-        method!(RbIncomeTaxResult::breakdown, 0),
-    )?;
-    income_tax_result_class.define_method(
-        "inspect",
-        method!(RbIncomeTaxResult::inspect, 0),
-    )?;
-    income_tax_result_class.define_method(
-        "to_s",
-        method!(RbIncomeTaxResult::inspect, 0),
-    )?;
+    income_tax_result_class.define_method("breakdown", method!(RbIncomeTaxResult::breakdown, 0))?;
+    income_tax_result_class.define_method("inspect", method!(RbIncomeTaxResult::inspect, 0))?;
+    income_tax_result_class.define_method("to_s", method!(RbIncomeTaxResult::inspect, 0))?;
 
     // モジュール関数: JLawCore::IncomeTax.calc_income_tax(...)
-    income_tax.define_module_function(
-        "calc_income_tax",
-        function!(calc_income_tax, 5),
-    )?;
+    income_tax.define_module_function("calc_income_tax", function!(calc_income_tax, 5))?;
 
     // ─── 印紙税 ───────────────────────────────────────────────────────────────
     let stamp_tax = j_law_core.define_module("StampTax")?;
 
     // StampTaxResult クラス
-    let stamp_tax_result_class =
-        stamp_tax.define_class("StampTaxResult", ruby.class_object())?;
-    stamp_tax_result_class.define_method(
-        "tax_amount",
-        method!(RbStampTaxResult::tax_amount, 0),
-    )?;
-    stamp_tax_result_class.define_method(
-        "bracket_label",
-        method!(RbStampTaxResult::bracket_label, 0),
-    )?;
+    let stamp_tax_result_class = stamp_tax.define_class("StampTaxResult", ruby.class_object())?;
+    stamp_tax_result_class.define_method("tax_amount", method!(RbStampTaxResult::tax_amount, 0))?;
+    stamp_tax_result_class
+        .define_method("bracket_label", method!(RbStampTaxResult::bracket_label, 0))?;
     stamp_tax_result_class.define_method(
         "reduced_rate_applied?",
         method!(RbStampTaxResult::reduced_rate_applied, 0),
     )?;
-    stamp_tax_result_class.define_method(
-        "inspect",
-        method!(RbStampTaxResult::inspect, 0),
-    )?;
-    stamp_tax_result_class.define_method(
-        "to_s",
-        method!(RbStampTaxResult::inspect, 0),
-    )?;
+    stamp_tax_result_class.define_method("inspect", method!(RbStampTaxResult::inspect, 0))?;
+    stamp_tax_result_class.define_method("to_s", method!(RbStampTaxResult::inspect, 0))?;
 
     // モジュール関数: JLawCore::StampTax.calc_stamp_tax(...)
-    stamp_tax.define_module_function(
-        "calc_stamp_tax",
-        function!(calc_stamp_tax, 5),
-    )?;
+    stamp_tax.define_module_function("calc_stamp_tax", function!(calc_stamp_tax, 5))?;
 
     Ok(())
 }

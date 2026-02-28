@@ -1,6 +1,6 @@
-use std::collections::HashSet;
 use crate::domains::real_estate::context::RealEstateFlag;
 use crate::types::rounding::RoundingStrategy;
+use std::collections::HashSet;
 
 /// 媒介報酬計算のポリシーインターフェース。
 ///
@@ -8,11 +8,7 @@ use crate::types::rounding::RoundingStrategy;
 /// 通常は [`StandardMliitPolicy`] を使う。
 pub trait RealEstatePolicy: std::fmt::Debug {
     /// 低廉な空き家特例を適用するかどうかを判定する。
-    fn should_apply_low_cost_special(
-        &self,
-        price: u64,
-        flags: &HashSet<RealEstateFlag>,
-    ) -> bool;
+    fn should_apply_low_cost_special(&self, price: u64, flags: &HashSet<RealEstateFlag>) -> bool;
 
     /// 各ティアの計算に使う端数処理戦略。
     fn tier_rounding(&self) -> RoundingStrategy;
@@ -30,11 +26,7 @@ pub trait RealEstatePolicy: std::fmt::Debug {
 pub struct StandardMliitPolicy;
 
 impl RealEstatePolicy for StandardMliitPolicy {
-    fn should_apply_low_cost_special(
-        &self,
-        price: u64,
-        flags: &HashSet<RealEstateFlag>,
-    ) -> bool {
+    fn should_apply_low_cost_special(&self, price: u64, flags: &HashSet<RealEstateFlag>) -> bool {
         price <= 8_000_000 && flags.contains(&RealEstateFlag::IsLowCostVacantHouse)
     }
 

@@ -11,9 +11,7 @@ use j_law_core::{InputError, JLawError, RegistryError};
 ///
 /// # エラー
 /// - `target_date` がどの有効期間にも該当しない → `InputError::DateOutOfRange`
-pub fn load_income_tax_params(
-    target_date: (u16, u8, u8),
-) -> Result<IncomeTaxParams, JLawError> {
+pub fn load_income_tax_params(target_date: (u16, u8, u8)) -> Result<IncomeTaxParams, JLawError> {
     let json_str = include_str!("../data/income_tax/income_tax.json");
 
     let registry: IncomeTaxRegistry =
@@ -33,7 +31,10 @@ pub fn load_income_tax_params(
     Ok(to_params(entry))
 }
 
-fn find_entry<'a>(registry: &'a IncomeTaxRegistry, date_str: &str) -> Option<&'a IncomeTaxHistoryEntry> {
+fn find_entry<'a>(
+    registry: &'a IncomeTaxRegistry,
+    date_str: &str,
+) -> Option<&'a IncomeTaxHistoryEntry> {
     registry.history.iter().find(|entry| {
         let from_ok = entry.effective_from.as_str() <= date_str;
         let until_ok = match &entry.effective_until {
@@ -59,14 +60,17 @@ fn to_params(entry: &IncomeTaxHistoryEntry) -> IncomeTaxParams {
         })
         .collect();
 
-    let reconstruction_tax = entry.params.reconstruction_tax.as_ref().map(|rt| {
-        ReconstructionTaxParams {
-            rate_numer: rt.rate.numer,
-            rate_denom: rt.rate.denom,
-            effective_from_year: rt.effective_from_year,
-            effective_to_year_inclusive: rt.effective_to_year_inclusive,
-        }
-    });
+    let reconstruction_tax =
+        entry
+            .params
+            .reconstruction_tax
+            .as_ref()
+            .map(|rt| ReconstructionTaxParams {
+                rate_numer: rt.rate.numer,
+                rate_denom: rt.rate.denom,
+                effective_from_year: rt.effective_from_year,
+                effective_to_year_inclusive: rt.effective_to_year_inclusive,
+            });
 
     IncomeTaxParams {
         brackets,

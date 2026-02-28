@@ -17,7 +17,11 @@ impl RoundingStrategy {
     ///
     /// # エラー
     /// `denom == 0` の場合は `InputError::ZeroDenominator` を返す。
-    pub(crate) fn apply_ratio(self, numer: u64, denom: u64) -> Result<u64, crate::error::InputError> {
+    pub(crate) fn apply_ratio(
+        self,
+        numer: u64,
+        denom: u64,
+    ) -> Result<u64, crate::error::InputError> {
         if denom == 0 {
             return Err(crate::error::InputError::ZeroDenominator);
         }
@@ -68,6 +72,9 @@ mod tests {
     fn zero_denominator_returns_error() {
         let result = RoundingStrategy::Floor.apply_ratio(10, 0);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), crate::error::InputError::ZeroDenominator));
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::error::InputError::ZeroDenominator
+        ));
     }
 }

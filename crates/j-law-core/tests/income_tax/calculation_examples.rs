@@ -109,11 +109,7 @@ fn ctx_without_reconstruction(income: u64) -> IncomeTaxContext {
 
 #[test]
 fn zero_income() {
-    let result = calculate_income_tax(
-        &ctx_without_reconstruction(0),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result = calculate_income_tax(&ctx_without_reconstruction(0), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 0);
     assert_eq!(result.reconstruction_tax.as_yen(), 0);
     assert_eq!(result.total_tax.as_yen(), 0);
@@ -128,11 +124,8 @@ fn zero_income() {
 /// 合計: 97,500 + 2,047 = 99,547 → 99,500
 #[test]
 fn bracket1_1_950_000() {
-    let result = calculate_income_tax(
-        &ctx_with_reconstruction(1_950_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_with_reconstruction(1_950_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 97_500);
     assert_eq!(result.reconstruction_tax.as_yen(), 2_047);
     assert_eq!(result.total_tax.as_yen(), 99_500);
@@ -145,11 +138,8 @@ fn bracket1_1_950_000() {
 /// 合計: 50,000 + 1,050 = 51,050 → 51,000
 #[test]
 fn bracket1_1_000_000() {
-    let result = calculate_income_tax(
-        &ctx_with_reconstruction(1_000_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_with_reconstruction(1_000_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 50_000);
     assert_eq!(result.reconstruction_tax.as_yen(), 1_050);
     assert_eq!(result.total_tax.as_yen(), 51_000);
@@ -163,11 +153,8 @@ fn bracket1_1_000_000() {
 /// 合計: 202,500 + 4,252 = 206,752 → 206,700
 #[test]
 fn bracket2_3_000_000() {
-    let result = calculate_income_tax(
-        &ctx_with_reconstruction(3_000_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_with_reconstruction(3_000_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 202_500);
     assert_eq!(result.reconstruction_tax.as_yen(), 4_252);
     assert_eq!(result.total_tax.as_yen(), 206_700);
@@ -181,11 +168,8 @@ fn bracket2_3_000_000() {
 /// 合計: 572,500 + 12,022 = 584,522 → 584,500
 #[test]
 fn bracket3_5_000_000() {
-    let result = calculate_income_tax(
-        &ctx_with_reconstruction(5_000_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_with_reconstruction(5_000_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 572_500);
     assert_eq!(result.reconstruction_tax.as_yen(), 12_022);
     assert_eq!(result.total_tax.as_yen(), 584_500);
@@ -201,11 +185,8 @@ fn bracket3_5_000_000() {
 /// 合計: 1,204,000 + 25,284 = 1,229,284 → 1,229,200
 #[test]
 fn bracket4_8_000_000() {
-    let result = calculate_income_tax(
-        &ctx_with_reconstruction(8_000_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_with_reconstruction(8_000_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 1_204_000);
     assert_eq!(result.reconstruction_tax.as_yen(), 25_284);
     assert_eq!(result.total_tax.as_yen(), 1_229_200);
@@ -219,11 +200,8 @@ fn bracket4_8_000_000() {
 /// 合計: 1,764,000 + 37,044 = 1,801,044 → 1,801,000
 #[test]
 fn bracket5_10_000_000() {
-    let result = calculate_income_tax(
-        &ctx_with_reconstruction(10_000_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_with_reconstruction(10_000_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 1_764_000);
     assert_eq!(result.reconstruction_tax.as_yen(), 37_044);
     assert_eq!(result.total_tax.as_yen(), 1_801_000);
@@ -237,11 +215,8 @@ fn bracket5_10_000_000() {
 /// 合計: 5,204,000 + 109,284 = 5,313,284 → 5,313,200
 #[test]
 fn bracket6_20_000_000() {
-    let result = calculate_income_tax(
-        &ctx_with_reconstruction(20_000_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_with_reconstruction(20_000_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 5_204_000);
     assert_eq!(result.reconstruction_tax.as_yen(), 109_284);
     assert_eq!(result.total_tax.as_yen(), 5_313_200);
@@ -255,11 +230,8 @@ fn bracket6_20_000_000() {
 /// 合計: 17,704,000 + 371,784 = 18,075,784 → 18,075,700
 #[test]
 fn bracket7_50_000_000() {
-    let result = calculate_income_tax(
-        &ctx_with_reconstruction(50_000_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_with_reconstruction(50_000_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 17_704_000);
     assert_eq!(result.reconstruction_tax.as_yen(), 371_784);
     assert_eq!(result.total_tax.as_yen(), 18_075_700);
@@ -271,11 +243,8 @@ fn bracket7_50_000_000() {
 /// 基準税額: 572,500 / 復興税: 0 / 合計: 572,500
 #[test]
 fn without_reconstruction_tax() {
-    let result = calculate_income_tax(
-        &ctx_without_reconstruction(5_000_000),
-        &tax_params_2024(),
-    )
-    .unwrap();
+    let result =
+        calculate_income_tax(&ctx_without_reconstruction(5_000_000), &tax_params_2024()).unwrap();
     assert_eq!(result.base_tax.as_yen(), 572_500);
     assert_eq!(result.reconstruction_tax.as_yen(), 0);
     assert_eq!(result.total_tax.as_yen(), 572_500);

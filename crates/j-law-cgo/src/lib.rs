@@ -1,16 +1,14 @@
 use std::collections::HashSet;
 use std::os::raw::{c_char, c_int};
 
-use j_law_core::domains::real_estate::{
-    calculator::calculate_brokerage_fee,
-    context::RealEstateContext,
-    policy::StandardMliitPolicy,
-    RealEstateFlag,
-};
 use j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
     policy::StandardIncomeTaxPolicy,
+};
+use j_law_core::domains::real_estate::{
+    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
+    RealEstateFlag,
 };
 use j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
@@ -166,7 +164,11 @@ pub unsafe extern "C" fn j_law_calc_brokerage_fee(
     out.total_without_tax = result.total_without_tax.as_yen();
     out.total_with_tax = result.total_with_tax.as_yen();
     out.tax_amount = result.tax_amount.as_yen();
-    out.low_cost_special_applied = if result.low_cost_special_applied { 1 } else { 0 };
+    out.low_cost_special_applied = if result.low_cost_special_applied {
+        1
+    } else {
+        0
+    };
     out.breakdown_len = result.breakdown.len().min(J_LAW_MAX_TIERS) as c_int;
 
     for (i, step) in result.breakdown.iter().take(J_LAW_MAX_TIERS).enumerate() {
@@ -288,7 +290,11 @@ pub unsafe extern "C" fn j_law_calc_income_tax(
     out.base_tax = result.base_tax.as_yen();
     out.reconstruction_tax = result.reconstruction_tax.as_yen();
     out.total_tax = result.total_tax.as_yen();
-    out.reconstruction_tax_applied = if result.reconstruction_tax_applied { 1 } else { 0 };
+    out.reconstruction_tax_applied = if result.reconstruction_tax_applied {
+        1
+    } else {
+        0
+    };
     out.breakdown_len = result.breakdown.len().min(J_LAW_MAX_TIERS) as c_int;
 
     for (i, step) in result.breakdown.iter().take(J_LAW_MAX_TIERS).enumerate() {

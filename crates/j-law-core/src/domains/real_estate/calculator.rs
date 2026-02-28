@@ -63,13 +63,18 @@ pub fn calculate_brokerage_fee(
             continue;
         }
 
-        let rate = Rate { numer: tier.rate_numer, denom: tier.rate_denom };
+        let rate = Rate {
+            numer: tier.rate_numer,
+            denom: tier.rate_denom,
+        };
         let amount = IntermediateAmount::from_exact(tier_base);
         let tier_result = rate.apply(&amount, MultiplyOrder::MultiplyFirst, tier_rounding)?;
         let tier_final = tier_result.finalize(tier_rounding)?;
 
         subtotal = subtotal.checked_add(tier_final.as_yen()).ok_or_else(|| {
-            CalculationError::Overflow { step: tier.label.clone() }
+            CalculationError::Overflow {
+                step: tier.label.clone(),
+            }
         })?;
 
         breakdown.push(CalculationStep {
@@ -101,7 +106,10 @@ pub fn calculate_brokerage_fee(
     let total_without_tax = FinalAmount::new(subtotal);
 
     // --- 消費税 ---
-    let tax_rate = Rate { numer: params.tax_numer, denom: params.tax_denom };
+    let tax_rate = Rate {
+        numer: params.tax_numer,
+        denom: params.tax_denom,
+    };
     let tax_amount = tax_rate
         .apply(
             &IntermediateAmount::from_exact(subtotal),
@@ -111,9 +119,9 @@ pub fn calculate_brokerage_fee(
         .finalize(tax_rounding)?;
 
     let total_with_tax = FinalAmount::new(
-        subtotal.checked_add(tax_amount.as_yen()).ok_or_else(|| {
-            CalculationError::Overflow { step: "tax".into() }
-        })?,
+        subtotal
+            .checked_add(tax_amount.as_yen())
+            .ok_or_else(|| CalculationError::Overflow { step: "tax".into() })?,
     );
 
     Ok(CalculationResult {
@@ -166,7 +174,10 @@ mod tests {
         // 5,000,000円 の tier2（from=2,000,001, to=4,000,000）
         // capped = min(5M, 4M) = 4M
         // base = 4M - (2_000_001 - 1) = 4M - 2M = 2,000,000
-        assert_eq!(compute_tier_base(5_000_000, 2_000_001, Some(4_000_000)), 2_000_000);
+        assert_eq!(
+            compute_tier_base(5_000_000, 2_000_001, Some(4_000_000)),
+            2_000_000
+        );
     }
 
     #[test]

@@ -120,7 +120,11 @@ fn mlitt_2024_price_30m() {
 fn mlitt_2024_low_cost_special_8m() {
     let params = load_brokerage_fee_params((2024, 8, 1)).unwrap();
     let result = calculate_brokerage_fee(
-        &ctx_with_flag(8_000_000, (2024, 8, 1), RealEstateFlag::IsLowCostVacantHouse),
+        &ctx_with_flag(
+            8_000_000,
+            (2024, 8, 1),
+            RealEstateFlag::IsLowCostVacantHouse,
+        ),
         &params,
     )
     .unwrap();
@@ -136,7 +140,11 @@ fn mlitt_2024_low_cost_special_8m() {
 fn mlitt_2024_low_cost_special_not_applied_over_ceiling() {
     let params = load_brokerage_fee_params((2024, 8, 1)).unwrap();
     let result = calculate_brokerage_fee(
-        &ctx_with_flag(8_000_001, (2024, 8, 1), RealEstateFlag::IsLowCostVacantHouse),
+        &ctx_with_flag(
+            8_000_001,
+            (2024, 8, 1),
+            RealEstateFlag::IsLowCostVacantHouse,
+        ),
         &params,
     )
     .unwrap();

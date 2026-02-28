@@ -2,16 +2,14 @@ use std::collections::HashSet;
 
 use pyo3::prelude::*;
 
-use ::j_law_core::domains::real_estate::{
-    calculator::calculate_brokerage_fee,
-    context::RealEstateContext,
-    policy::StandardMliitPolicy,
-    RealEstateFlag,
-};
 use ::j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
     policy::StandardIncomeTaxPolicy,
+};
+use ::j_law_core::domains::real_estate::{
+    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
+    RealEstateFlag,
 };
 use ::j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
@@ -185,8 +183,12 @@ impl IncomeTaxStep {
     fn __repr__(&self) -> String {
         format!(
             "IncomeTaxStep(label={:?}, taxable_income={}, rate={}/{}, deduction={}, result={})",
-            self.label, self.taxable_income, self.rate_numer, self.rate_denom,
-            self.deduction, self.result
+            self.label,
+            self.taxable_income,
+            self.rate_numer,
+            self.rate_denom,
+            self.deduction,
+            self.result
         )
     }
 }

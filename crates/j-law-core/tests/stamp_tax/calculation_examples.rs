@@ -107,8 +107,7 @@ fn bracket7_reduced() {
 #[test]
 fn bracket11_reduced() {
     let params = load_stamp_tax_params((2024, 8, 1)).unwrap();
-    let result =
-        calculate_stamp_tax(&ctx(10_000_000_000, (2024, 8, 1), true), &params).unwrap();
+    let result = calculate_stamp_tax(&ctx(10_000_000_000, (2024, 8, 1), true), &params).unwrap();
     assert_eq!(result.tax_amount.as_yen(), 480_000);
     assert!(result.reduced_rate_applied);
 }

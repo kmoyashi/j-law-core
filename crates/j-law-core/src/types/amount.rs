@@ -45,7 +45,11 @@ pub struct IntermediateAmount {
 impl IntermediateAmount {
     /// 整数値（円）から `IntermediateAmount` を作る（端数なし）。
     pub fn from_exact(yen: u64) -> Self {
-        Self { whole: yen, numer: 0, denom: 1 }
+        Self {
+            whole: yen,
+            numer: 0,
+            denom: 1,
+        }
     }
 
     /// 分数形式で作る。`denom == 0` の場合はエラーを返す。
@@ -53,7 +57,11 @@ impl IntermediateAmount {
         if denom == 0 {
             return Err(InputError::ZeroDenominator);
         }
-        Ok(Self { whole, numer, denom })
+        Ok(Self {
+            whole,
+            numer,
+            denom,
+        })
     }
 
     /// 端数処理して [`FinalAmount`] に変換する。

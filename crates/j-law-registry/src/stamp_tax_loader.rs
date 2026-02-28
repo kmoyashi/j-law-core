@@ -9,9 +9,7 @@ use j_law_core::{InputError, JLawError, RegistryError};
 ///
 /// # エラー
 /// - `target_date` がどの有効期間にも該当しない → `InputError::DateOutOfRange`
-pub fn load_stamp_tax_params(
-    target_date: (u16, u8, u8),
-) -> Result<StampTaxParams, JLawError> {
+pub fn load_stamp_tax_params(target_date: (u16, u8, u8)) -> Result<StampTaxParams, JLawError> {
     let json_str = include_str!("../data/stamp_tax/stamp_tax.json");
 
     let registry: StampTaxRegistry =
@@ -31,7 +29,10 @@ pub fn load_stamp_tax_params(
     Ok(to_params(entry))
 }
 
-fn find_entry<'a>(registry: &'a StampTaxRegistry, date_str: &str) -> Option<&'a StampTaxHistoryEntry> {
+fn find_entry<'a>(
+    registry: &'a StampTaxRegistry,
+    date_str: &str,
+) -> Option<&'a StampTaxHistoryEntry> {
     registry.history.iter().find(|entry| {
         let from_ok = entry.effective_from.as_str() <= date_str;
         let until_ok = match &entry.effective_until {

@@ -56,12 +56,7 @@ mod tests {
 
     #[test]
     fn display_article_only() {
-        let c = LegalCitation::article_only(
-            "reitaku-46",
-            "宅地建物取引業法",
-            46,
-            (2024, 7, 1),
-        );
+        let c = LegalCitation::article_only("reitaku-46", "宅地建物取引業法", 46, (2024, 7, 1));
         assert_eq!(c.to_string(), "宅地建物取引業法 第46条");
     }
 
