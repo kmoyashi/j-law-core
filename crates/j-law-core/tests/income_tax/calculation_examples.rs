@@ -3,6 +3,8 @@
 //! 出典: 国税庁「所得税の税率」
 //! https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm
 //!
+
+#![allow(clippy::disallowed_methods)] // テストコードでは unwrap() 使用可能
 //! 令和6年分の所得税速算表（所得税法 第89条第1項）に基づく。
 //! 復興特別所得税（復興財源確保法 第13条）を含む。
 

@@ -1,3 +1,5 @@
+#![allow(clippy::disallowed_methods)] // テストコードでは unwrap() 使用可能
+
 use std::collections::HashSet;
 
 use j_law_core::domains::stamp_tax::{

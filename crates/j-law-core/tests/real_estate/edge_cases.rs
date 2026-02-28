@@ -2,6 +2,8 @@
 //!
 //! 200万円・400万円・800万円の各境界と、その前後1円での挙動を検証する。
 
+#![allow(clippy::disallowed_methods)] // テストコードでは unwrap() 使用可能
+
 use std::collections::HashSet;
 
 use j_law_core::domains::real_estate::{

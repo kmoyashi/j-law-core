@@ -40,6 +40,7 @@ impl RoundingStrategy {
 
 #[cfg(test)]
 mod tests {
+    #![allow(clippy::disallowed_methods)] // テストコードでは unwrap() 使用可能
     use super::*;
 
     #[test]

@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 
-[lints]
-workspace = true
+[lints.clippy]
+# Rubyバインディング層では、magnusマクロ展開時のunwrap()使用が必要
+disallowed_methods = "allow"
+# f64/panic!は引き続き禁止
+disallowed_types = "warn"
+disallowed_macros = "warn"
 
 [lib]
 name = "j_law_core"

@@ -3,6 +3,8 @@
 //! 出典: 国土交通省「宅地建物取引業法の解釈・運用の考え方」第46条関係
 //! https://www.mlit.go.jp/totikensangyo/const/1_6_bt_000083.html
 
+#![allow(clippy::disallowed_methods)] // テストコードでは unwrap() 使用可能
+
 use std::collections::HashSet;
 
 use j_law_core::domains::real_estate::{

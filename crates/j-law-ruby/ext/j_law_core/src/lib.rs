@@ -44,6 +44,9 @@ struct BreakdownStepData {
 /// - `tax_amount`        → Integer（消費税額・円）
 /// - `low_cost_special_applied?` → true/false
 /// - `breakdown` → Array<Hash>（各ティアの内訳）
+///
+/// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
+/// Cargo.toml で disallowed_methods = "allow" を設定している
 #[magnus::wrap(
     class = "JLawCore::RealEstate::BrokerageFeeResult",
     free_immediately,
@@ -82,25 +85,21 @@ impl RbBrokerageFeeResult {
     /// - `:rate_numer`  Integer
     /// - `:rate_denom`  Integer
     /// - `:result`      Integer（ティア計算結果・円）
-    fn breakdown(&self) -> RArray {
+    fn breakdown(&self) -> Result<RArray, Error> {
         // SAFETY: Magnus が #[magnus::wrap] で wrap したオブジェクトのメソッドは
         // Ruby の GIL 保持下で呼ばれるため、Ruby ランタイムは必ず初期化済みである。
         let ruby = unsafe { Ruby::get_unchecked() };
         let arr = ruby.ary_new();
         for step in &self.breakdown {
             let hash = ruby.hash_new();
-            hash.aset(Symbol::new("label"), step.label.as_str())
-                .unwrap();
-            hash.aset(Symbol::new("base_amount"), step.base_amount)
-                .unwrap();
-            hash.aset(Symbol::new("rate_numer"), step.rate_numer)
-                .unwrap();
-            hash.aset(Symbol::new("rate_denom"), step.rate_denom)
-                .unwrap();
-            hash.aset(Symbol::new("result"), step.result).unwrap();
-            arr.push(hash).unwrap();
+            hash.aset(Symbol::new("label"), step.label.as_str())?;
+            hash.aset(Symbol::new("base_amount"), step.base_amount)?;
+            hash.aset(Symbol::new("rate_numer"), step.rate_numer)?;
+            hash.aset(Symbol::new("rate_denom"), step.rate_denom)?;
+            hash.aset(Symbol::new("result"), step.result)?;
+            arr.push(hash)?;
         }
-        arr
+        Ok(arr)
     }
 
     fn inspect(&self) -> String {
@@ -194,6 +193,9 @@ struct IncomeTaxStepData {
 /// - `total_tax` → Integer（申告納税額・円・100円未満切り捨て）
 /// - `reconstruction_tax_applied?` → true/false
 /// - `breakdown` → Array<Hash>（計算内訳）
+///
+/// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
+/// Cargo.toml で disallowed_methods = "allow" を設定している
 #[magnus::wrap(
     class = "JLawCore::IncomeTax::IncomeTaxResult",
     free_immediately,
@@ -233,24 +235,20 @@ impl RbIncomeTaxResult {
     /// - `:rate_denom`     Integer
     /// - `:deduction`      Integer（速算表の控除額・円）
     /// - `:result`         Integer（算出税額・円）
-    fn breakdown(&self) -> RArray {
+    fn breakdown(&self) -> Result<RArray, Error> {
         let ruby = unsafe { Ruby::get_unchecked() };
         let arr = ruby.ary_new();
         for step in &self.breakdown {
             let hash = ruby.hash_new();
-            hash.aset(Symbol::new("label"), step.label.as_str())
-                .unwrap();
-            hash.aset(Symbol::new("taxable_income"), step.taxable_income)
-                .unwrap();
-            hash.aset(Symbol::new("rate_numer"), step.rate_numer)
-                .unwrap();
-            hash.aset(Symbol::new("rate_denom"), step.rate_denom)
-                .unwrap();
-            hash.aset(Symbol::new("deduction"), step.deduction).unwrap();
-            hash.aset(Symbol::new("result"), step.result).unwrap();
-            arr.push(hash).unwrap();
+            hash.aset(Symbol::new("label"), step.label.as_str())?;
+            hash.aset(Symbol::new("taxable_income"), step.taxable_income)?;
+            hash.aset(Symbol::new("rate_numer"), step.rate_numer)?;
+            hash.aset(Symbol::new("rate_denom"), step.rate_denom)?;
+            hash.aset(Symbol::new("deduction"), step.deduction)?;
+            hash.aset(Symbol::new("result"), step.result)?;
+            arr.push(hash)?;
         }
-        arr
+        Ok(arr)
     }
 
     fn inspect(&self) -> String {
@@ -331,6 +329,9 @@ fn calc_income_tax(
 /// - `tax_amount` → Integer（印紙税額・円）
 /// - `bracket_label` → String（適用されたブラケットの表示名）
 /// - `reduced_rate_applied?` → true/false
+///
+/// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
+/// Cargo.toml で disallowed_methods = "allow" を設定している
 #[magnus::wrap(
     class = "JLawCore::StampTax::StampTaxResult",
     free_immediately,

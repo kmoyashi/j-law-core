@@ -2,6 +2,8 @@
 //!
 //! 各ブラケット境界（195万/330万/695万/900万/1800万/4000万）での挙動を検証する。
 
+#![allow(clippy::disallowed_methods)] // テストコードでは unwrap() 使用可能
+
 use std::collections::HashSet;
 
 use j_law_core::domains::income_tax::{

@@ -76,6 +76,7 @@ impl BrokerageFeeResult {
         self.low_cost_special_applied
     }
 
+    /// JavaScript への値返却のため f64 を使用
     pub fn breakdown(&self) -> Array {
         self.breakdown_data
             .iter()
@@ -211,6 +212,7 @@ impl IncomeTaxResult {
         self.reconstruction_tax_applied
     }
 
+    /// JavaScript への値返却のため f64 を使用
     pub fn breakdown(&self) -> Array {
         self.breakdown_data
             .iter()

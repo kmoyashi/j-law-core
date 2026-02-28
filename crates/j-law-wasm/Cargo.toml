@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 
-[lints]
-workspace = true
+[lints.clippy]
+# WASMバインディング層では、wasm_bindgenマクロ展開時のpanic!使用とJavaScriptへのf64返却が必要
+disallowed_macros = "allow"
+disallowed_types = "allow"
+# unwrap/expectは引き続き禁止
+disallowed_methods = "warn"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
