@@ -10,6 +10,7 @@ use j_law_core::RegistryError;
 ///
 /// # エラー
 /// 不正なデータを検出した場合は起動時にパニックさせてよい（設定ファイルエラー）。
+#[allow(dead_code)] // テストでのみ使用されているが、将来的に他クレートから使用される可能性あり
 pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
     let domain = &registry.domain;
 
@@ -68,6 +69,7 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
     use crate::schema::{BrokerageFeeRegistry, CitationEntry, Fraction, HistoryEntry, ParamsEntry};

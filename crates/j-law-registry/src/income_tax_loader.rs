@@ -79,6 +79,7 @@ fn to_params(entry: &IncomeTaxHistoryEntry) -> IncomeTaxParams {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
 
@@ -105,5 +106,28 @@ mod tests {
             result,
             Err(JLawError::Input(InputError::DateOutOfRange { .. }))
         ));
+    }
+
+    #[test]
+    fn registry_data_integrity_check() {
+        let json_str = include_str!("../data/income_tax/income_tax.json");
+        let registry: IncomeTaxRegistry = serde_json::from_str(json_str).unwrap();
+
+        // 基本的な整合性チェック
+        assert!(!registry.history.is_empty(), "Registry should not be empty");
+
+        for entry in &registry.history {
+            // 分母ゼロチェック
+            for bracket in &entry.params.brackets {
+                assert_ne!(bracket.rate.denom, 0, "Rate denominator must not be zero");
+            }
+
+            if let Some(rt) = &entry.params.reconstruction_tax {
+                assert_ne!(
+                    rt.rate.denom, 0,
+                    "Reconstruction tax denominator must not be zero"
+                );
+            }
+        }
     }
 }

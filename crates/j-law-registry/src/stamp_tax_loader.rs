@@ -65,6 +65,7 @@ fn to_params(entry: &StampTaxHistoryEntry) -> StampTaxParams {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
 
@@ -89,5 +90,22 @@ mod tests {
             result,
             Err(JLawError::Input(InputError::DateOutOfRange { .. }))
         ));
+    }
+
+    #[test]
+    fn registry_data_integrity_check() {
+        let json_str = include_str!("../data/stamp_tax/stamp_tax.json");
+        let registry: StampTaxRegistry = serde_json::from_str(json_str).unwrap();
+
+        // 基本的な整合性チェック
+        assert!(!registry.history.is_empty(), "Registry should not be empty");
+
+        for entry in &registry.history {
+            // ブラケットが存在することを確認
+            assert!(
+                !entry.params.brackets.is_empty(),
+                "Brackets should not be empty"
+            );
+        }
     }
 }

@@ -63,6 +63,7 @@ pub struct HistoryEntry {
 /// `brokerage_fee.json` のルートスキーマ。
 #[derive(Debug, Clone, Deserialize)]
 pub struct BrokerageFeeRegistry {
+    #[allow(dead_code)]
     pub domain: String,
     pub history: Vec<HistoryEntry>,
 }

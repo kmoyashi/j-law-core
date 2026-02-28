@@ -1,5 +1,4 @@
 use crate::schema::{BrokerageFeeRegistry, HistoryEntry};
-use crate::validator::validate;
 use j_law_core::domains::real_estate::params::{
     BrokerageFeeParams, LowCostSpecialParams, TierParam,
 };
@@ -22,9 +21,6 @@ pub fn load_brokerage_fee_params(
         serde_json::from_str(json_str).map_err(|e| RegistryError::FileNotFound {
             path: format!("real_estate/brokerage_fee.json: {}", e),
         })?;
-
-    // 起動時バリデーション（不整合があれば panic）
-    validate(&registry).unwrap_or_else(|e| panic!("Registry validation failed: {}", e));
 
     let date_str = format!(
         "{:04}-{:02}-{:02}",
@@ -82,8 +78,10 @@ fn to_params(entry: &HistoryEntry) -> BrokerageFeeParams {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
+    use crate::validator::validate;
 
     #[test]
     fn load_2024_active_params() {
@@ -123,5 +121,12 @@ mod tests {
     fn boundary_2024_06_30_uses_old_params() {
         let params = load_brokerage_fee_params((2024, 6, 30)).unwrap();
         assert!(params.low_cost_special.is_none());
+    }
+
+    #[test]
+    fn registry_validation_passes() {
+        let json_str = include_str!("../data/real_estate/brokerage_fee.json");
+        let registry: BrokerageFeeRegistry = serde_json::from_str(json_str).unwrap();
+        validate(&registry).unwrap();
     }
 }
