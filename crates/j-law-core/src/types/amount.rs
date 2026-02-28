@@ -101,6 +101,7 @@ impl std::ops::Add<&IntermediateAmount> for IntermediateAmount {
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods)]
 mod tests {
     use super::*;
     use std::ops::Add;

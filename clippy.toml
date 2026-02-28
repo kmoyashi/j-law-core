@@ -1,0 +1,20 @@
+# 1. 特定のメソッド（unwrap, expect）の禁止
+disallowed-methods = [
+    { path = "std::option::Option::unwrap", reason = "unwrap() はパニックのリスクがあります。match や ? でエラーハンドリングを行ってください。" },
+    { path = "std::result::Result::unwrap", reason = "unwrap() はパニックのリスクがあります。match や ? でエラーハンドリングを行ってください。" },
+    { path = "std::option::Option::expect", reason = "expect() は本番コードでは避けてください。論理的に絶対失敗しない場合はコメントで理由を添えて allow してください。" },
+    { path = "std::result::Result::expect", reason = "expect() は本番コードでは避けてください。論理的に絶対失敗しない場合はコメントで理由を添えて allow してください。" },
+]
+
+# 2. 特定の型（f64, f32）の禁止
+disallowed-types = [
+    { path = "f64", reason = "精度を担保するため、コアロジックでは f64 ではなく Decimal型 や 整数型 を使用してください。" },
+    { path = "f32", reason = "精度を担保するため、コアロジックでは f32 ではなく Decimal型 や 整数型 を使用してください。" },
+]
+
+# 3. 特定のマクロ（panic!, todo!）の禁止
+disallowed-macros = [
+    { path = "std::panic", reason = "panic!() はプログラムを強制終了させます。Result型 を返してエラーを伝播させてください。" },
+    { path = "std::todo", reason = "実装が未完了です。リリース前に完成させてください。" },
+    { path = "std::unimplemented", reason = "未実装のコードが含まれています。" },
+]

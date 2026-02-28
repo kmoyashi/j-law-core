@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3'
+          ruby-version: "3.3"
       - name: Install libclang
         run: sudo apt-get update && sudo apt-get install -y libclang-dev
       - uses: dtolnay/rust-toolchain@stable
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3'
+          ruby-version: "3.3"
       - name: Install libclang
         run: sudo apt-get update && sudo apt-get install -y libclang-dev
       - uses: dtolnay/rust-toolchain@stable
@@ -64,26 +64,6 @@ jobs:
             ${{ runner.os }}-cargo-
       - name: Run workspace tests
         run: cargo test --workspace
-      - name: "AGENTS Rule 1: f64/f32 禁止チェック"
-        run: |
-          # コメント行を除外してチェック (行の内容が//、/*、*で始まるものを除外)
-          RESULT=$(grep -rn 'f64\|f32' crates/j-law-core/src/ | grep -v ':\s*//' | grep -v ':\s*/\*' | grep -v ':\s*\*' || true)
-          if [ -n "$RESULT" ]; then
-            echo "❌ FAIL: f64/f32 found in j-law-core (excluding comments)"
-            echo "$RESULT"
-            exit 1
-          fi
-          echo "✅ OK: No floats in j-law-core"
-      - name: "AGENTS Rule 2: panic!/unwrap()/expect() 禁止チェック (コア層)"
-        run: |
-          # コメント行を除外してチェック (行の内容が//、/*、*で始まるものを除外)
-          RESULT=$(grep -rn 'panic!\|\.unwrap()\|\.expect(' crates/j-law-core/src/ | grep -v ':\s*//' | grep -v ':\s*/\*' | grep -v ':\s*\*' || true)
-          if [ -n "$RESULT" ]; then
-            echo "❌ FAIL: panic!/unwrap()/expect() found in j-law-core (excluding comments)"
-            echo "$RESULT"
-            exit 1
-          fi
-          echo "✅ OK: No panic!/unwrap()/expect() in j-law-core"
 
   security:
     name: Security Audit

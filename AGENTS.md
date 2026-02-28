@@ -46,12 +46,12 @@ cargo test --all 2>&1 | tail -20
 
 ---
 
-## コーディングルール（違反するとCIが失敗します）
+## コーディングルール（違反すると clippy が警告します）
 
 ### ルール1: 金額・数値計算に `f64` / `f32` を使用禁止
 
 法令計算は端数処理の順序が結果を左右します。浮動小数点は使用禁止です。
-`crates/j-law-core/src/` への違反はCIで検出・拒否されます。
+`clippy.toml` で `disallowed-types` に設定されており、違反すると `cargo clippy` が警告します。
 
 ```rust
 // NG — 法令計算で絶対に書かない
@@ -62,14 +62,16 @@ let fee = IntermediateAmount::from_exact(price)
     .apply_rate(&Rate { numer: 5, denom: 100 }, RoundingStrategy::Floor);
 ```
 
-確認コマンド: `grep -r 'f64\|f32' crates/j-law-core/src/`（結果が出たらNG）
+確認コマンド: `cargo clippy --all-targets --all-features -- -D warnings`
 
-### ルール2: `panic!` 使用禁止（コア層）
+### ルール2: `panic!` / `unwrap()` / `expect()` 使用禁止（コア層）
 
 `crates/j-law-core/src/` 内では `panic!` / `unwrap()` / `expect()` を使わず、すべて `Result<T, E>` で返すこと。
+`clippy.toml` で `disallowed-methods` と `disallowed-macros` に設定されており、違反すると `cargo clippy` が警告します。
+
 Registry層（`crates/j-law-registry/src/`）の起動時バリデーションのみ `panic!` を許容します。
 
-確認コマンド: `grep -rn 'panic!\|\.unwrap()\|\.expect(' crates/j-law-core/src/`
+確認コマンド: `cargo clippy --all-targets --all-features -- -D warnings`
 
 ### ルール3: Registry JSONの数値は整数のみ
 
@@ -449,13 +451,13 @@ Docker コンテナ（Linux）では `linux` フラグが使用されます。
 # 1. Rust テストが全グリーンか
 cargo test --all
 
-# 2. float禁止チェック
-grep -r 'f64\|f32' crates/j-law-core/src/ && echo "NG: float使用あり" || echo "OK"
+# 2. clippy チェック（f64/f32/panic!/unwrap/expect の禁止ルール含む）
+cargo clippy --all-targets --all-features -- -D warnings
 
-# 3. panic禁止チェック（コア層）
-grep -rn 'panic!\|\.unwrap()\|\.expect(' crates/j-law-core/src/ && echo "NG: panic系使用あり" || echo "OK"
+# 3. フォーマットチェック
+cargo fmt --all -- --check
 
-# 4. Registry JSONの数値チェック
+# 4. Registry JSONの数値チェック（小数点禁止）
 grep -rn '[0-9]\.[0-9]' crates/j-law-registry/data/ && echo "NG: 小数点あり" || echo "OK"
 
 # 5. 全言語テスト（Docker）

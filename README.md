@@ -231,11 +231,12 @@ cd crates/j-law-go && make test
 
 Issue・Pull Request を歓迎します。コードを変更・追加する場合は以下の点に従ってください。
 
-- `crates/j-law-core/src/` に `f64`/`f32` を使わないこと
-- `crates/j-law-core/src/` に `panic!`/`unwrap()`/`expect()` を使わないこと
+- `crates/j-law-core/src/` に `f64`/`f32` を使わないこと（`clippy.toml` で禁止設定）
+- `crates/j-law-core/src/` に `panic!`/`unwrap()`/`expect()` を使わないこと（`clippy.toml` で禁止設定）
 - 公開APIにはRustdocで根拠条文を明記すること
 - 変更に対応するテストを必ず追加すること
 - 新規ドメインを追加する場合は既存ドメイン（`real_estate`, `income_tax`）の構成に倣うこと
+- コミット前に `cargo clippy --all-targets --all-features -- -D warnings` が通ることを確認すること
 
 詳細なコーディングルールは [AGENTS.md](AGENTS.md) を参照してください。
 

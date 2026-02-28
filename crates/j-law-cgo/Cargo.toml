@@ -4,6 +4,9 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 
+[lints]
+workspace = true
+
 [lib]
 name = "j_law_cgo"
 # staticlib: Go の CGo 静的リンク用 (.a)

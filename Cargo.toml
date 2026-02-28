@@ -8,3 +8,12 @@ members = [
     "crates/j-law-cgo",
 ]
 resolver = "2"
+
+[workspace.lints.clippy]
+# clippy.toml で定義された禁止ルールを有効化
+# - disallowed-methods: unwrap/expect
+# - disallowed-types: f64/f32
+# - disallowed-macros: panic!/todo!/unimplemented!
+disallowed_methods = "warn"
+disallowed_types = "warn"
+disallowed_macros = "warn"
