@@ -11,4 +11,4 @@ crate-type = ["cdylib"]
 [dependencies]
 j-law-core = { path = "../j-law-core" }
 j-law-registry = { path = "../j-law-registry" }
-pyo3 = { version = "0.21", features = ["extension-module"] }
+pyo3 = { version = "0.28.2", features = ["extension-module"] }

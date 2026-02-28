@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use magnus::{function, method, Error, Module, RArray, RHash, Ruby, Symbol};
+use magnus::{function, method, Error, Module, RArray, Ruby, Symbol};
 
 use ::j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,

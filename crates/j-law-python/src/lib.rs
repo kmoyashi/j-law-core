@@ -25,7 +25,7 @@ use ::j_law_registry::load_stamp_tax_params;
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// 1ティアの計算内訳。
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 struct BreakdownStep {
     #[pyo3(get)]
@@ -158,7 +158,7 @@ fn calc_brokerage_fee(
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// 所得税の計算内訳（速算表の適用結果）。
-#[pyclass]
+#[pyclass(skip_from_py_object)]
 #[derive(Clone)]
 struct IncomeTaxStep {
     #[pyo3(get)]
@@ -384,13 +384,13 @@ fn calc_stamp_tax(
 /// 不動産ドメイン（宅建業法）サブモジュール。
 fn register_real_estate(parent: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = parent.py();
-    let m = PyModule::new_bound(py, "real_estate")?;
+    let m = PyModule::new(py, "real_estate")?;
     m.add_class::<BrokerageFeeResult>()?;
     m.add_class::<BreakdownStep>()?;
     m.add_function(wrap_pyfunction!(calc_brokerage_fee, &m)?)?;
     parent.add_submodule(&m)?;
     // sys.modules に登録して `from j_law_core.real_estate import ...` を有効にする
-    py.import_bound("sys")?
+    py.import("sys")?
         .getattr("modules")?
         .set_item("j_law_core.real_estate", &m)?;
     Ok(())
@@ -399,13 +399,13 @@ fn register_real_estate(parent: &Bound<'_, PyModule>) -> PyResult<()> {
 /// 所得税ドメインサブモジュール。
 fn register_income_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = parent.py();
-    let m = PyModule::new_bound(py, "income_tax")?;
+    let m = PyModule::new(py, "income_tax")?;
     m.add_class::<IncomeTaxResult>()?;
     m.add_class::<IncomeTaxStep>()?;
     m.add_function(wrap_pyfunction!(calc_income_tax, &m)?)?;
     parent.add_submodule(&m)?;
     // sys.modules に登録して `from j_law_core.income_tax import ...` を有効にする
-    py.import_bound("sys")?
+    py.import("sys")?
         .getattr("modules")?
         .set_item("j_law_core.income_tax", &m)?;
     Ok(())
@@ -414,12 +414,12 @@ fn register_income_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
 /// 印紙税ドメインサブモジュール。
 fn register_stamp_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = parent.py();
-    let m = PyModule::new_bound(py, "stamp_tax")?;
+    let m = PyModule::new(py, "stamp_tax")?;
     m.add_class::<StampTaxResult>()?;
     m.add_function(wrap_pyfunction!(calc_stamp_tax, &m)?)?;
     parent.add_submodule(&m)?;
     // sys.modules に登録して `from j_law_core.stamp_tax import ...` を有効にする
-    py.import_bound("sys")?
+    py.import("sys")?
         .getattr("modules")?
         .set_item("j_law_core.stamp_tax", &m)?;
     Ok(())
