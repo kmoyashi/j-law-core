@@ -76,9 +76,14 @@ impl IntermediateAmount {
         };
         Ok(FinalAmount::new(self.whole + frac))
     }
+}
+
+/// `IntermediateAmount` 同士の加算を標準トレイトで実装。
+impl std::ops::Add<&IntermediateAmount> for IntermediateAmount {
+    type Output = IntermediateAmount;
 
     /// 加算（整数部分同士を加える）。
-    pub fn add(self, other: &IntermediateAmount) -> IntermediateAmount {
+    fn add(self, other: &IntermediateAmount) -> IntermediateAmount {
         // 両方を通分してから加算する
         // whole 部は単純加算
         // frac 部は (a.numer * b.denom + b.numer * a.denom) / (a.denom * b.denom)
@@ -98,6 +103,7 @@ impl IntermediateAmount {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::ops::Add;
 
     #[test]
     fn final_amount_roundtrip() {

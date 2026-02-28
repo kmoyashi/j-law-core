@@ -29,6 +29,7 @@ pub struct StampTaxHistoryEntry {
 /// `stamp_tax.json` のルートスキーマ。
 #[derive(Debug, Clone, Deserialize)]
 pub struct StampTaxRegistry {
+    #[allow(dead_code)]
     pub domain: String,
     pub history: Vec<StampTaxHistoryEntry>,
 }

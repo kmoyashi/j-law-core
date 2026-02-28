@@ -27,7 +27,7 @@ impl RoundingStrategy {
         }
         Ok(match self {
             RoundingStrategy::Floor => numer / denom,
-            RoundingStrategy::Ceil => (numer + denom - 1) / denom,
+            RoundingStrategy::Ceil => numer.div_ceil(denom),
             RoundingStrategy::HalfUp => {
                 // numer / denom を四捨五入: (numer * 2 + denom) / (denom * 2)
                 // オーバーフロー対策: numer + denom/2 が安全な範囲かチェック不要

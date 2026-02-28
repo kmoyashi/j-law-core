@@ -71,7 +71,10 @@ mod tests {
                 RoundingStrategy::Floor,
             )
             .unwrap();
-        assert_eq!(result.finalize(RoundingStrategy::Floor).as_yen(), 100_000);
+        assert_eq!(
+            result.finalize(RoundingStrategy::Floor).unwrap().as_yen(),
+            100_000
+        );
     }
 
     #[test]
@@ -88,7 +91,10 @@ mod tests {
                 RoundingStrategy::Floor,
             )
             .unwrap();
-        assert_eq!(result.finalize(RoundingStrategy::Floor).as_yen(), 80_000);
+        assert_eq!(
+            result.finalize(RoundingStrategy::Floor).unwrap().as_yen(),
+            80_000
+        );
     }
 
     #[test]
@@ -105,7 +111,10 @@ mod tests {
                 RoundingStrategy::Floor,
             )
             .unwrap();
-        assert_eq!(result.finalize(RoundingStrategy::Floor).as_yen(), 30_000);
+        assert_eq!(
+            result.finalize(RoundingStrategy::Floor).unwrap().as_yen(),
+            30_000
+        );
     }
 
     #[test]
@@ -131,8 +140,8 @@ mod tests {
                 RoundingStrategy::Floor,
             )
             .unwrap();
-        assert_eq!(mf.finalize(RoundingStrategy::Floor).as_yen(), 5);
-        assert_eq!(df.finalize(RoundingStrategy::Floor).as_yen(), 3);
+        assert_eq!(mf.finalize(RoundingStrategy::Floor).unwrap().as_yen(), 5);
+        assert_eq!(df.finalize(RoundingStrategy::Floor).unwrap().as_yen(), 3);
     }
 
     #[test]
@@ -149,7 +158,10 @@ mod tests {
                 RoundingStrategy::Floor,
             )
             .unwrap();
-        assert_eq!(result.finalize(RoundingStrategy::Floor).as_yen(), 21_000);
+        assert_eq!(
+            result.finalize(RoundingStrategy::Floor).unwrap().as_yen(),
+            21_000
+        );
     }
 
     #[test]

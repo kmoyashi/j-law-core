@@ -38,6 +38,7 @@ pub struct IncomeTaxHistoryEntry {
 /// `income_tax.json` のルートスキーマ。
 #[derive(Debug, Clone, Deserialize)]
 pub struct IncomeTaxRegistry {
+    #[allow(dead_code)]
     pub domain: String,
     pub history: Vec<IncomeTaxHistoryEntry>,
 }

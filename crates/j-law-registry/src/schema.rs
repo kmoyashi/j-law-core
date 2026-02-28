@@ -36,6 +36,7 @@ pub struct ParamsEntry {
 
 /// 法令引用情報。
 #[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code)]
 pub struct CitationEntry {
     pub law_id: String,
     pub law_name: String,
@@ -52,7 +53,9 @@ pub struct HistoryEntry {
     /// 廃止日 `"YYYY-MM-DD"`。現行版は `null`。
     pub effective_until: Option<String>,
     /// `"active"` または `"superseded"`。
+    #[allow(dead_code)]
     pub status: String,
+    #[allow(dead_code)]
     pub citation: CitationEntry,
     pub params: ParamsEntry,
 }
