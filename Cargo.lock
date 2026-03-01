@@ -147,7 +147,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "j_law_core"
+name = "j_law_ruby"
 version = "0.0.1"
 dependencies = [
  "j-law-core",
