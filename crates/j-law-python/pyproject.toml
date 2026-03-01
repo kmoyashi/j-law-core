@@ -5,18 +5,33 @@ build-backend = "maturin"
 [project]
 name = "j-law-core"
 version = "0.1.0"
+description = "日本の法令が定める各種計算を法的正確性を保証して実装するライブラリ（宅建業法・所得税法・印紙税法）"
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.8"
+keywords = ["japan", "law", "tax", "real-estate", "calculation"]
 classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: Office/Business :: Financial",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
+[project.urls]
+Homepage = "https://github.com/j-law-core/j-law-core"
+Repository = "https://github.com/j-law-core/j-law-core"
+"Bug Tracker" = "https://github.com/j-law-core/j-law-core/issues"
 
 [project.optional-dependencies]
 test = ["pytest"]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
+manifest-path = "Cargo.toml"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

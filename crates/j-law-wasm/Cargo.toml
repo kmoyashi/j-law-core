@@ -3,6 +3,10 @@ name = "j-law-wasm"
 version = "0.1.0"
 edition = "2021"
 license = "MIT"
+description = "日本の法令が定める各種計算を法的正確性を保証して実装するライブラリ（WebAssembly）"
+repository = "https://github.com/j-law-core/j-law-core"
+homepage = "https://github.com/j-law-core/j-law-core"
+keywords = ["wasm", "japan", "law", "tax", "real-estate"]
 
 [lints.clippy]
 # WASMバインディング層では、wasm_bindgenマクロ展開時のpanic!使用とJavaScriptへのf64返却が必要

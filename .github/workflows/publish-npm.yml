@@ -1,0 +1,57 @@
+name: Publish npm (WASM)
+
+# GitHub Releases が公開されたときに npm へ公開する。
+# 事前準備: リポジトリの Settings > Secrets に NPM_TOKEN を登録すること。
+# npm の Access Token は https://www.npmjs.com/settings/<user>/tokens で発行。
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-wasm-
+
+      - name: Install wasm-pack
+        run: curl -fsSL https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      # bundler ターゲット: webpack / Vite / Rollup 等のバンドラー向け
+      - name: Build WASM package (bundler target)
+        run: wasm-pack build --target bundler --release crates/j-law-wasm
+
+      # リリースタグからバージョンを取得して package.json に反映
+      - name: Set package version from release tag
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"  # 先頭の "v" を除去
+          npm version "$VERSION" --no-git-tag-version
+        working-directory: crates/j-law-wasm/pkg
+
+      - name: Publish to npm
+        run: npm publish --access public
+        working-directory: crates/j-law-wasm/pkg
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
