@@ -1,0 +1,106 @@
+name: Publish Python (PyPI)
+
+# GitHub Releases が公開されたときに PyPI へ公開する。
+# Trusted Publishers (OIDC) を使用するため、PyPI 側で GitHub Actions の設定が必要。
+# Settings > Environments > pypi に環境を作成し、PyPI の Trusted Publisher を登録すること。
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  # --- Linux wheels (manylinux) ---
+  linux:
+    name: Build Linux wheels (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: >-
+            --release
+            --manifest-path crates/j-law-python/Cargo.toml
+            --out dist
+          manylinux: auto
+          target: ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-linux-${{ matrix.target }}
+          path: dist
+
+  # --- macOS wheels ---
+  macos:
+    name: Build macOS wheels (${{ matrix.target }})
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        target: [x86_64, aarch64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: >-
+            --release
+            --manifest-path crates/j-law-python/Cargo.toml
+            --out dist
+          target: ${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.target }}
+          path: dist
+
+  # --- Windows wheels ---
+  windows:
+    name: Build Windows wheels
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: build
+          args: >-
+            --release
+            --manifest-path crates/j-law-python/Cargo.toml
+            --out dist
+          target: x86_64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-x86_64
+          path: dist
+
+  # --- ソース配布物 ---
+  sdist:
+    name: Build source distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: >-
+            --manifest-path crates/j-law-python/Cargo.toml
+            --out dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist
+
+  # --- PyPI へ公開 ---
+  publish:
+    name: Publish to PyPI
+    needs: [linux, macos, windows, sdist]
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write  # Trusted Publishers (OIDC) に必要
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist
+      - uses: pypa/gh-action-pypi-publish@release/v1

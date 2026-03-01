@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	jlawcore "github.com/j-law-core/j-law-go"
+	jlawcore "github.com/kmoyashi/j-law-go"
 )
 
 // ─── フィクスチャ型定義 ──────────────────────────────────────────────────────
@@ -65,11 +65,11 @@ type incomeTaxFixtures struct {
 }
 
 type stampTaxInput struct {
-	ContractAmount            uint64 `json:"contract_amount"`
-	Year                      int    `json:"year"`
-	Month                     int    `json:"month"`
-	Day                       int    `json:"day"`
-	IsReducedRateApplicable   bool   `json:"is_reduced_rate_applicable"`
+	ContractAmount          uint64 `json:"contract_amount"`
+	Year                    int    `json:"year"`
+	Month                   int    `json:"month"`
+	Day                     int    `json:"day"`
+	IsReducedRateApplicable bool   `json:"is_reduced_rate_applicable"`
 }
 
 type stampTaxExpected struct {

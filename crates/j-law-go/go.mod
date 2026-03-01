@@ -1,3 +1,3 @@
-module github.com/j-law-core/j-law-go
+module github.com/kmoyashi/j-law-go
 
 go 1.21

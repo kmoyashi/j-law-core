@@ -1,0 +1,78 @@
+name: Publish Go module
+
+# GitHub Releases が公開されたときに Go モジュールのバージョンタグを作成する。
+#
+# Go モジュールのタグ付け規約:
+#   モジュールパス: github.com/kmoyashi/j-law-go
+#   タグ形式: crates/j-law-go/v<version>
+#
+# 注意: j-law-go は CGo を通じて Rust 静的ライブラリ（libj_law_cgo.a）を使用するため、
+#       利用者の環境に Rust ツールチェイン（cargo）が必要です。
+#       インストール手順は crates/j-law-go/README.md を参照してください。
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write # タグの作成に必要
+
+jobs:
+  # --- Go テストを実行してリリース品質を確認 ---
+  test:
+    name: Test Go bindings
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          key: ${{ runner.os }}-cargo-go-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-go-
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: crates/j-law-go/go.mod
+          cache-dependency-path: crates/j-law-go/go.sum
+
+      - name: Build Rust static library
+        run: cargo build -p j-law-cgo
+
+      - name: Run Go tests
+        working-directory: crates/j-law-go
+        run: go test -v ./...
+
+  # --- Go モジュールタグを作成 ---
+  tag:
+    name: Create Go module tag
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create Go module tag
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"  # 先頭の "v" を除去
+          GO_TAG="crates/j-law-go/v${VERSION}"
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag "$GO_TAG" "${{ github.sha }}"
+          git push origin "$GO_TAG"
+
+          echo "Go module tag created: $GO_TAG"
+          echo "Users can install with: go get github.com/kmoyashi/j-law-go@v${VERSION}"
