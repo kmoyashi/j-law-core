@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |spec|
   spec.name    = "j_law_core"
-  spec.version = "0.1.0"
+  spec.version = "0.0.1"
   spec.authors = ["j-law-core contributors"]
   spec.email   = []
   spec.summary = "日本の法令が定める各種計算を法的正確性を保証して実装するライブラリ"
