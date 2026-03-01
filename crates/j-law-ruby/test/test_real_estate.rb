@@ -65,7 +65,7 @@ class TestBrokerageFeeLanguageSpecific < Minitest::Test
   end
 
   def test_breakdown_fields
-    r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
+    r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
     r.breakdown.each do |step|
       refute_empty step[:label]
       assert_operator step[:rate_denom], :>, 0
@@ -73,7 +73,7 @@ class TestBrokerageFeeLanguageSpecific < Minitest::Test
   end
 
   def test_inspect
-    r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
+    r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
     assert_match(/BrokerageFeeResult/, r.inspect)
   end
 end

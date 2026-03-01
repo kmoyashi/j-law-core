@@ -229,7 +229,7 @@ func TestBrokerageFee_ErrorDateOutOfRange(t *testing.T) {
 }
 
 func TestBrokerageFee_BreakdownFields(t *testing.T) {
-	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false)
+	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

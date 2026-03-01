@@ -67,7 +67,7 @@ describe("calcBrokerageFee - JS固有テスト", () => {
   });
 
   it("breakdown の各フィールドが有効", () => {
-    const r = calcBrokerageFee(5_000_000, 2024, 8, 1, false);
+    const r = calcBrokerageFee(5_000_000, 2024, 8, 1, false, false);
     const bd = r.breakdown();
     for (const step of bd) {
       assert.ok(step.label, "label must not be empty");
