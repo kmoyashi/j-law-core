@@ -126,6 +126,8 @@ impl RbBrokerageFeeResult {
 /// @param day   [Integer] 基準日（日）
 /// @param is_low_cost_vacant_house [true, false] 低廉な空き家特例フラグ
 ///   WARNING: 対象物件が「低廉な空き家」に該当するかの事実認定は呼び出し元の責任。
+/// @param is_seller [true, false] 売主側フラグ（2018年〜2024年6月30日の低廉特例は売主のみ適用）
+///   WARNING: 売主・買主の事実認定は呼び出し元の責任。
 /// @return [JLawRuby::RealEstate::BrokerageFeeResult]
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_brokerage_fee(
@@ -134,12 +136,16 @@ fn calc_brokerage_fee(
     month: u8,
     day: u8,
     is_low_cost_vacant_house: bool,
+    is_seller: bool,
 ) -> Result<RbBrokerageFeeResult, Error> {
     let params = load_brokerage_fee_params((year, month, day)).map_err(into_runtime_error)?;
 
     let mut flags = HashSet::new();
     if is_low_cost_vacant_house {
         flags.insert(RealEstateFlag::IsLowCostVacantHouse);
+    }
+    if is_seller {
+        flags.insert(RealEstateFlag::IsSeller);
     }
 
     let ctx = RealEstateContext {
@@ -438,7 +444,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     result_class.define_method("to_s", method!(RbBrokerageFeeResult::inspect, 0))?;
 
     // モジュール関数: JLawRuby::RealEstate.calc_brokerage_fee(...)
-    real_estate.define_module_function("calc_brokerage_fee", function!(calc_brokerage_fee, 5))?;
+    real_estate.define_module_function("calc_brokerage_fee", function!(calc_brokerage_fee, 6))?;
 
     // ─── 所得税 ───────────────────────────────────────────────────────────────
     let income_tax = j_law_core.define_module("IncomeTax")?;

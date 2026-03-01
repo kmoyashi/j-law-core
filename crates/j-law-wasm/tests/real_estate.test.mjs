@@ -30,7 +30,8 @@ describe("calcBrokerageFee - フィクスチャ駆動", () => {
   for (const c of fixtures.brokerage_fee) {
     it(`${c.id}: ${c.description}`, () => {
       const { price, year, month, day, is_low_cost_vacant_house } = c.input;
-      const r = calcBrokerageFee(price, year, month, day, is_low_cost_vacant_house);
+      const is_seller = c.input.is_seller ?? false;
+      const r = calcBrokerageFee(price, year, month, day, is_low_cost_vacant_house, is_seller);
       const exp = c.expected;
 
       if ("total_without_tax" in exp) {
@@ -58,14 +59,15 @@ describe("calcBrokerageFee - フィクスチャ駆動", () => {
 
 describe("calcBrokerageFee - JS固有テスト", () => {
   it("対象日が範囲外の場合にエラー", () => {
+    // 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
     assert.throws(
-      () => calcBrokerageFee(5_000_000, 2019, 9, 30, false),
-      /2019-09-30/
+      () => calcBrokerageFee(5_000_000, 2017, 12, 31, false, false),
+      /2017-12-31/
     );
   });
 
   it("breakdown の各フィールドが有効", () => {
-    const r = calcBrokerageFee(5_000_000, 2024, 8, 1, false);
+    const r = calcBrokerageFee(5_000_000, 2024, 8, 1, false, false);
     const bd = r.breakdown();
     for (const step of bd) {
       assert.ok(step.label, "label must not be empty");

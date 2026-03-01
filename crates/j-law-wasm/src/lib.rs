@@ -120,6 +120,7 @@ pub fn calc_brokerage_fee(
     month: u8,
     day: u8,
     is_low_cost_vacant_house: bool,
+    is_seller: bool,
 ) -> Result<BrokerageFeeResult, JsValue> {
     let params = load_brokerage_fee_params((year, month, day))
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
@@ -127,6 +128,9 @@ pub fn calc_brokerage_fee(
     let mut flags = HashSet::new();
     if is_low_cost_vacant_house {
         flags.insert(RealEstateFlag::IsLowCostVacantHouse);
+    }
+    if is_seller {
+        flags.insert(RealEstateFlag::IsSeller);
     }
 
     let ctx = RealEstateContext {

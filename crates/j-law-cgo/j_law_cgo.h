@@ -65,6 +65,9 @@ typedef struct {
  * @param day                      基準日（日）
  * @param is_low_cost_vacant_house 低廉な空き家特例フラグ（0 = false, 非0 = true）
  *                                 WARNING: 事実認定は呼び出し元の責任。
+ * @param is_seller                売主側フラグ（0 = false, 非0 = true）
+ *                                 2018年1月1日〜2024年6月30日の低廉特例は売主のみ適用。
+ *                                 WARNING: 売主・買主の事実認定は呼び出し元の責任。
  * @param out_result               [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
  * @param error_buf                [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
  * @param error_buf_len            error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
@@ -76,6 +79,7 @@ int j_law_calc_brokerage_fee(
     uint8_t  month,
     uint8_t  day,
     int      is_low_cost_vacant_house,
+    int      is_seller,
     JLawBrokerageFeeResult *out_result,
     char    *error_buf,
     int      error_buf_len

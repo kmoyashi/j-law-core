@@ -165,7 +165,7 @@ fn mlitt_2024_low_cost_no_flag_no_special() {
 // ─── 2019年10月施行・旧告示（特例なし）────────────────────────────────────────
 
 /// 売買価格 5,000,000円（2019年12月・旧告示）
-/// 特例なし・ティア計算は同じ
+/// 400万円超のためティア計算のみ・低廉特例は価格超過で適用されない
 /// 期待: 税抜 210,000円 / 税額 21,000円 / 税込 231,000円
 #[test]
 fn mlitt_2019_price_5m() {
@@ -174,5 +174,11 @@ fn mlitt_2019_price_5m() {
     assert_eq!(result.total_without_tax.as_yen(), 210_000);
     assert_eq!(result.tax_amount.as_yen(), 21_000);
     assert_eq!(result.total_with_tax.as_yen(), 231_000);
-    assert!(params.low_cost_special.is_none());
+    // 2019年告示は低廉特例あり（売主限定・400万円以下）
+    let special = params.low_cost_special.as_ref().unwrap();
+    assert_eq!(special.price_ceiling_inclusive, 4_000_000);
+    assert_eq!(special.fee_ceiling_exclusive_tax, 180_000);
+    assert!(special.seller_only);
+    // 500万円は特例対象外なので通常計算どおり
+    assert!(!result.low_cost_special_applied);
 }

@@ -101,6 +101,9 @@ unsafe fn write_error_msg(msg: &str, buf: *mut c_char, buf_len: c_int) {
 /// - `year`, `month`, `day`: 基準日
 /// - `is_low_cost_vacant_house`: 低廉な空き家特例フラグ（0 = false, 非0 = true）
 ///   WARNING: 対象物件が「低廉な空き家」に該当するかの事実認定は呼び出し元の責任。
+/// - `is_seller`: 売主側フラグ（0 = false, 非0 = true）
+///   2018年1月1日〜2024年6月30日の低廉特例は売主のみに適用される。
+///   WARNING: 売主・買主の事実認定は呼び出し元の責任。
 /// - `out_result`: [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
 /// - `error_buf`: [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
 /// - `error_buf_len`: `error_buf` のバイト長（推奨: `J_LAW_ERROR_BUF_LEN` = 256）
@@ -120,6 +123,7 @@ pub unsafe extern "C" fn j_law_calc_brokerage_fee(
     month: u8,
     day: u8,
     is_low_cost_vacant_house: c_int,
+    is_seller: c_int,
     out_result: *mut JLawBrokerageFeeResult,
     error_buf: *mut c_char,
     error_buf_len: c_int,
@@ -141,6 +145,9 @@ pub unsafe extern "C" fn j_law_calc_brokerage_fee(
     let mut flags = HashSet::new();
     if is_low_cost_vacant_house != 0 {
         flags.insert(RealEstateFlag::IsLowCostVacantHouse);
+    }
+    if is_seller != 0 {
+        flags.insert(RealEstateFlag::IsSeller);
     }
 
     let ctx = RealEstateContext {

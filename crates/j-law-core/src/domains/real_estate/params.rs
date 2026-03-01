@@ -21,6 +21,11 @@ pub struct LowCostSpecialParams {
     /// 通常計算結果がこの値を下回る場合、この値まで引き上げられる。
     /// 参照: `calculator::calculate_brokerage_fee` のコメント。
     pub fee_ceiling_exclusive_tax: u64,
+    /// `true` の場合、売主側の取引にのみ特例が適用される。
+    ///
+    /// 2018年1月1日〜2024年6月30日の特例は売主のみ対象（宅建業法改正告示・平成29年国土交通省告示第98号）。
+    /// `false` の場合、売主・買主双方に適用される（2024年7月1日施行以降）。
+    pub seller_only: bool,
 }
 
 /// 媒介報酬計算に使うパラメータセット。

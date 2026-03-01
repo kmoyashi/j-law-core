@@ -99,6 +99,9 @@ impl BrokerageFeeResult {
 ///     day (int): 基準日（日）
 ///     is_low_cost_vacant_house (bool): 低廉な空き家特例フラグ（デフォルト: False）
 ///         WARNING: 対象物件が「低廉な空き家」に該当するかの事実認定は呼び出し元の責任。
+///     is_seller (bool): 売主側フラグ（デフォルト: False）
+///         2018年1月1日〜2024年6月30日の低廉特例は売主のみに適用される。
+///         WARNING: 売主・買主の事実認定は呼び出し元の責任。
 ///
 /// Returns:
 ///     BrokerageFeeResult
@@ -106,13 +109,14 @@ impl BrokerageFeeResult {
 /// Raises:
 ///     ValueError: 売買価格が不正、または対象日に有効な法令パラメータが存在しない場合
 #[pyfunction]
-#[pyo3(signature = (price, year, month, day, is_low_cost_vacant_house=false))]
+#[pyo3(signature = (price, year, month, day, is_low_cost_vacant_house=false, is_seller=false))]
 fn calc_brokerage_fee(
     price: u64,
     year: u16,
     month: u8,
     day: u8,
     is_low_cost_vacant_house: bool,
+    is_seller: bool,
 ) -> PyResult<BrokerageFeeResult> {
     let params = load_brokerage_fee_params((year, month, day))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
@@ -120,6 +124,9 @@ fn calc_brokerage_fee(
     let mut flags = HashSet::new();
     if is_low_cost_vacant_house {
         flags.insert(RealEstateFlag::IsLowCostVacantHouse);
+    }
+    if is_seller {
+        flags.insert(RealEstateFlag::IsSeller);
     }
 
     let ctx = RealEstateContext {
