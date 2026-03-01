@@ -41,7 +41,7 @@ import jlawcore "github.com/kmoyashi/j-law-go"
 
 ```go
 // 売買価格 500万円、2024年8月1日基準
-result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false)
+result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false, false)
 if err != nil {
     log.Fatal(err)
 }
@@ -60,14 +60,22 @@ for _, step := range result.Breakdown {
     // tier3: 1000000円 × 3/100 = 30000円
 }
 
-// 低廉な空き家特例（2024年7月1日施行・800万円以下）
+// 低廉な空き家特例（2024年7月1日施行・800万円以下・売主買主双方）
 // WARNING: 対象物件が特例に該当するかの事実認定は呼び出し元の責任
-special, err := jlawcore.CalcBrokerageFee(8_000_000, 2024, 8, 1, true)
+special, err := jlawcore.CalcBrokerageFee(8_000_000, 2024, 8, 1, true, false)
 if err != nil {
     log.Fatal(err)
 }
 fmt.Println(special.TotalWithTax)          // 363000
 fmt.Println(special.LowCostSpecialApplied) // true
+
+// 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
+special2018, err := jlawcore.CalcBrokerageFee(4_000_000, 2022, 4, 1, true, true)
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Println(special2018.TotalWithTax)          // 198000
+fmt.Println(special2018.LowCostSpecialApplied) // true
 ```
 
 ### 所得税ドメイン — 所得税額（所得税法 第89条）
@@ -116,17 +124,18 @@ fmt.Println(special.ReducedRateApplied) // true
 
 ## API リファレンス
 
-### `CalcBrokerageFee(price, year, month, day uint64, isLowCostVacantHouse bool) (*BrokerageFeeResult, error)`
+### `CalcBrokerageFee(price uint64, year, month, day int, isLowCostVacantHouse, isSeller bool) (*BrokerageFeeResult, error)`
 
 宅建業法第46条に基づく媒介報酬を計算する。
 
-| 引数                   | 型       | 説明                   |
-| ---------------------- | -------- | ---------------------- |
-| `price`                | `uint64` | 売買価格（円）         |
-| `year`                 | `int`    | 基準日（年）           |
-| `month`                | `int`    | 基準日（月）           |
-| `day`                  | `int`    | 基準日（日）           |
-| `isLowCostVacantHouse` | `bool`   | 低廉な空き家特例フラグ |
+| 引数                   | 型       | 説明                                                             |
+| ---------------------- | -------- | ---------------------------------------------------------------- |
+| `price`                | `uint64` | 売買価格（円）                                                   |
+| `year`                 | `int`    | 基準日（年）                                                     |
+| `month`                | `int`    | 基準日（月）                                                     |
+| `day`                  | `int`    | 基準日（日）                                                     |
+| `isLowCostVacantHouse` | `bool`   | 低廉な空き家特例フラグ                                           |
+| `isSeller`             | `bool`   | 売主側として計算するか。2018年1月〜2024年6月の特例は売主のみ適用 |
 
 **戻り値: `*BrokerageFeeResult`**
 

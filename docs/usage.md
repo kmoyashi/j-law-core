@@ -67,7 +67,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         );
     }
 
-    // 低廉な空き家特例の適用（800万円以下 + フラグあり）
+    // 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
     let mut flags = HashSet::new();
     flags.insert(RealEstateFlag::IsLowCostVacantHouse);
 
@@ -82,6 +82,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("特例適用: {}", result_special.low_cost_special_applied);  // true
     println!("税込: {}円", result_special.total_with_tax.as_yen());     // 363,000
 
+    // 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
+    let mut flags2 = HashSet::new();
+    flags2.insert(RealEstateFlag::IsLowCostVacantHouse);
+    flags2.insert(RealEstateFlag::IsSeller);
+
+    let params2 = load_brokerage_fee_params((2022, 4, 1))?;
+    let ctx2 = RealEstateContext {
+        price: 4_000_000,
+        target_date: (2022, 4, 1),
+        flags: flags2,
+        policy: Box::new(StandardMliitPolicy),
+    };
+    let result2 = calculate_brokerage_fee(&ctx2, &params2)?;
+
+    println!("特例適用: {}", result2.low_cost_special_applied);  // true
+    println!("税込: {}円", result2.total_with_tax.as_yen());     // 198,000
+
     Ok(())
 }
 ```
@@ -91,7 +108,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust
 use j_law_core::error::{JLawError, InputError, CalculationError, RegistryError};
 
-match load_brokerage_fee_params((2019, 9, 30)) {
+match load_brokerage_fee_params((2017, 12, 31)) {
     Ok(params) => { /* ... */ },
     Err(JLawError::Input(InputError::DateOutOfRange { date })) => {
         eprintln!("対象日が範囲外です: {}", date);
@@ -145,7 +162,7 @@ for step in result.breakdown:
 # tier2: 2000000円 × 4/100 = 80000円
 # tier3: 1000000円 × 3/100 = 30000円
 
-# 低廉な空き家特例の適用
+# 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
 result = j_law_python.real_estate.calc_brokerage_fee(
     price=8_000_000,
     year=2024,
@@ -156,6 +173,19 @@ result = j_law_python.real_estate.calc_brokerage_fee(
 
 print(result.low_cost_special_applied)  # True
 print(result.total_with_tax)            # 363000
+
+# 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
+result = j_law_python.real_estate.calc_brokerage_fee(
+    price=4_000_000,
+    year=2022,
+    month=4,
+    day=1,
+    is_low_cost_vacant_house=True,
+    is_seller=True,
+)
+
+print(result.low_cost_special_applied)  # True
+print(result.total_with_tax)            # 198000
 ```
 
 ### エラーハンドリング
@@ -164,9 +194,9 @@ print(result.total_with_tax)            # 363000
 try:
     result = j_law_python.real_estate.calc_brokerage_fee(
         price=5_000_000,
-        year=2019,
-        month=9,
-        day=30,  # 施行前のためエラー
+        year=2017,
+        month=12,
+        day=31,  # 施行前のためエラー
     )
 except ValueError as e:
     print(f"エラー: {e}")
@@ -176,11 +206,12 @@ except ValueError as e:
 
 ```python
 j_law_python.real_estate.calc_brokerage_fee(
-    price: int,                          # 売買価格（円）
-    year: int,                           # 基準日（年）
-    month: int,                          # 基準日（月）
-    day: int,                            # 基準日（日）
+    price: int,                              # 売買価格（円）
+    year: int,                               # 基準日（年）
+    month: int,                              # 基準日（月）
+    day: int,                                # 基準日（日）
     is_low_cost_vacant_house: bool = False,  # 低廉な空き家特例フラグ
+    is_seller: bool = False,                 # 売主側として計算するか（2018〜2024年の特例判定に使用）
 ) -> BrokerageFeeResult
 ```
 
@@ -229,7 +260,7 @@ wasm-pack build --target web        # ブラウザ直接読み込み向け
 import { calcBrokerageFee } from "j-law-wasm";
 
 // 基本的な計算（売買価格 500万円、2024年8月1日）
-const result = calcBrokerageFee(5_000_000, 2024, 8, 1, false);
+const result = calcBrokerageFee(5_000_000, 2024, 8, 1, false, false);
 
 console.log(result.totalWithoutTax); // 210000
 console.log(result.totalWithTax); // 231000
@@ -242,11 +273,17 @@ for (const step of result.breakdown()) {
   );
 }
 
-// 低廉な空き家特例の適用
-const result2 = calcBrokerageFee(8_000_000, 2024, 8, 1, true);
+// 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
+const result2 = calcBrokerageFee(8_000_000, 2024, 8, 1, true, false);
 
 console.log(result2.lowCostSpecialApplied); // true
 console.log(result2.totalWithTax); // 363000
+
+// 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
+const result3 = calcBrokerageFee(4_000_000, 2022, 4, 1, true, true);
+
+console.log(result3.lowCostSpecialApplied); // true
+console.log(result3.totalWithTax); // 198000
 ```
 
 ### 使用例（TypeScript）
@@ -259,6 +296,7 @@ const result: BrokerageFeeResult = calcBrokerageFee(
   2024,
   8,
   1,
+  false,
   false,
 );
 
@@ -282,7 +320,7 @@ breakdown.forEach((step) => {
 
 ```javascript
 try {
-  const result = calcBrokerageFee(5_000_000, 2019, 9, 30, false);
+  const result = calcBrokerageFee(5_000_000, 2017, 12, 31, false, false);
 } catch (e) {
   console.error(`計算エラー: ${e}`); // 文字列として throw される
 }
@@ -297,6 +335,7 @@ function calcBrokerageFee(
   month: number, // 基準日（月）
   day: number, // 基準日（日）
   isLowCostVacantHouse: boolean, // 低廉な空き家特例フラグ
+  isSeller: boolean, // 売主側として計算するか（2018〜2024年の特例判定に使用）
 ): BrokerageFeeResult;
 ```
 
@@ -339,7 +378,7 @@ rake compile
 require "j_law_ruby"
 
 # 基本的な計算（売買価格 500万円、2024年8月1日）
-result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
+result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
 
 puts result.total_without_tax  # 210000
 puts result.total_with_tax     # 231000
@@ -353,22 +392,28 @@ end
 # tier2: 2000000円 × 4/100 = 80000円
 # tier3: 1000000円 × 3/100 = 30000円
 
-# 低廉な空き家特例の適用
-result = JLawRuby::RealEstate.calc_brokerage_fee(8_000_000, 2024, 8, 1, true)
+# 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
+result = JLawRuby::RealEstate.calc_brokerage_fee(8_000_000, 2024, 8, 1, true, false)
 
 puts result.low_cost_special_applied?  # true
 puts result.total_with_tax             # 363000
 
+# 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
+result = JLawRuby::RealEstate.calc_brokerage_fee(4_000_000, 2022, 4, 1, true, true)
+
+puts result.low_cost_special_applied?  # true
+puts result.total_with_tax             # 198000
+
 # 文字列表現
 puts result.inspect
-# #<JLawRuby::RealEstate::BrokerageFeeResult total_without_tax=330000 total_with_tax=363000 ...>
+# #<JLawRuby::RealEstate::BrokerageFeeResult total_without_tax=180000 total_with_tax=198000 ...>
 ```
 
 ### エラーハンドリング
 
 ```ruby
 begin
-  result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2019, 9, 30, false)
+  result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2017, 12, 31, false, false)
 rescue RuntimeError => e
   puts "エラー: #{e.message}"
 end
@@ -382,7 +427,8 @@ JLawRuby::RealEstate.calc_brokerage_fee(
   year,                        # Integer - 基準日（年）
   month,                       # Integer - 基準日（月）
   day,                         # Integer - 基準日（日）
-  is_low_cost_vacant_house     # true/false - 低廉な空き家特例フラグ
+  is_low_cost_vacant_house,    # true/false - 低廉な空き家特例フラグ
+  is_seller                    # true/false - 売主側として計算するか（2018〜2024年の特例判定に使用）
 ) -> JLawRuby::RealEstate::BrokerageFeeResult
 ```
 
@@ -445,7 +491,7 @@ import (
 
 func main() {
 	// 基本的な計算（売買価格 500万円、2024年8月1日）
-	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false)
+	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false, false)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -460,21 +506,30 @@ func main() {
 			step.Label, step.BaseAmount, step.RateNumer, step.RateDenom, step.Result)
 	}
 
-	// 低廉な空き家特例の適用
-	result2, err := jlawcore.CalcBrokerageFee(8_000_000, 2024, 8, 1, true)
+	// 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
+	result2, err := jlawcore.CalcBrokerageFee(8_000_000, 2024, 8, 1, true, false)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println(result2.LowCostSpecialApplied)  // true
 	fmt.Println(result2.TotalWithTax)            // 363000
+
+	// 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
+	result3, err := jlawcore.CalcBrokerageFee(4_000_000, 2022, 4, 1, true, true)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println(result3.LowCostSpecialApplied)  // true
+	fmt.Println(result3.TotalWithTax)            // 198000
 }
 ```
 
 ### エラーハンドリング
 
 ```go
-result, err := jlawcore.CalcBrokerageFee(5_000_000, 2019, 9, 30, false)
+result, err := jlawcore.CalcBrokerageFee(5_000_000, 2017, 12, 31, false, false)
 if err != nil {
     // err.Error() にエラーメッセージが含まれる
     fmt.Printf("エラー: %v\n", err)
@@ -488,6 +543,7 @@ func CalcBrokerageFee(
     price uint64,
     year, month, day int,
     isLowCostVacantHouse bool,
+    isSeller bool,
 ) (*BrokerageFeeResult, error)
 ```
 
@@ -549,6 +605,7 @@ int main(void) {
         8,             /* month */
         1,             /* day */
         0,             /* is_low_cost_vacant_house: 0=false */
+        0,             /* is_seller: 0=false */
         &result,
         error_buf,
         J_LAW_ERROR_BUF_LEN
@@ -604,6 +661,7 @@ int j_law_calc_brokerage_fee(
     uint8_t  month,                      // 基準日（月）
     uint8_t  day,                        // 基準日（日）
     int      is_low_cost_vacant_house,   // 0=false, 非0=true
+    int      is_seller,                  // 0=false, 非0=true（2018〜2024年の特例判定に使用）
     JLawBrokerageFeeResult *out_result,  // [OUT] 結果書き込み先
     char     *error_buf,                 // [OUT] エラーメッセージ
     int      error_buf_len               // error_buf のバイト長
@@ -625,10 +683,11 @@ int j_law_calc_brokerage_fee(
 
 ### 対応法令
 
-| 施行日     | 内容                   | status     |
-| ---------- | ---------------------- | ---------- |
-| 2019-10-01 | 消費税10%対応          | superseded |
-| 2024-07-01 | 低廉な空き家特例の追加 | active     |
+| 施行日     | 内容                                              | status     |
+| ---------- | ------------------------------------------------- | ---------- |
+| 2018-01-01 | 低廉な空き家特例の追加（400万円以下・売主のみ）   | superseded |
+| 2019-10-01 | 消費税10%対応                                     | superseded |
+| 2024-07-01 | 低廉な空き家特例の拡充（800万円以下・売主買主双方）| active     |
 
 ### 3段階ティア計算
 
@@ -640,18 +699,20 @@ int j_law_calc_brokerage_fee(
 
 - 各ティアの端数処理: 切り捨て（Floor）
 - 消費税率: 10/100（切り捨て）
-- 低廉な空き家特例（2024-07-01〜）: 800万円以下 + フラグあり → 税抜上限 33万円に引き上げ
+- 低廉な空き家特例（2018-01-01〜2024-06-30）: 400万円以下 + フラグあり + **売主側** → 税抜上限 18万円に引き上げ
+- 低廉な空き家特例（2024-07-01〜）: 800万円以下 + フラグあり → 税抜上限 33万円に引き上げ（売主買主双方）
 
 ### 計算例
 
-| 売買価格     | 税抜合計 | 消費税 | 税込合計 | 備考                   |
-| ------------ | -------- | ------ | -------- | ---------------------- |
-| 1,000,000円  | 50,000   | 5,000  | 55,000   |                        |
-| 2,000,000円  | 100,000  | 10,000 | 110,000  |                        |
-| 3,000,000円  | 140,000  | 14,000 | 154,000  |                        |
-| 5,000,000円  | 210,000  | 21,000 | 231,000  |                        |
-| 10,000,000円 | 360,000  | 36,000 | 396,000  |                        |
-| 8,000,000円  | 330,000  | 33,000 | 363,000  | 低廉な空き家特例適用時 |
+| 売買価格     | 税抜合計 | 消費税 | 税込合計 | 備考                                   |
+| ------------ | -------- | ------ | -------- | -------------------------------------- |
+| 1,000,000円  | 50,000   | 5,000  | 55,000   |                                        |
+| 2,000,000円  | 100,000  | 10,000 | 110,000  |                                        |
+| 3,000,000円  | 140,000  | 14,000 | 154,000  |                                        |
+| 5,000,000円  | 210,000  | 21,000 | 231,000  |                                        |
+| 10,000,000円 | 360,000  | 36,000 | 396,000  |                                        |
+| 4,000,000円  | 180,000  | 18,000 | 198,000  | 2018〜2024低廉な空き家特例（売主）適用時 |
+| 8,000,000円  | 330,000  | 33,000 | 363,000  | 2024〜低廉な空き家特例適用時            |
 
 ### 注意事項
 

@@ -52,7 +52,7 @@ import { calcBrokerageFee, calcIncomeTax, calcStampTax } from "j-law-wasm";
 
 ```js
 // 売買価格 500万円、2024年8月1日基準
-const result = calcBrokerageFee(5_000_000, 2024, 8, 1, false);
+const result = calcBrokerageFee(5_000_000, 2024, 8, 1, false, false);
 
 console.log(result.totalWithTax);           // 231000（税込）
 console.log(result.totalWithoutTax);        // 210000（税抜）
@@ -67,11 +67,16 @@ const steps = result.breakdown();
 //   { label: "tier3", baseAmount: 1000000, rateNumer: 3, rateDenom: 100, result: 30000 },
 // ]
 
-// 低廉な空き家特例（2024年7月1日施行・800万円以下）
+// 低廉な空き家特例（2024年7月1日施行・800万円以下・売主買主双方）
 // WARNING: 対象物件が特例に該当するかの事実認定は呼び出し元の責任
-const special = calcBrokerageFee(8_000_000, 2024, 8, 1, true);
+const special = calcBrokerageFee(8_000_000, 2024, 8, 1, true, false);
 console.log(special.totalWithTax);           // 363000
 console.log(special.lowCostSpecialApplied);  // true
+
+// 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
+const special2018 = calcBrokerageFee(4_000_000, 2022, 4, 1, true, true);
+console.log(special2018.totalWithTax);           // 198000
+console.log(special2018.lowCostSpecialApplied);  // true
 ```
 
 ### 所得税ドメイン — 所得税額（所得税法 第89条）
@@ -108,7 +113,7 @@ console.log(special.reducedRateApplied); // true
 
 ## API リファレンス
 
-### `calcBrokerageFee(price, year, month, day, isLowCostVacantHouse)`
+### `calcBrokerageFee(price, year, month, day, isLowCostVacantHouse, isSeller)`
 
 宅建業法第46条に基づく媒介報酬を計算する。
 
@@ -119,6 +124,7 @@ console.log(special.reducedRateApplied); // true
 | `month` | `number` | 基準日（月） |
 | `day` | `number` | 基準日（日） |
 | `isLowCostVacantHouse` | `boolean` | 低廉な空き家特例フラグ |
+| `isSeller` | `boolean` | 売主側として計算するか。2018年1月〜2024年6月の特例は売主のみ適用 |
 
 **戻り値: `BrokerageFeeResult`**
 

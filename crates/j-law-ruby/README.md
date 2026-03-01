@@ -42,7 +42,7 @@ require "j_law_ruby"
 
 ```ruby
 # 売買価格 500万円、2024年8月1日基準
-result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
+result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
 
 puts result.total_with_tax           # 231000（税込）
 puts result.total_without_tax        # 210000（税抜）
@@ -57,10 +57,15 @@ result.breakdown.each do |step|
   # tier3: 1000000円 × 3/100 = 30000円
 end
 
-# 低廉な空き家特例（2024年7月1日施行・800万円以下）
+# 低廉な空き家特例（2024年7月1日施行・800万円以下・売主買主双方）
 # WARNING: 対象物件が特例に該当するかの事実認定は呼び出し元の責任
-result = JLawRuby::RealEstate.calc_brokerage_fee(8_000_000, 2024, 8, 1, true)
+result = JLawRuby::RealEstate.calc_brokerage_fee(8_000_000, 2024, 8, 1, true, false)
 puts result.total_with_tax            # 363000
+puts result.low_cost_special_applied? # true
+
+# 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
+result = JLawRuby::RealEstate.calc_brokerage_fee(4_000_000, 2022, 4, 1, true, true)
+puts result.total_with_tax            # 198000
 puts result.low_cost_special_applied? # true
 ```
 
@@ -100,7 +105,7 @@ puts result.reduced_rate_applied? # true
 
 ### `JLawRuby::RealEstate`
 
-#### `.calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house)`
+#### `.calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house, is_seller)`
 
 宅建業法第46条に基づく媒介報酬を計算する。
 
@@ -111,6 +116,7 @@ puts result.reduced_rate_applied? # true
 | `month` | `Integer` | 基準日（月） |
 | `day` | `Integer` | 基準日（日） |
 | `is_low_cost_vacant_house` | `true`/`false` | 低廉な空き家特例フラグ |
+| `is_seller` | `true`/`false` | 売主側として計算するか。2018年1月〜2024年6月の特例は売主のみ適用 |
 
 **戻り値: `JLawRuby::RealEstate::BrokerageFeeResult`**
 

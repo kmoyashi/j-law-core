@@ -21,10 +21,10 @@ J-Law-Core は、日本の法令・告示・省令が定める各種計算を、
 
 **実装済みドメイン**
 
-| ドメイン                | 対象法令                                | 対応告示                             |
-| ----------------------- | --------------------------------------- | ------------------------------------ |
-| 不動産（`real_estate`） | 宅地建物取引業法 第46条                 | 2019年10月1日施行 / 2024年7月1日施行 |
-| 所得税（`income_tax`）  | 所得税法 第89条 / 復興財源確保法 第13条 | 2015年1月1日施行                     |
+| ドメイン                | 対象法令                                | 対応告示                                                   |
+| ----------------------- | --------------------------------------- | ---------------------------------------------------------- |
+| 不動産（`real_estate`） | 宅地建物取引業法 第46条                 | 2018年1月1日施行 / 2019年10月1日施行 / 2024年7月1日施行   |
+| 所得税（`income_tax`）  | 所得税法 第89条 / 復興財源確保法 第13条 | 2015年1月1日施行                                           |
 
 ---
 
@@ -42,9 +42,13 @@ print(result.total_with_tax)     # 231000
 print(result.total_without_tax)  # 210000
 print(result.tax_amount)         # 21000
 
-# 低廉な空き家特例（2024年7月施行・800万円以下）
+# 低廉な空き家特例（2024年7月施行・800万円以下・売主買主双方）
 result = calc_brokerage_fee(8_000_000, 2024, 8, 1, is_low_cost_vacant_house=True)
 print(result.total_with_tax)     # 363000
+
+# 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
+result = calc_brokerage_fee(4_000_000, 2022, 4, 1, is_low_cost_vacant_house=True, is_seller=True)
+print(result.total_with_tax)     # 198000
 
 # 所得税の計算（所得税法 第89条）
 result = calc_income_tax(5_000_000, 2024, 1, 1, apply_reconstruction_tax=True)
@@ -58,7 +62,7 @@ print(result.reconstruction_tax) # 12022
 ```javascript
 const { calcBrokerageFee, calcIncomeTax } = require("j-law-wasm");
 
-const fee = calcBrokerageFee(5_000_000, 2024, 8, 1, false);
+const fee = calcBrokerageFee(5_000_000, 2024, 8, 1, false, false);
 console.log(fee.totalWithTax); // 231000
 
 const tax = calcIncomeTax(5_000_000, 2024, 1, 1, true);
@@ -70,7 +74,7 @@ console.log(tax.totalTax); // 584500
 ```ruby
 require "j_law_ruby"
 
-result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
+result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
 puts result.total_with_tax  # 231000
 
 result = JLawRuby::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, true)
@@ -82,7 +86,7 @@ puts result.total_tax       # 584500
 ```go
 import jlawcore "github.com/kmoyashi/j-law-go"
 
-result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false)
+result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false, false)
 fmt.Println(result.TotalWithTax) // 231000
 
 taxResult, err := jlawcore.CalcIncomeTax(5_000_000, 2024, 1, 1, true)
@@ -94,12 +98,13 @@ fmt.Println(taxResult.TotalTax)  // 584500
 ```rust
 use j_law_core::domains::real_estate::{
     calculator::calculate_brokerage_fee,
-    context::RealEstateContext,
+    context::{RealEstateContext, RealEstateFlag},
     policy::StandardMliitPolicy,
 };
 use j_law_registry::load_brokerage_fee_params;
 use std::collections::HashSet;
 
+// 基本的な計算（売買価格 500万円、2024年8月1日）
 let ctx = RealEstateContext {
     price: 5_000_000,
     target_date: (2024, 8, 1),
@@ -109,6 +114,20 @@ let ctx = RealEstateContext {
 let params = load_brokerage_fee_params(ctx.target_date)?;
 let result = calculate_brokerage_fee(&ctx, &params)?;
 println!("税込報酬額: {}円", result.total_with_tax.as_yen()); // 231000
+
+// 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
+let mut flags = HashSet::new();
+flags.insert(RealEstateFlag::IsLowCostVacantHouse);
+flags.insert(RealEstateFlag::IsSeller);
+let ctx2 = RealEstateContext {
+    price: 4_000_000,
+    target_date: (2022, 4, 1),
+    flags,
+    policy: Box::new(StandardMliitPolicy),
+};
+let params2 = load_brokerage_fee_params(ctx2.target_date)?;
+let result2 = calculate_brokerage_fee(&ctx2, &params2)?;
+println!("税込報酬額: {}円", result2.total_with_tax.as_yen()); // 198000
 ```
 
 ---
@@ -158,19 +177,22 @@ j-law-core/
 
 端数処理: 各ティアで切り捨て → 合計 → 消費税10%（切り捨て）
 
-**低廉な空き家特例（2024年7月1日〜）**: 売買価格が800万円以下で `IsLowCostVacantHouse` フラグを指定した場合、税抜報酬額が330,000円に引き上げられます。
+**低廉な空き家特例（2018年1月1日〜2024年6月30日）**: 売買価格が400万円以下で `IsLowCostVacantHouse` フラグかつ `IsSeller` フラグ（**売主側のみ**）を指定した場合、税抜報酬額が180,000円に引き上げられます。
+
+**低廉な空き家特例（2024年7月1日〜）**: 売買価格が800万円以下で `IsLowCostVacantHouse` フラグを指定した場合、税抜報酬額が330,000円に引き上げられます（売主・買主双方に適用）。
 
 > **注意**: `IsLowCostVacantHouse` フラグの事実認定はこのライブラリの責任範囲外です。
 
 **計算例**
 
-| 売買価格                | 税抜合計  | 消費税   | 税込合計    |
-| ----------------------- | --------- | -------- | ----------- |
-| 1,000,000円             | 50,000円  | 5,000円  | 55,000円    |
-| 5,000,000円             | 210,000円 | 21,000円 | 231,000円   |
-| 10,000,000円            | 360,000円 | 36,000円 | 396,000円   |
-| 30,000,000円            | 960,000円 | 96,000円 | 1,056,000円 |
-| 8,000,000円（低廉特例） | 330,000円 | 33,000円 | 363,000円   |
+| 売買価格                              | 税抜合計  | 消費税   | 税込合計    |
+| ------------------------------------- | --------- | -------- | ----------- |
+| 1,000,000円                           | 50,000円  | 5,000円  | 55,000円    |
+| 5,000,000円                           | 210,000円 | 21,000円 | 231,000円   |
+| 10,000,000円                          | 360,000円 | 36,000円 | 396,000円   |
+| 30,000,000円                          | 960,000円 | 96,000円 | 1,056,000円 |
+| 4,000,000円（2018〜2024低廉特例・売主） | 180,000円 | 18,000円 | 198,000円   |
+| 8,000,000円（2024〜低廉特例）         | 330,000円 | 33,000円 | 363,000円   |
 
 ### 所得税ドメイン — 所得税額（所得税法 第89条）
 

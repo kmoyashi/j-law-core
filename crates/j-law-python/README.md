@@ -47,10 +47,15 @@ for step in result.breakdown:
     # tier2  2000000  80000
     # tier3  1000000  30000
 
-# 低廉な空き家特例（2024年7月1日施行・800万円以下）
+# 低廉な空き家特例（2024年7月1日施行・800万円以下・売主買主双方）
 # WARNING: 対象物件が特例に該当するかの事実認定は呼び出し元の責任
 result = calc_brokerage_fee(8_000_000, 2024, 8, 1, is_low_cost_vacant_house=True)
 print(result.total_with_tax)           # 363000
+print(result.low_cost_special_applied) # True
+
+# 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
+result = calc_brokerage_fee(4_000_000, 2022, 4, 1, is_low_cost_vacant_house=True, is_seller=True)
+print(result.total_with_tax)           # 198000
 print(result.low_cost_special_applied) # True
 ```
 
@@ -94,7 +99,7 @@ print(result.reduced_rate_applied)  # True
 
 ### `j_law_python.real_estate`
 
-#### `calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house=False)`
+#### `calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house=False, is_seller=False)`
 
 宅建業法第46条に基づく媒介報酬を計算する。
 
@@ -105,6 +110,7 @@ print(result.reduced_rate_applied)  # True
 | `month` | `int` | 基準日（月） |
 | `day` | `int` | 基準日（日） |
 | `is_low_cost_vacant_house` | `bool` | 低廉な空き家特例フラグ（デフォルト: `False`） |
+| `is_seller` | `bool` | 売主側として計算するか（デフォルト: `False`）。2018年1月〜2024年6月の特例は売主のみ適用 |
 
 **戻り値: `BrokerageFeeResult`**
 
