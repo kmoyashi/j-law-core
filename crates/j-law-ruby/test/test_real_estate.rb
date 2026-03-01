@@ -26,7 +26,7 @@ class TestBrokerageFeeFixtures < Minitest::Test
 
       r = JLawRuby::RealEstate.calc_brokerage_fee(
         inp["price"], inp["year"], inp["month"], inp["day"],
-        inp["is_low_cost_vacant_house"]
+        inp["is_low_cost_vacant_house"], inp.fetch("is_seller", false)
       )
 
       if exp.key?("total_without_tax")
@@ -57,10 +57,11 @@ end
 
 class TestBrokerageFeeLanguageSpecific < Minitest::Test
   def test_error_date_out_of_range
+    # 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
     err = assert_raises(RuntimeError) do
-      JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2019, 9, 30, false)
+      JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2017, 12, 31, false, false)
     end
-    assert_match(/2019-09-30/, err.message)
+    assert_match(/2017-12-31/, err.message)
   end
 
   def test_breakdown_fields

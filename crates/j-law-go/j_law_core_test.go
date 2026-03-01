@@ -17,6 +17,7 @@ type brokerageFeeInput struct {
 	Month                int    `json:"month"`
 	Day                  int    `json:"day"`
 	IsLowCostVacantHouse bool   `json:"is_low_cost_vacant_house"`
+	IsSeller             bool   `json:"is_seller"`
 }
 
 type brokerageFeeExpected struct {
@@ -140,6 +141,7 @@ func TestBrokerageFee(t *testing.T) {
 				tc.Input.Price,
 				tc.Input.Year, tc.Input.Month, tc.Input.Day,
 				tc.Input.IsLowCostVacantHouse,
+				tc.Input.IsSeller,
 			)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -216,11 +218,12 @@ func TestIncomeTax(t *testing.T) {
 // ─── 言語固有テスト ──────────────────────────────────────────────────────────
 
 func TestBrokerageFee_ErrorDateOutOfRange(t *testing.T) {
-	_, err := jlawcore.CalcBrokerageFee(5_000_000, 2019, 9, 30, false)
+	// 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
+	_, err := jlawcore.CalcBrokerageFee(5_000_000, 2017, 12, 31, false, false)
 	if err == nil {
 		t.Fatal("expected error for date out of range, got nil")
 	}
-	if !strings.Contains(err.Error(), "2019-09-30") {
+	if !strings.Contains(err.Error(), "2017-12-31") {
 		t.Errorf("error message should contain the invalid date, got: %s", err.Error())
 	}
 }

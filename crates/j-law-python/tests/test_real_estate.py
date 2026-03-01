@@ -32,6 +32,7 @@ def test_brokerage_fee(case):
         inp["month"],
         inp["day"],
         is_low_cost_vacant_house=inp["is_low_cost_vacant_house"],
+        is_seller=inp.get("is_seller", False),
     )
 
     if "total_without_tax" in exp:
@@ -54,8 +55,9 @@ class TestLanguageSpecific:
     """Python 固有の振る舞い検証。"""
 
     def test_error_date_out_of_range(self):
-        with pytest.raises(ValueError, match="2019-09-30"):
-            calc_brokerage_fee(5_000_000, 2019, 9, 30)
+        # 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
+        with pytest.raises(ValueError, match="2017-12-31"):
+            calc_brokerage_fee(5_000_000, 2017, 12, 31)
 
     def test_breakdown_fields(self):
         r = calc_brokerage_fee(5_000_000, 2024, 8, 1)

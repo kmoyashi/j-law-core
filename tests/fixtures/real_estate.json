@@ -6,7 +6,8 @@
       "input": {
         "price": 1000000,
         "year": 2024, "month": 8, "day": 1,
-        "is_low_cost_vacant_house": false
+        "is_low_cost_vacant_house": false,
+        "is_seller": false
       },
       "expected": {
         "total_without_tax": 50000,
@@ -21,7 +22,8 @@
       "input": {
         "price": 2000000,
         "year": 2024, "month": 8, "day": 1,
-        "is_low_cost_vacant_house": false
+        "is_low_cost_vacant_house": false,
+        "is_seller": false
       },
       "expected": {
         "total_without_tax": 100000,
@@ -36,7 +38,8 @@
       "input": {
         "price": 5000000,
         "year": 2024, "month": 8, "day": 1,
-        "is_low_cost_vacant_house": false
+        "is_low_cost_vacant_house": false,
+        "is_seller": false
       },
       "expected": {
         "total_without_tax": 210000,
@@ -52,7 +55,8 @@
       "input": {
         "price": 10000000,
         "year": 2024, "month": 8, "day": 1,
-        "is_low_cost_vacant_house": false
+        "is_low_cost_vacant_house": false,
+        "is_seller": false
       },
       "expected": {
         "total_without_tax": 360000,
@@ -67,7 +71,8 @@
       "input": {
         "price": 30000000,
         "year": 2024, "month": 8, "day": 1,
-        "is_low_cost_vacant_house": false
+        "is_low_cost_vacant_house": false,
+        "is_seller": false
       },
       "expected": {
         "total_without_tax": 960000,
@@ -78,11 +83,12 @@
     },
     {
       "id": "low_cost_8m_with_flag",
-      "description": "売買価格 8,000,000円・低廉な空き家特例適用（上限330,000円にキャップ）",
+      "description": "売買価格 8,000,000円・低廉な空き家特例適用（2024年7月以降・買主でも適用）",
       "input": {
         "price": 8000000,
         "year": 2024, "month": 8, "day": 1,
-        "is_low_cost_vacant_house": true
+        "is_low_cost_vacant_house": true,
+        "is_seller": false
       },
       "expected": {
         "total_without_tax": 330000,
@@ -97,7 +103,8 @@
       "input": {
         "price": 8000001,
         "year": 2024, "month": 8, "day": 1,
-        "is_low_cost_vacant_house": true
+        "is_low_cost_vacant_house": true,
+        "is_seller": false
       },
       "expected": {
         "low_cost_special_applied": false
@@ -109,7 +116,8 @@
       "input": {
         "price": 8000000,
         "year": 2024, "month": 8, "day": 1,
-        "is_low_cost_vacant_house": false
+        "is_low_cost_vacant_house": false,
+        "is_seller": false
       },
       "expected": {
         "total_without_tax": 300000,
@@ -120,16 +128,49 @@
     },
     {
       "id": "old_2019_5m",
-      "description": "売買価格 5,000,000円（2019年旧告示・特例なし）",
+      "description": "売買価格 5,000,000円（2019年旧告示・400万円超のため特例不適用）",
       "input": {
         "price": 5000000,
         "year": 2019, "month": 12, "day": 1,
-        "is_low_cost_vacant_house": false
+        "is_low_cost_vacant_house": false,
+        "is_seller": false
       },
       "expected": {
         "total_without_tax": 210000,
         "tax_amount": 21000,
         "total_with_tax": 231000,
+        "low_cost_special_applied": false
+      }
+    },
+    {
+      "id": "low_cost_4m_seller_2022",
+      "description": "売買価格 4,000,000円・売主側・低廉特例フラグあり（2022年1月・旧告示10%）→ 特例適用",
+      "input": {
+        "price": 4000000,
+        "year": 2022, "month": 1, "day": 1,
+        "is_low_cost_vacant_house": true,
+        "is_seller": true
+      },
+      "expected": {
+        "total_without_tax": 180000,
+        "tax_amount": 18000,
+        "total_with_tax": 198000,
+        "low_cost_special_applied": true
+      }
+    },
+    {
+      "id": "low_cost_3m_buyer_2022",
+      "description": "売買価格 3,000,000円・買主側・低廉特例フラグあり（2022年1月・旧告示）→ 特例不適用",
+      "input": {
+        "price": 3000000,
+        "year": 2022, "month": 1, "day": 1,
+        "is_low_cost_vacant_house": true,
+        "is_seller": false
+      },
+      "expected": {
+        "total_without_tax": 140000,
+        "tax_amount": 14000,
+        "total_with_tax": 154000,
         "low_cost_special_applied": false
       }
     }

@@ -67,13 +67,16 @@ type BrokerageFeeResult struct {
 //   - price: 売買価格（円）
 //   - year, month, day: 基準日
 //   - isLowCostVacantHouse: 低廉な空き家特例フラグ
-//     WARNING: 対象物件が「低廉な空き家」に該当するかの事実認定は呼び出し元の責任。
+//     WARNING: 対象物件が「低廉な空き家等」に該当するかの事実認定は呼び出し元の責任。
+//   - isSeller: 売主側フラグ（2018年1月1日〜2024年6月30日の低廉特例は売主のみ適用）
+//     WARNING: 売主・買主の事実認定は呼び出し元の責任。
 //
 // エラー: 売買価格が不正、または対象日に有効な法令パラメータが存在しない場合。
 func CalcBrokerageFee(
 	price uint64,
 	year, month, day int,
 	isLowCostVacantHouse bool,
+	isSeller bool,
 ) (*BrokerageFeeResult, error) {
 	var cResult C.JLawBrokerageFeeResult
 	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
@@ -83,6 +86,10 @@ func CalcBrokerageFee(
 	if isLowCostVacantHouse {
 		isLowCost = 1
 	}
+	isSellerInt := C.int(0)
+	if isSeller {
+		isSellerInt = 1
+	}
 
 	ret := C.j_law_calc_brokerage_fee(
 		C.uint64_t(price),
@@ -90,6 +97,7 @@ func CalcBrokerageFee(
 		C.uint8_t(month),
 		C.uint8_t(day),
 		isLowCost,
+		isSellerInt,
 		&cResult,
 		errorBuf,
 		C.J_LAW_ERROR_BUF_LEN,
