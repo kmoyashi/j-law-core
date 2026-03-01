@@ -52,7 +52,7 @@ jobs:
 
       - name: Build gem
         working-directory: crates/j-law-ruby
-        run: gem build j_law_core.gemspec
+        run: gem build j_law_ruby.gemspec
 
       - uses: actions/upload-artifact@v4
         with:

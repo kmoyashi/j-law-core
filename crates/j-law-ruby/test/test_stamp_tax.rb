@@ -2,7 +2,7 @@
 
 require "minitest/autorun"
 require "json"
-require "j_law_core"
+require "j_law_ruby"
 
 # 印紙税法 別表第一に基づく印紙税額計算のテスト。
 #
@@ -18,7 +18,7 @@ class TestStampTax < Minitest::Test
       inp = tc["input"]
       exp = tc["expected"]
 
-      result = JLawCore::StampTax.calc_stamp_tax(
+      result = JLawRuby::StampTax.calc_stamp_tax(
         inp["contract_amount"],
         inp["year"],
         inp["month"],
@@ -35,18 +35,18 @@ class TestStampTax < Minitest::Test
 
   def test_error_date_out_of_range
     err = assert_raises(RuntimeError) do
-      JLawCore::StampTax.calc_stamp_tax(5_000_000, 2014, 3, 31, false)
+      JLawRuby::StampTax.calc_stamp_tax(5_000_000, 2014, 3, 31, false)
     end
     assert_match(/2014-03-31/, err.message)
   end
 
   def test_bracket_label_present
-    result = JLawCore::StampTax.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
+    result = JLawRuby::StampTax.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
     refute_empty result.bracket_label
   end
 
   def test_inspect
-    result = JLawCore::StampTax.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
+    result = JLawRuby::StampTax.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
     assert_match(/StampTaxResult/, result.inspect)
   end
 end

@@ -10,7 +10,7 @@ import pathlib
 
 import pytest
 
-from j_law_core.stamp_tax import calc_stamp_tax
+from j_law_python.stamp_tax import calc_stamp_tax
 
 # ─── フィクスチャ読み込み ─────────────────────────────────────────────────────
 

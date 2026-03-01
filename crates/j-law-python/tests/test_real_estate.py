@@ -10,7 +10,7 @@ import pathlib
 
 import pytest
 
-from j_law_core.real_estate import calc_brokerage_fee
+from j_law_python.real_estate import calc_brokerage_fee
 
 # ─── フィクスチャ読み込み ─────────────────────────────────────────────────────
 

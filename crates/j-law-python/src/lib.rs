@@ -389,10 +389,10 @@ fn register_real_estate(parent: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<BreakdownStep>()?;
     m.add_function(wrap_pyfunction!(calc_brokerage_fee, &m)?)?;
     parent.add_submodule(&m)?;
-    // sys.modules に登録して `from j_law_core.real_estate import ...` を有効にする
+    // sys.modules に登録して `from j_law_python.real_estate import ...` を有効にする
     py.import("sys")?
         .getattr("modules")?
-        .set_item("j_law_core.real_estate", &m)?;
+        .set_item("j_law_python.real_estate", &m)?;
     Ok(())
 }
 
@@ -404,10 +404,10 @@ fn register_income_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<IncomeTaxStep>()?;
     m.add_function(wrap_pyfunction!(calc_income_tax, &m)?)?;
     parent.add_submodule(&m)?;
-    // sys.modules に登録して `from j_law_core.income_tax import ...` を有効にする
+    // sys.modules に登録して `from j_law_python.income_tax import ...` を有効にする
     py.import("sys")?
         .getattr("modules")?
-        .set_item("j_law_core.income_tax", &m)?;
+        .set_item("j_law_python.income_tax", &m)?;
     Ok(())
 }
 
@@ -418,34 +418,34 @@ fn register_stamp_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<StampTaxResult>()?;
     m.add_function(wrap_pyfunction!(calc_stamp_tax, &m)?)?;
     parent.add_submodule(&m)?;
-    // sys.modules に登録して `from j_law_core.stamp_tax import ...` を有効にする
+    // sys.modules に登録して `from j_law_python.stamp_tax import ...` を有効にする
     py.import("sys")?
         .getattr("modules")?
-        .set_item("j_law_core.stamp_tax", &m)?;
+        .set_item("j_law_python.stamp_tax", &m)?;
     Ok(())
 }
 
-/// j_law_core Python モジュール。
+/// j_law_python Python モジュール。
 ///
 /// 使用例::
 ///
-///     import j_law_core
-///     result = j_law_core.real_estate.calc_brokerage_fee(
+///     import j_law_python
+///     result = j_law_python.real_estate.calc_brokerage_fee(
 ///         price=5_000_000, year=2024, month=8, day=1
 ///     )
 ///     print(result.total_with_tax)     # 231000
 ///
-///     result = j_law_core.income_tax.calc_income_tax(
+///     result = j_law_python.income_tax.calc_income_tax(
 ///         taxable_income=5_000_000, year=2024, month=1, day=1
 ///     )
 ///     print(result.total_tax)          # 584500
 ///
-///     result = j_law_core.stamp_tax.calc_stamp_tax(
+///     result = j_law_python.stamp_tax.calc_stamp_tax(
 ///         contract_amount=5_000_000, year=2024, month=8, day=1
 ///     )
 ///     print(result.tax_amount)         # 2000
 #[pymodule]
-fn j_law_core(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn j_law_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
     register_real_estate(m)?;
     register_income_tax(m)?;
     register_stamp_tax(m)?;

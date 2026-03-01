@@ -3,7 +3,7 @@ requires = ["maturin>=1,<2"]
 build-backend = "maturin"
 
 [project]
-name = "j-law-core"
+name = "j-law-python"
 version = "0.0.1"
 description = "日本の法令が定める各種計算を法的正確性を保証して実装するライブラリ（宅建業法・所得税法・印紙税法）"
 readme = "README.md"

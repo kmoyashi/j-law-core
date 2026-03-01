@@ -10,7 +10,7 @@ import pathlib
 
 import pytest
 
-from j_law_core.income_tax import calc_income_tax
+from j_law_python.income_tax import calc_income_tax
 
 # ─── フィクスチャ読み込み ─────────────────────────────────────────────────────
 
