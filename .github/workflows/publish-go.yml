@@ -3,7 +3,7 @@ name: Publish Go module
 # GitHub Releases が公開されたときに Go モジュールのバージョンタグを作成する。
 #
 # Go モジュールのタグ付け規約:
-#   モジュールパス: github.com/j-law-core/j-law-go
+#   モジュールパス: github.com/kmoyashi/j-law-go
 #   タグ形式: crates/j-law-go/v<version>
 #
 # 注意: j-law-go は CGo を通じて Rust 静的ライブラリ（libj_law_cgo.a）を使用するため、
@@ -15,7 +15,7 @@ on:
     types: [published]
 
 permissions:
-  contents: write  # タグの作成に必要
+  contents: write # タグの作成に必要
 
 jobs:
   # --- Go テストを実行してリリース品質を確認 ---
@@ -75,4 +75,4 @@ jobs:
           git push origin "$GO_TAG"
 
           echo "Go module tag created: $GO_TAG"
-          echo "Users can install with: go get github.com/j-law-core/j-law-go@v${VERSION}"
+          echo "Users can install with: go get github.com/kmoyashi/j-law-go@v${VERSION}"

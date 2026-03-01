@@ -21,7 +21,7 @@ Rust コアライブラリ（j-law-core）を CGo 経由で静的リンクして
 ## インストール
 
 ```sh
-go get github.com/j-law-core/j-law-go
+go get github.com/kmoyashi/j-law-go
 ```
 
 使用前に Rust staticlib をビルドします（リポジトリのルートが必要）:
@@ -34,7 +34,7 @@ make build-rust   # target/debug/libj_law_cgo.a を生成
 ## 使い方
 
 ```go
-import jlawcore "github.com/j-law-core/j-law-go"
+import jlawcore "github.com/kmoyashi/j-law-go"
 ```
 
 ### 不動産ドメイン — 媒介報酬（宅建業法 第46条）
@@ -120,23 +120,23 @@ fmt.Println(special.ReducedRateApplied) // true
 
 宅建業法第46条に基づく媒介報酬を計算する。
 
-| 引数 | 型 | 説明 |
-|---|---|---|
-| `price` | `uint64` | 売買価格（円） |
-| `year` | `int` | 基準日（年） |
-| `month` | `int` | 基準日（月） |
-| `day` | `int` | 基準日（日） |
-| `isLowCostVacantHouse` | `bool` | 低廉な空き家特例フラグ |
+| 引数                   | 型       | 説明                   |
+| ---------------------- | -------- | ---------------------- |
+| `price`                | `uint64` | 売買価格（円）         |
+| `year`                 | `int`    | 基準日（年）           |
+| `month`                | `int`    | 基準日（月）           |
+| `day`                  | `int`    | 基準日（日）           |
+| `isLowCostVacantHouse` | `bool`   | 低廉な空き家特例フラグ |
 
 **戻り値: `*BrokerageFeeResult`**
 
-| フィールド | 型 | 説明 |
-|---|---|---|
-| `TotalWithoutTax` | `uint64` | 税抜合計額（円） |
-| `TotalWithTax` | `uint64` | 税込合計額（円） |
-| `TaxAmount` | `uint64` | 消費税額（円） |
-| `LowCostSpecialApplied` | `bool` | 低廉な空き家特例が適用されたか |
-| `Breakdown` | `[]BreakdownStep` | 各ティアの計算内訳 |
+| フィールド              | 型                | 説明                           |
+| ----------------------- | ----------------- | ------------------------------ |
+| `TotalWithoutTax`       | `uint64`          | 税抜合計額（円）               |
+| `TotalWithTax`          | `uint64`          | 税込合計額（円）               |
+| `TaxAmount`             | `uint64`          | 消費税額（円）                 |
+| `LowCostSpecialApplied` | `bool`            | 低廉な空き家特例が適用されたか |
+| `Breakdown`             | `[]BreakdownStep` | 各ティアの計算内訳             |
 
 `BreakdownStep` フィールド: `Label string`, `BaseAmount uint64`, `RateNumer uint64`, `RateDenom uint64`, `Result uint64`
 
@@ -148,23 +148,23 @@ fmt.Println(special.ReducedRateApplied) // true
 
 所得税法第89条に基づく所得税額を計算する。
 
-| 引数 | 型 | 説明 |
-|---|---|---|
-| `taxableIncome` | `uint64` | 課税所得金額（円・1,000円未満切り捨て済み） |
-| `year` | `int` | 対象年度（年） |
-| `month` | `int` | 基準日（月） |
-| `day` | `int` | 基準日（日） |
-| `applyReconstructionTax` | `bool` | 復興特別所得税を適用するか |
+| 引数                     | 型       | 説明                                        |
+| ------------------------ | -------- | ------------------------------------------- |
+| `taxableIncome`          | `uint64` | 課税所得金額（円・1,000円未満切り捨て済み） |
+| `year`                   | `int`    | 対象年度（年）                              |
+| `month`                  | `int`    | 基準日（月）                                |
+| `day`                    | `int`    | 基準日（日）                                |
+| `applyReconstructionTax` | `bool`   | 復興特別所得税を適用するか                  |
 
 **戻り値: `*IncomeTaxResult`**
 
-| フィールド | 型 | 説明 |
-|---|---|---|
-| `BaseTax` | `uint64` | 基準所得税額（円） |
-| `ReconstructionTax` | `uint64` | 復興特別所得税額（円） |
-| `TotalTax` | `uint64` | 申告納税額（円・100円未満切り捨て） |
-| `ReconstructionTaxApplied` | `bool` | 復興特別所得税が適用されたか |
-| `Breakdown` | `[]IncomeTaxStep` | 速算表の計算内訳 |
+| フィールド                 | 型                | 説明                                |
+| -------------------------- | ----------------- | ----------------------------------- |
+| `BaseTax`                  | `uint64`          | 基準所得税額（円）                  |
+| `ReconstructionTax`        | `uint64`          | 復興特別所得税額（円）              |
+| `TotalTax`                 | `uint64`          | 申告納税額（円・100円未満切り捨て） |
+| `ReconstructionTaxApplied` | `bool`            | 復興特別所得税が適用されたか        |
+| `Breakdown`                | `[]IncomeTaxStep` | 速算表の計算内訳                    |
 
 `IncomeTaxStep` フィールド: `Label string`, `TaxableIncome uint64`, `RateNumer uint64`, `RateDenom uint64`, `Deduction uint64`, `Result uint64`
 
@@ -176,21 +176,21 @@ fmt.Println(special.ReducedRateApplied) // true
 
 印紙税法 別表第一（第1号文書）に基づく印紙税額を計算する。
 
-| 引数 | 型 | 説明 |
-|---|---|---|
-| `contractAmount` | `uint64` | 契約金額（円） |
-| `year` | `int` | 契約書作成日（年） |
-| `month` | `int` | 契約書作成日（月） |
-| `day` | `int` | 契約書作成日（日） |
-| `isReducedRateApplicable` | `bool` | 軽減税率適用フラグ |
+| 引数                      | 型       | 説明               |
+| ------------------------- | -------- | ------------------ |
+| `contractAmount`          | `uint64` | 契約金額（円）     |
+| `year`                    | `int`    | 契約書作成日（年） |
+| `month`                   | `int`    | 契約書作成日（月） |
+| `day`                     | `int`    | 契約書作成日（日） |
+| `isReducedRateApplicable` | `bool`   | 軽減税率適用フラグ |
 
 **戻り値: `*StampTaxResult`**
 
-| フィールド | 型 | 説明 |
-|---|---|---|
-| `TaxAmount` | `uint64` | 印紙税額（円） |
-| `BracketLabel` | `string` | 適用されたブラケットの表示名 |
-| `ReducedRateApplied` | `bool` | 軽減税率が適用されたか |
+| フィールド           | 型       | 説明                         |
+| -------------------- | -------- | ---------------------------- |
+| `TaxAmount`          | `uint64` | 印紙税額（円）               |
+| `BracketLabel`       | `string` | 適用されたブラケットの表示名 |
+| `ReducedRateApplied` | `bool`   | 軽減税率が適用されたか       |
 
 **エラー** — 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合。
 

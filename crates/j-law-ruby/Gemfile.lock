@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    j_law_core (0.1.0)
+    j_law_core (0.0.1)
       rb_sys (~> 0.9)
 
 GEM

@@ -186,23 +186,23 @@ j_law_core.real_estate.calc_brokerage_fee(
 
 **BrokerageFeeResult**
 
-| 属性 | 型 | 説明 |
-|------|----|------|
-| `total_without_tax` | `int` | 税抜合計額（円） |
-| `total_with_tax` | `int` | 税込合計額（円） |
-| `tax_amount` | `int` | 消費税額（円） |
-| `low_cost_special_applied` | `bool` | 低廉な空き家特例の適用有無 |
-| `breakdown` | `list[BreakdownStep]` | 各ティアの計算内訳 |
+| 属性                       | 型                    | 説明                       |
+| -------------------------- | --------------------- | -------------------------- |
+| `total_without_tax`        | `int`                 | 税抜合計額（円）           |
+| `total_with_tax`           | `int`                 | 税込合計額（円）           |
+| `tax_amount`               | `int`                 | 消費税額（円）             |
+| `low_cost_special_applied` | `bool`                | 低廉な空き家特例の適用有無 |
+| `breakdown`                | `list[BreakdownStep]` | 各ティアの計算内訳         |
 
 **BreakdownStep**
 
-| 属性 | 型 | 説明 |
-|------|----|------|
-| `label` | `str` | ティア名称 |
+| 属性          | 型    | 説明                 |
+| ------------- | ----- | -------------------- |
+| `label`       | `str` | ティア名称           |
 | `base_amount` | `int` | ティア対象金額（円） |
-| `rate_numer` | `int` | 料率の分子 |
-| `rate_denom` | `int` | 料率の分母 |
-| `result` | `int` | ティア計算結果（円） |
+| `rate_numer`  | `int` | 料率の分子           |
+| `rate_denom`  | `int` | 料率の分母           |
+| `result`      | `int` | ティア計算結果（円） |
 
 ---
 
@@ -231,20 +231,22 @@ import { calcBrokerageFee } from "j-law-wasm";
 // 基本的な計算（売買価格 500万円、2024年8月1日）
 const result = calcBrokerageFee(5_000_000, 2024, 8, 1, false);
 
-console.log(result.totalWithoutTax);  // 210000
-console.log(result.totalWithTax);     // 231000
-console.log(result.taxAmount);        // 21000
+console.log(result.totalWithoutTax); // 210000
+console.log(result.totalWithTax); // 231000
+console.log(result.taxAmount); // 21000
 
 // 内訳の確認
 for (const step of result.breakdown()) {
-    console.log(`${step.label}: ${step.baseAmount}円 × ${step.rateNumer}/${step.rateDenom} = ${step.result}円`);
+  console.log(
+    `${step.label}: ${step.baseAmount}円 × ${step.rateNumer}/${step.rateDenom} = ${step.result}円`,
+  );
 }
 
 // 低廉な空き家特例の適用
 const result2 = calcBrokerageFee(8_000_000, 2024, 8, 1, true);
 
-console.log(result2.lowCostSpecialApplied);  // true
-console.log(result2.totalWithTax);           // 363000
+console.log(result2.lowCostSpecialApplied); // true
+console.log(result2.totalWithTax); // 363000
 ```
 
 ### 使用例（TypeScript）
@@ -252,21 +254,27 @@ console.log(result2.totalWithTax);           // 363000
 ```typescript
 import { calcBrokerageFee, BrokerageFeeResult } from "j-law-wasm";
 
-const result: BrokerageFeeResult = calcBrokerageFee(5_000_000, 2024, 8, 1, false);
+const result: BrokerageFeeResult = calcBrokerageFee(
+  5_000_000,
+  2024,
+  8,
+  1,
+  false,
+);
 
-console.log(result.totalWithTax);  // 231000
+console.log(result.totalWithTax); // 231000
 
 interface BreakdownStep {
-    label: string;
-    baseAmount: number;
-    rateNumer: number;
-    rateDenom: number;
-    result: number;
+  label: string;
+  baseAmount: number;
+  rateNumer: number;
+  rateDenom: number;
+  result: number;
 }
 
 const breakdown: BreakdownStep[] = result.breakdown();
 breakdown.forEach((step) => {
-    console.log(`${step.label}: ${step.result}円`);
+  console.log(`${step.label}: ${step.result}円`);
 });
 ```
 
@@ -274,9 +282,9 @@ breakdown.forEach((step) => {
 
 ```javascript
 try {
-    const result = calcBrokerageFee(5_000_000, 2019, 9, 30, false);
+  const result = calcBrokerageFee(5_000_000, 2019, 9, 30, false);
 } catch (e) {
-    console.error(`計算エラー: ${e}`);  // 文字列として throw される
+  console.error(`計算エラー: ${e}`); // 文字列として throw される
 }
 ```
 
@@ -284,23 +292,23 @@ try {
 
 ```typescript
 function calcBrokerageFee(
-    price: number,                   // 売買価格（円）※ u32 上限: 約42.9億円
-    year: number,                    // 基準日（年）
-    month: number,                   // 基準日（月）
-    day: number,                     // 基準日（日）
-    isLowCostVacantHouse: boolean,   // 低廉な空き家特例フラグ
+  price: number, // 売買価格（円）※ u32 上限: 約42.9億円
+  year: number, // 基準日（年）
+  month: number, // 基準日（月）
+  day: number, // 基準日（日）
+  isLowCostVacantHouse: boolean, // 低廉な空き家特例フラグ
 ): BrokerageFeeResult;
 ```
 
 **BrokerageFeeResult**
 
-| プロパティ | 型 | 説明 |
-|------------|----|------|
-| `totalWithoutTax` | `number` | 税抜合計額（円） |
-| `totalWithTax` | `number` | 税込合計額（円） |
-| `taxAmount` | `number` | 消費税額（円） |
-| `lowCostSpecialApplied` | `boolean` | 低廉な空き家特例の適用有無 |
-| `breakdown()` | `Array<{label, baseAmount, rateNumer, rateDenom, result}>` | 各ティアの計算内訳 |
+| プロパティ              | 型                                                         | 説明                       |
+| ----------------------- | ---------------------------------------------------------- | -------------------------- |
+| `totalWithoutTax`       | `number`                                                   | 税抜合計額（円）           |
+| `totalWithTax`          | `number`                                                   | 税込合計額（円）           |
+| `taxAmount`             | `number`                                                   | 消費税額（円）             |
+| `lowCostSpecialApplied` | `boolean`                                                  | 低廉な空き家特例の適用有無 |
+| `breakdown()`           | `Array<{label, baseAmount, rateNumer, rateDenom, result}>` | 各ティアの計算内訳         |
 
 > **Note:** WASM バインディングの金額は `u32`（最大約42.9億円）です。JavaScript の Number 精度制約との互換性を保つための設計です。
 
@@ -380,24 +388,24 @@ JLawCore::RealEstate.calc_brokerage_fee(
 
 **BrokerageFeeResult**
 
-| メソッド | 戻り値 | 説明 |
-|----------|--------|------|
-| `total_without_tax` | `Integer` | 税抜合計額（円） |
-| `total_with_tax` | `Integer` | 税込合計額（円） |
-| `tax_amount` | `Integer` | 消費税額（円） |
-| `low_cost_special_applied?` | `true/false` | 低廉な空き家特例の適用有無 |
-| `breakdown` | `Array<Hash>` | 各ティアの計算内訳 |
-| `inspect` / `to_s` | `String` | 文字列表現 |
+| メソッド                    | 戻り値        | 説明                       |
+| --------------------------- | ------------- | -------------------------- |
+| `total_without_tax`         | `Integer`     | 税抜合計額（円）           |
+| `total_with_tax`            | `Integer`     | 税込合計額（円）           |
+| `tax_amount`                | `Integer`     | 消費税額（円）             |
+| `low_cost_special_applied?` | `true/false`  | 低廉な空き家特例の適用有無 |
+| `breakdown`                 | `Array<Hash>` | 各ティアの計算内訳         |
+| `inspect` / `to_s`          | `String`      | 文字列表現                 |
 
 **breakdown の Hash キー**
 
-| キー | 型 | 説明 |
-|------|----|------|
-| `:label` | `String` | ティア名称 |
+| キー           | 型        | 説明                 |
+| -------------- | --------- | -------------------- |
+| `:label`       | `String`  | ティア名称           |
 | `:base_amount` | `Integer` | ティア対象金額（円） |
-| `:rate_numer` | `Integer` | 料率の分子 |
-| `:rate_denom` | `Integer` | 料率の分母 |
-| `:result` | `Integer` | ティア計算結果（円） |
+| `:rate_numer`  | `Integer` | 料率の分子           |
+| `:rate_denom`  | `Integer` | 料率の分母           |
+| `:result`      | `Integer` | ティア計算結果（円） |
 
 ---
 
@@ -432,7 +440,7 @@ import (
 	"fmt"
 	"log"
 
-	jlawcore "github.com/j-law-core/j-law-go"
+	jlawcore "github.com/kmoyashi/j-law-go"
 )
 
 func main() {
@@ -485,33 +493,33 @@ func CalcBrokerageFee(
 
 **BrokerageFeeResult**
 
-| フィールド | 型 | 説明 |
-|------------|----|------|
-| `TotalWithoutTax` | `uint64` | 税抜合計額（円） |
-| `TotalWithTax` | `uint64` | 税込合計額（円） |
-| `TaxAmount` | `uint64` | 消費税額（円） |
-| `LowCostSpecialApplied` | `bool` | 低廉な空き家特例の適用有無 |
-| `Breakdown` | `[]BreakdownStep` | 各ティアの計算内訳 |
+| フィールド              | 型                | 説明                       |
+| ----------------------- | ----------------- | -------------------------- |
+| `TotalWithoutTax`       | `uint64`          | 税抜合計額（円）           |
+| `TotalWithTax`          | `uint64`          | 税込合計額（円）           |
+| `TaxAmount`             | `uint64`          | 消費税額（円）             |
+| `LowCostSpecialApplied` | `bool`            | 低廉な空き家特例の適用有無 |
+| `Breakdown`             | `[]BreakdownStep` | 各ティアの計算内訳         |
 
 **BreakdownStep**
 
-| フィールド | 型 | 説明 |
-|------------|----|------|
-| `Label` | `string` | ティア名称 |
+| フィールド   | 型       | 説明                 |
+| ------------ | -------- | -------------------- |
+| `Label`      | `string` | ティア名称           |
 | `BaseAmount` | `uint64` | ティア対象金額（円） |
-| `RateNumer` | `uint64` | 料率の分子 |
-| `RateDenom` | `uint64` | 料率の分母 |
-| `Result` | `uint64` | ティア計算結果（円） |
+| `RateNumer`  | `uint64` | 料率の分子           |
+| `RateDenom`  | `uint64` | 料率の分母           |
+| `Result`     | `uint64` | ティア計算結果（円） |
 
 ### Makefile ターゲット
 
-| ターゲット | 説明 |
-|-----------|------|
-| `make build-rust` | Rust 静的ライブラリをデバッグビルド |
+| ターゲット                | 説明                                |
+| ------------------------- | ----------------------------------- |
+| `make build-rust`         | Rust 静的ライブラリをデバッグビルド |
 | `make build-rust-release` | Rust 静的ライブラリをリリースビルド |
-| `make test` | デバッグビルドで Go テストを実行 |
-| `make test-release` | リリースビルドで Go テストを実行 |
-| `make clean` | テストキャッシュをクリア |
+| `make test`               | デバッグビルドで Go テストを実行    |
+| `make test-release`       | リリースビルドで Go テストを実行    |
+| `make clean`              | テストキャッシュをクリア            |
 
 ---
 
@@ -605,11 +613,11 @@ int j_law_calc_brokerage_fee(
 
 ### 定数
 
-| 定数 | 値 | 説明 |
-|------|----|------|
-| `J_LAW_MAX_TIERS` | 8 | ティア内訳の最大件数 |
-| `J_LAW_LABEL_LEN` | 64 | ティアラベルの最大バイト長（NUL 終端含む） |
-| `J_LAW_ERROR_BUF_LEN` | 256 | エラーバッファの推奨バイト長 |
+| 定数                  | 値  | 説明                                       |
+| --------------------- | --- | ------------------------------------------ |
+| `J_LAW_MAX_TIERS`     | 8   | ティア内訳の最大件数                       |
+| `J_LAW_LABEL_LEN`     | 64  | ティアラベルの最大バイト長（NUL 終端含む） |
+| `J_LAW_ERROR_BUF_LEN` | 256 | エラーバッファの推奨バイト長               |
 
 ---
 
@@ -617,18 +625,18 @@ int j_law_calc_brokerage_fee(
 
 ### 対応法令
 
-| 施行日 | 内容 | status |
-|--------|------|--------|
-| 2019-10-01 | 消費税10%対応 | superseded |
-| 2024-07-01 | 低廉な空き家特例の追加 | active |
+| 施行日     | 内容                   | status     |
+| ---------- | ---------------------- | ---------- |
+| 2019-10-01 | 消費税10%対応          | superseded |
+| 2024-07-01 | 低廉な空き家特例の追加 | active     |
 
 ### 3段階ティア計算
 
-| ティア | 対象範囲 | 料率 |
-|--------|----------|------|
-| tier1 | 200万円以下 | 5/100 |
-| tier2 | 200万円超 400万円以下 | 4/100 |
-| tier3 | 400万円超 | 3/100 |
+| ティア | 対象範囲              | 料率  |
+| ------ | --------------------- | ----- |
+| tier1  | 200万円以下           | 5/100 |
+| tier2  | 200万円超 400万円以下 | 4/100 |
+| tier3  | 400万円超             | 3/100 |
 
 - 各ティアの端数処理: 切り捨て（Floor）
 - 消費税率: 10/100（切り捨て）
@@ -636,14 +644,14 @@ int j_law_calc_brokerage_fee(
 
 ### 計算例
 
-| 売買価格 | 税抜合計 | 消費税 | 税込合計 | 備考 |
-|----------|----------|--------|----------|------|
-| 1,000,000円 | 50,000 | 5,000 | 55,000 | |
-| 2,000,000円 | 100,000 | 10,000 | 110,000 | |
-| 3,000,000円 | 140,000 | 14,000 | 154,000 | |
-| 5,000,000円 | 210,000 | 21,000 | 231,000 | |
-| 10,000,000円 | 360,000 | 36,000 | 396,000 | |
-| 8,000,000円 | 330,000 | 33,000 | 363,000 | 低廉な空き家特例適用時 |
+| 売買価格     | 税抜合計 | 消費税 | 税込合計 | 備考                   |
+| ------------ | -------- | ------ | -------- | ---------------------- |
+| 1,000,000円  | 50,000   | 5,000  | 55,000   |                        |
+| 2,000,000円  | 100,000  | 10,000 | 110,000  |                        |
+| 3,000,000円  | 140,000  | 14,000 | 154,000  |                        |
+| 5,000,000円  | 210,000  | 21,000 | 231,000  |                        |
+| 10,000,000円 | 360,000  | 36,000 | 396,000  |                        |
+| 8,000,000円  | 330,000  | 33,000 | 363,000  | 低廉な空き家特例適用時 |
 
 ### 注意事項
 
@@ -651,9 +659,9 @@ int j_law_calc_brokerage_fee(
 
 ### 各バインディング比較
 
-| | Rust | Python | JS/TS | Ruby | Go | C |
-|---|------|--------|-------|------|----|---|
-| バインディング方式 | ネイティブ | PyO3 | wasm-bindgen | Magnus | CGo | FFI |
-| 金額型 | `u64` | `int` | `u32` | `Integer` | `uint64` | `uint64_t` |
-| エラー型 | `JLawError` | `ValueError` | throw (string) | `RuntimeError` | `error` | 戻り値 + バッファ |
-| 内訳の形式 | `Vec<CalculationStep>` | `list[BreakdownStep]` | `Array<Object>` | `Array<Hash>` | `[]BreakdownStep` | 固定長配列 |
+|                    | Rust                   | Python                | JS/TS           | Ruby           | Go                | C                 |
+| ------------------ | ---------------------- | --------------------- | --------------- | -------------- | ----------------- | ----------------- |
+| バインディング方式 | ネイティブ             | PyO3                  | wasm-bindgen    | Magnus         | CGo               | FFI               |
+| 金額型             | `u64`                  | `int`                 | `u32`           | `Integer`      | `uint64`          | `uint64_t`        |
+| エラー型           | `JLawError`            | `ValueError`          | throw (string)  | `RuntimeError` | `error`           | 戻り値 + バッファ |
+| 内訳の形式         | `Vec<CalculationStep>` | `list[BreakdownStep]` | `Array<Object>` | `Array<Hash>`  | `[]BreakdownStep` | 固定長配列        |
