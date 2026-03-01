@@ -33,8 +33,8 @@ J-Law-Core は、日本の法令・告示・省令が定める各種計算を、
 ### Python
 
 ```python
-from j_law_core.real_estate import calc_brokerage_fee
-from j_law_core.income_tax import calc_income_tax
+from j_law_python.real_estate import calc_brokerage_fee
+from j_law_python.income_tax import calc_income_tax
 
 # 媒介報酬の計算（宅建業法 第46条）
 result = calc_brokerage_fee(5_000_000, 2024, 8, 1)
@@ -68,12 +68,12 @@ console.log(tax.totalTax); // 584500
 ### Ruby
 
 ```ruby
-require "j_law_core"
+require "j_law_ruby"
 
-result = JLawCore::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
+result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
 puts result.total_with_tax  # 231000
 
-result = JLawCore::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, true)
+result = JLawRuby::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, true)
 puts result.total_tax       # 584500
 ```
 

@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    j_law_core (0.0.1)
+    j_law_ruby (0.0.1)
       rb_sys (~> 0.9)
 
 GEM
@@ -19,7 +19,7 @@ PLATFORMS
   x86_64-darwin-23
 
 DEPENDENCIES
-  j_law_core!
+  j_law_ruby!
   rake
   rake-compiler
   rb_sys

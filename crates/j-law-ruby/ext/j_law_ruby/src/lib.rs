@@ -48,7 +48,7 @@ struct BreakdownStepData {
 /// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
 /// Cargo.toml で disallowed_methods = "allow" を設定している
 #[magnus::wrap(
-    class = "JLawCore::RealEstate::BrokerageFeeResult",
+    class = "JLawRuby::RealEstate::BrokerageFeeResult",
     free_immediately,
     frozen_shareable
 )]
@@ -104,7 +104,7 @@ impl RbBrokerageFeeResult {
 
     fn inspect(&self) -> String {
         format!(
-            "#<JLawCore::RealEstate::BrokerageFeeResult total_without_tax={} total_with_tax={} tax_amount={} low_cost_special_applied={}>",
+            "#<JLawRuby::RealEstate::BrokerageFeeResult total_without_tax={} total_with_tax={} tax_amount={} low_cost_special_applied={}>",
             self.total_without_tax,
             self.total_with_tax,
             self.tax_amount,
@@ -126,7 +126,7 @@ impl RbBrokerageFeeResult {
 /// @param day   [Integer] 基準日（日）
 /// @param is_low_cost_vacant_house [true, false] 低廉な空き家特例フラグ
 ///   WARNING: 対象物件が「低廉な空き家」に該当するかの事実認定は呼び出し元の責任。
-/// @return [JLawCore::RealEstate::BrokerageFeeResult]
+/// @return [JLawRuby::RealEstate::BrokerageFeeResult]
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_brokerage_fee(
     price: u64,
@@ -197,7 +197,7 @@ struct IncomeTaxStepData {
 /// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
 /// Cargo.toml で disallowed_methods = "allow" を設定している
 #[magnus::wrap(
-    class = "JLawCore::IncomeTax::IncomeTaxResult",
+    class = "JLawRuby::IncomeTax::IncomeTaxResult",
     free_immediately,
     frozen_shareable
 )]
@@ -253,7 +253,7 @@ impl RbIncomeTaxResult {
 
     fn inspect(&self) -> String {
         format!(
-            "#<JLawCore::IncomeTax::IncomeTaxResult base_tax={} reconstruction_tax={} total_tax={} reconstruction_tax_applied={}>",
+            "#<JLawRuby::IncomeTax::IncomeTaxResult base_tax={} reconstruction_tax={} total_tax={} reconstruction_tax_applied={}>",
             self.base_tax,
             self.reconstruction_tax,
             self.total_tax,
@@ -274,7 +274,7 @@ impl RbIncomeTaxResult {
 /// @param month [Integer] 基準日（月）
 /// @param day   [Integer] 基準日（日）
 /// @param apply_reconstruction_tax [true, false] 復興特別所得税を適用するか
-/// @return [JLawCore::IncomeTax::IncomeTaxResult]
+/// @return [JLawRuby::IncomeTax::IncomeTaxResult]
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_income_tax(
     taxable_income: u64,
@@ -333,7 +333,7 @@ fn calc_income_tax(
 /// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
 /// Cargo.toml で disallowed_methods = "allow" を設定している
 #[magnus::wrap(
-    class = "JLawCore::StampTax::StampTaxResult",
+    class = "JLawRuby::StampTax::StampTaxResult",
     free_immediately,
     frozen_shareable
 )]
@@ -358,7 +358,7 @@ impl RbStampTaxResult {
 
     fn inspect(&self) -> String {
         format!(
-            "#<JLawCore::StampTax::StampTaxResult tax_amount={} bracket_label={:?} reduced_rate_applied={}>",
+            "#<JLawRuby::StampTax::StampTaxResult tax_amount={} bracket_label={:?} reduced_rate_applied={}>",
             self.tax_amount,
             self.bracket_label,
             self.reduced_rate_applied,
@@ -379,7 +379,7 @@ impl RbStampTaxResult {
 /// @param day   [Integer] 契約書作成日（日）
 /// @param is_reduced_rate_applicable [true, false] 軽減税率適用フラグ
 ///   WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
-/// @return [JLawCore::StampTax::StampTaxResult]
+/// @return [JLawRuby::StampTax::StampTaxResult]
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_stamp_tax(
     contract_amount: u64,
@@ -415,7 +415,7 @@ fn calc_stamp_tax(
 
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
-    let j_law_core = ruby.define_module("JLawCore")?;
+    let j_law_core = ruby.define_module("JLawRuby")?;
     let real_estate = j_law_core.define_module("RealEstate")?;
 
     // BrokerageFeeResult クラス
@@ -437,7 +437,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     result_class.define_method("inspect", method!(RbBrokerageFeeResult::inspect, 0))?;
     result_class.define_method("to_s", method!(RbBrokerageFeeResult::inspect, 0))?;
 
-    // モジュール関数: JLawCore::RealEstate.calc_brokerage_fee(...)
+    // モジュール関数: JLawRuby::RealEstate.calc_brokerage_fee(...)
     real_estate.define_module_function("calc_brokerage_fee", function!(calc_brokerage_fee, 5))?;
 
     // ─── 所得税 ───────────────────────────────────────────────────────────────
@@ -460,7 +460,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     income_tax_result_class.define_method("inspect", method!(RbIncomeTaxResult::inspect, 0))?;
     income_tax_result_class.define_method("to_s", method!(RbIncomeTaxResult::inspect, 0))?;
 
-    // モジュール関数: JLawCore::IncomeTax.calc_income_tax(...)
+    // モジュール関数: JLawRuby::IncomeTax.calc_income_tax(...)
     income_tax.define_module_function("calc_income_tax", function!(calc_income_tax, 5))?;
 
     // ─── 印紙税 ───────────────────────────────────────────────────────────────
@@ -478,7 +478,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     stamp_tax_result_class.define_method("inspect", method!(RbStampTaxResult::inspect, 0))?;
     stamp_tax_result_class.define_method("to_s", method!(RbStampTaxResult::inspect, 0))?;
 
-    // モジュール関数: JLawCore::StampTax.calc_stamp_tax(...)
+    // モジュール関数: JLawRuby::StampTax.calc_stamp_tax(...)
     stamp_tax.define_module_function("calc_stamp_tax", function!(calc_stamp_tax, 5))?;
 
     Ok(())

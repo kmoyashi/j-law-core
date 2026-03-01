@@ -8,7 +8,7 @@ license = "MIT"
 workspace = true
 
 [lib]
-name = "j_law_core"
+name = "j_law_python"
 crate-type = ["cdylib"]
 
 [dependencies]

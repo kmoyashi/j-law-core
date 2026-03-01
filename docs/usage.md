@@ -124,10 +124,10 @@ maturin develop -m crates/j-law-python/Cargo.toml
 ### 使用例
 
 ```python
-import j_law_core
+import j_law_python
 
 # 基本的な計算（売買価格 500万円、2024年8月1日）
-result = j_law_core.real_estate.calc_brokerage_fee(
+result = j_law_python.real_estate.calc_brokerage_fee(
     price=5_000_000,
     year=2024,
     month=8,
@@ -146,7 +146,7 @@ for step in result.breakdown:
 # tier3: 1000000円 × 3/100 = 30000円
 
 # 低廉な空き家特例の適用
-result = j_law_core.real_estate.calc_brokerage_fee(
+result = j_law_python.real_estate.calc_brokerage_fee(
     price=8_000_000,
     year=2024,
     month=8,
@@ -162,7 +162,7 @@ print(result.total_with_tax)            # 363000
 
 ```python
 try:
-    result = j_law_core.real_estate.calc_brokerage_fee(
+    result = j_law_python.real_estate.calc_brokerage_fee(
         price=5_000_000,
         year=2019,
         month=9,
@@ -175,7 +175,7 @@ except ValueError as e:
 ### API リファレンス
 
 ```python
-j_law_core.real_estate.calc_brokerage_fee(
+j_law_python.real_estate.calc_brokerage_fee(
     price: int,                          # 売買価格（円）
     year: int,                           # 基準日（年）
     month: int,                          # 基準日（月）
@@ -336,10 +336,10 @@ rake compile
 ### 使用例
 
 ```ruby
-require "j_law_core"
+require "j_law_ruby"
 
 # 基本的な計算（売買価格 500万円、2024年8月1日）
-result = JLawCore::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
+result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
 
 puts result.total_without_tax  # 210000
 puts result.total_with_tax     # 231000
@@ -354,21 +354,21 @@ end
 # tier3: 1000000円 × 3/100 = 30000円
 
 # 低廉な空き家特例の適用
-result = JLawCore::RealEstate.calc_brokerage_fee(8_000_000, 2024, 8, 1, true)
+result = JLawRuby::RealEstate.calc_brokerage_fee(8_000_000, 2024, 8, 1, true)
 
 puts result.low_cost_special_applied?  # true
 puts result.total_with_tax             # 363000
 
 # 文字列表現
 puts result.inspect
-# #<JLawCore::RealEstate::BrokerageFeeResult total_without_tax=330000 total_with_tax=363000 ...>
+# #<JLawRuby::RealEstate::BrokerageFeeResult total_without_tax=330000 total_with_tax=363000 ...>
 ```
 
 ### エラーハンドリング
 
 ```ruby
 begin
-  result = JLawCore::RealEstate.calc_brokerage_fee(5_000_000, 2019, 9, 30, false)
+  result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2019, 9, 30, false)
 rescue RuntimeError => e
   puts "エラー: #{e.message}"
 end
@@ -377,13 +377,13 @@ end
 ### API リファレンス
 
 ```ruby
-JLawCore::RealEstate.calc_brokerage_fee(
+JLawRuby::RealEstate.calc_brokerage_fee(
   price,                       # Integer - 売買価格（円）
   year,                        # Integer - 基準日（年）
   month,                       # Integer - 基準日（月）
   day,                         # Integer - 基準日（日）
   is_low_cost_vacant_house     # true/false - 低廉な空き家特例フラグ
-) -> JLawCore::RealEstate::BrokerageFeeResult
+) -> JLawRuby::RealEstate::BrokerageFeeResult
 ```
 
 **BrokerageFeeResult**

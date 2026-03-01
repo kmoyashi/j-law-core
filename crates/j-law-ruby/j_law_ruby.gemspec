@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 Gem::Specification.new do |spec|
-  spec.name    = "j_law_core"
+  spec.name    = "j_law_ruby"
   spec.version = "0.0.1"
   spec.authors = ["j-law-core contributors"]
   spec.email   = []
@@ -29,7 +29,7 @@ Gem::Specification.new do |spec|
     "Cargo.toml",
     "Cargo.lock",
   ]
-  spec.extensions = ["ext/j_law_core/extconf.rb"]
+  spec.extensions = ["ext/j_law_ruby/extconf.rb"]
 
   spec.add_dependency "rb_sys", "~> 0.9"
 end

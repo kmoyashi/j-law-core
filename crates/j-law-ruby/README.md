@@ -1,4 +1,4 @@
-# j_law_core (Ruby)
+# j_law_ruby
 
 日本の法令に基づく各種計算を提供する Ruby バインディング（gem）。
 
@@ -15,13 +15,13 @@ Rust コアライブラリ（j-law-core）を [Magnus](https://github.com/matsad
 ## インストール
 
 ```sh
-gem install j_law_core
+gem install j_law_ruby
 ```
 
 `Gemfile` に追加する場合:
 
 ```ruby
-gem "j_law_core"
+gem "j_law_ruby"
 ```
 
 ソースからビルドする場合:
@@ -35,14 +35,14 @@ bundle exec rake build
 ## 使い方
 
 ```ruby
-require "j_law_core"
+require "j_law_ruby"
 ```
 
 ### 不動産ドメイン — 媒介報酬（宅建業法 第46条）
 
 ```ruby
 # 売買価格 500万円、2024年8月1日基準
-result = JLawCore::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
+result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false)
 
 puts result.total_with_tax           # 231000（税込）
 puts result.total_without_tax        # 210000（税抜）
@@ -59,7 +59,7 @@ end
 
 # 低廉な空き家特例（2024年7月1日施行・800万円以下）
 # WARNING: 対象物件が特例に該当するかの事実認定は呼び出し元の責任
-result = JLawCore::RealEstate.calc_brokerage_fee(8_000_000, 2024, 8, 1, true)
+result = JLawRuby::RealEstate.calc_brokerage_fee(8_000_000, 2024, 8, 1, true)
 puts result.total_with_tax            # 363000
 puts result.low_cost_special_applied? # true
 ```
@@ -68,7 +68,7 @@ puts result.low_cost_special_applied? # true
 
 ```ruby
 # 課税所得 500万円（1,000円未満切り捨て済みの値を渡すこと）
-result = JLawCore::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, true)
+result = JLawRuby::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, true)
 
 puts result.total_tax                    # 584500（申告納税額・100円未満切り捨て）
 puts result.base_tax                     # 572500（基準所得税額）
@@ -76,7 +76,7 @@ puts result.reconstruction_tax          # 12022（復興特別所得税）
 puts result.reconstruction_tax_applied? # true
 
 # 復興特別所得税を適用しない場合
-result = JLawCore::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, false)
+result = JLawRuby::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, false)
 puts result.total_tax                    # 572500
 ```
 
@@ -84,7 +84,7 @@ puts result.total_tax                    # 572500
 
 ```ruby
 # 契約金額 500万円（不動産譲渡契約書）
-result = JLawCore::StampTax.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
+result = JLawRuby::StampTax.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
 
 puts result.tax_amount            # 2000（印紙税額）
 puts result.bracket_label         # 適用ブラケット名
@@ -92,13 +92,13 @@ puts result.reduced_rate_applied? # false
 
 # 軽減税率適用（租税特別措置法 第91条）
 # WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任
-result = JLawCore::StampTax.calc_stamp_tax(5_000_000, 2024, 8, 1, true)
+result = JLawRuby::StampTax.calc_stamp_tax(5_000_000, 2024, 8, 1, true)
 puts result.reduced_rate_applied? # true
 ```
 
 ## API リファレンス
 
-### `JLawCore::RealEstate`
+### `JLawRuby::RealEstate`
 
 #### `.calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house)`
 
@@ -112,7 +112,7 @@ puts result.reduced_rate_applied? # true
 | `day` | `Integer` | 基準日（日） |
 | `is_low_cost_vacant_house` | `true`/`false` | 低廉な空き家特例フラグ |
 
-**戻り値: `JLawCore::RealEstate::BrokerageFeeResult`**
+**戻り値: `JLawRuby::RealEstate::BrokerageFeeResult`**
 
 | メソッド | 戻り値型 | 説明 |
 |---|---|---|
@@ -126,7 +126,7 @@ puts result.reduced_rate_applied? # true
 
 ---
 
-### `JLawCore::IncomeTax`
+### `JLawRuby::IncomeTax`
 
 #### `.calc_income_tax(taxable_income, year, month, day, apply_reconstruction_tax)`
 
@@ -140,7 +140,7 @@ puts result.reduced_rate_applied? # true
 | `day` | `Integer` | 基準日（日） |
 | `apply_reconstruction_tax` | `true`/`false` | 復興特別所得税を適用するか |
 
-**戻り値: `JLawCore::IncomeTax::IncomeTaxResult`**
+**戻り値: `JLawRuby::IncomeTax::IncomeTaxResult`**
 
 | メソッド | 戻り値型 | 説明 |
 |---|---|---|
@@ -154,7 +154,7 @@ puts result.reduced_rate_applied? # true
 
 ---
 
-### `JLawCore::StampTax`
+### `JLawRuby::StampTax`
 
 #### `.calc_stamp_tax(contract_amount, year, month, day, is_reduced_rate_applicable)`
 
@@ -168,7 +168,7 @@ puts result.reduced_rate_applied? # true
 | `day` | `Integer` | 契約書作成日（日） |
 | `is_reduced_rate_applicable` | `true`/`false` | 軽減税率適用フラグ |
 
-**戻り値: `JLawCore::StampTax::StampTaxResult`**
+**戻り値: `JLawRuby::StampTax::StampTaxResult`**
 
 | メソッド | 戻り値型 | 説明 |
 |---|---|---|

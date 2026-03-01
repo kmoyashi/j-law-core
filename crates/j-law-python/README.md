@@ -15,7 +15,7 @@ Rust コアライブラリ（j-law-core）を [PyO3](https://pyo3.rs/) 経由で
 ## インストール
 
 ```sh
-pip install j-law-core
+pip install j-law-python
 ```
 
 ソースからビルドする場合:
@@ -30,7 +30,7 @@ maturin develop -m crates/j-law-python/Cargo.toml
 ### 不動産ドメイン — 媒介報酬（宅建業法 第46条）
 
 ```python
-from j_law_core.real_estate import calc_brokerage_fee
+from j_law_python.real_estate import calc_brokerage_fee
 
 # 売買価格 500万円、2024年8月1日基準
 result = calc_brokerage_fee(5_000_000, 2024, 8, 1)
@@ -57,7 +57,7 @@ print(result.low_cost_special_applied) # True
 ### 所得税ドメイン — 所得税額（所得税法 第89条）
 
 ```python
-from j_law_core.income_tax import calc_income_tax
+from j_law_python.income_tax import calc_income_tax
 
 # 課税所得 500万円（1,000円未満切り捨て済みの値を渡すこと）
 result = calc_income_tax(5_000_000, 2024, 1, 1)
@@ -75,7 +75,7 @@ print(result.total_tax)                   # 572500
 ### 印紙税ドメイン — 印紙税額（印紙税法 別表第一）
 
 ```python
-from j_law_core.stamp_tax import calc_stamp_tax
+from j_law_python.stamp_tax import calc_stamp_tax
 
 # 契約金額 500万円（不動産譲渡契約書）
 result = calc_stamp_tax(5_000_000, 2024, 8, 1)
@@ -92,7 +92,7 @@ print(result.reduced_rate_applied)  # True
 
 ## API リファレンス
 
-### `j_law_core.real_estate`
+### `j_law_python.real_estate`
 
 #### `calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house=False)`
 
@@ -120,7 +120,7 @@ print(result.reduced_rate_applied)  # True
 
 ---
 
-### `j_law_core.income_tax`
+### `j_law_python.income_tax`
 
 #### `calc_income_tax(taxable_income, year, month, day, apply_reconstruction_tax=True)`
 
@@ -148,7 +148,7 @@ print(result.reduced_rate_applied)  # True
 
 ---
 
-### `j_law_core.stamp_tax`
+### `j_law_python.stamp_tax`
 
 #### `calc_stamp_tax(contract_amount, year, month, day, is_reduced_rate_applicable=False)`
 

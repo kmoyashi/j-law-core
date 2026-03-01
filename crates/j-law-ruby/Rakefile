@@ -4,8 +4,8 @@ require "rake/extensiontask"
 require "rake/testtask"
 require "rb_sys/extensiontask"
 
-RbSys::ExtensionTask.new("j_law_core", Gem::Specification.load("j_law_core.gemspec")) do |ext|
-  ext.lib_dir = "lib/j_law_core"
+RbSys::ExtensionTask.new("j_law_ruby", Gem::Specification.load("j_law_ruby.gemspec")) do |ext|
+  ext.lib_dir = "lib/j_law_ruby"
 end
 
 Rake::TestTask.new(:test) do |t|
