@@ -87,19 +87,25 @@ pub fn calculate_brokerage_fee(
     }
 
     // --- 低廉な空き家特例 ---
-    // 2024年7月1日施行。800万円以下の低廉な空き家については、
-    // 通常計算が330,000円に満たない場合でも330,000円まで請求できる（最低保証額）。
-    // 参照: 国土交通省告示（2024年2月9日公布）
-    let low_cost_applied = ctx.policy.should_apply_low_cost_special(price, &ctx.flags);
-    if low_cost_applied {
-        if let Some(special) = &params.low_cost_special {
+    // 2018年1月1日施行（平成29年国土交通省告示第98号）。
+    // 400万円以下（2024年7月以降は800万円以下）の低廉な空き家等については、
+    // 通常計算が保証額を下回る場合でも保証額まで請求できる（最低保証額）。
+    //
+    // 適用条件（3つ全て満たす場合に適用）:
+    //   1. 売買価格が params.low_cost_special.price_ceiling_inclusive 以下
+    //   2. IsLowCostVacantHouse フラグが指定されている（ポリシーに委譲）
+    //   3. seller_only == true の場合は IsSeller フラグも必要（2018〜2024年の制約）
+    let mut low_cost_applied = false;
+    if let Some(special) = &params.low_cost_special {
+        let price_ok = price <= special.price_ceiling_inclusive;
+        let flag_ok = ctx.policy.should_apply_low_cost_special(&ctx.flags);
+        // seller_only の場合は IsSeller フラグが必須
+        let party_ok = !special.seller_only || ctx.flags.contains(&RealEstateFlag::IsSeller);
+        if price_ok && flag_ok && party_ok {
             // fee_ceiling_exclusive_tax は法令上の「上限報酬額」だが、
             // 特例適用時は「最低保証額」として機能する（通常計算が下回れば引き上げ）。
             subtotal = subtotal.max(special.fee_ceiling_exclusive_tax);
-        } else {
-            return Err(CalculationError::PolicyNotApplicable {
-                reason: "IsLowCostVacantHouseフラグが指定されましたが、このパラメータセットに低廉特例データが含まれていません".into(),
-            }.into());
+            low_cost_applied = true;
         }
     }
 

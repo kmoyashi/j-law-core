@@ -67,6 +67,7 @@ fn to_params(entry: &HistoryEntry) -> BrokerageFeeParams {
         .map(|s| LowCostSpecialParams {
             price_ceiling_inclusive: s.price_ceiling_inclusive,
             fee_ceiling_exclusive_tax: s.fee_ceiling_exclusive_tax,
+            seller_only: s.seller_only,
         });
 
     BrokerageFeeParams {
@@ -99,12 +100,17 @@ mod tests {
     fn load_2019_superseded_params() {
         let params = load_brokerage_fee_params((2019, 12, 1)).unwrap();
         assert_eq!(params.tiers.len(), 3);
-        assert!(params.low_cost_special.is_none());
+        // 2019年告示は低廉特例あり（売主限定・400万円以下）
+        let special = params.low_cost_special.as_ref().unwrap();
+        assert_eq!(special.price_ceiling_inclusive, 4_000_000);
+        assert_eq!(special.fee_ceiling_exclusive_tax, 180_000);
+        assert!(special.seller_only);
     }
 
     #[test]
     fn date_out_of_range_returns_error() {
-        let result = load_brokerage_fee_params((2019, 9, 30));
+        // 2018年以前はカバー範囲外
+        let result = load_brokerage_fee_params((2017, 12, 31));
         assert!(matches!(
             result,
             Err(JLawError::Input(InputError::DateOutOfRange { .. }))
@@ -114,13 +120,50 @@ mod tests {
     #[test]
     fn boundary_2024_07_01_uses_new_params() {
         let params = load_brokerage_fee_params((2024, 7, 1)).unwrap();
-        assert!(params.low_cost_special.is_some());
+        let special = params.low_cost_special.as_ref().unwrap();
+        assert_eq!(special.price_ceiling_inclusive, 8_000_000);
+        assert_eq!(special.fee_ceiling_exclusive_tax, 330_000);
+        assert!(!special.seller_only);
     }
 
     #[test]
     fn boundary_2024_06_30_uses_old_params() {
+        // 2024-06-30 は旧告示（売主限定・400万円以下の低廉特例）
         let params = load_brokerage_fee_params((2024, 6, 30)).unwrap();
-        assert!(params.low_cost_special.is_none());
+        let special = params.low_cost_special.as_ref().unwrap();
+        assert_eq!(special.price_ceiling_inclusive, 4_000_000);
+        assert_eq!(special.fee_ceiling_exclusive_tax, 180_000);
+        assert!(special.seller_only);
+    }
+
+    #[test]
+    fn load_2018_params() {
+        let params = load_brokerage_fee_params((2018, 6, 1)).unwrap();
+        assert_eq!(params.tiers.len(), 3);
+        assert_eq!(params.tax_numer, 8);
+        assert_eq!(params.tax_denom, 100);
+        let special = params.low_cost_special.as_ref().unwrap();
+        assert_eq!(special.price_ceiling_inclusive, 4_000_000);
+        assert_eq!(special.fee_ceiling_exclusive_tax, 180_000);
+        assert!(special.seller_only);
+    }
+
+    #[test]
+    fn boundary_2019_10_01_uses_new_tax_rate() {
+        // 2019-10-01 から消費税10%
+        let params = load_brokerage_fee_params((2019, 10, 1)).unwrap();
+        assert_eq!(params.tax_numer, 10);
+        // 低廉特例は引き続き売主限定・400万円以下
+        let special = params.low_cost_special.as_ref().unwrap();
+        assert_eq!(special.price_ceiling_inclusive, 4_000_000);
+        assert!(special.seller_only);
+    }
+
+    #[test]
+    fn boundary_2019_09_30_uses_8pct_tax() {
+        // 2019-09-30 まで消費税8%
+        let params = load_brokerage_fee_params((2019, 9, 30)).unwrap();
+        assert_eq!(params.tax_numer, 8);
     }
 
     #[test]

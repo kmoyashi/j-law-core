@@ -6,9 +6,16 @@ use std::collections::HashSet;
 ///
 /// 端数処理戦略や特例適用の判定ロジックを差し替えられるようにする。
 /// 通常は [`StandardMliitPolicy`] を使う。
+///
+/// # 設計上の注意
+/// 価格の閾値チェック（`price_ceiling_inclusive`）は、
+/// パラメータレジストリが持つ値を使うため `calculator` 側で行う。
+/// このメソッドはフラグベースの判定のみを担う。
 pub trait RealEstatePolicy: std::fmt::Debug {
-    /// 低廉な空き家特例を適用するかどうかを判定する。
-    fn should_apply_low_cost_special(&self, price: u64, flags: &HashSet<RealEstateFlag>) -> bool;
+    /// 低廉な空き家特例をフラグに基づいて適用するかどうかを判定する。
+    ///
+    /// 価格の閾値チェックは呼び出し元（`calculator`）がパラメータを用いて行う。
+    fn should_apply_low_cost_special(&self, flags: &HashSet<RealEstateFlag>) -> bool;
 
     /// 各ティアの計算に使う端数処理戦略。
     fn tier_rounding(&self) -> RoundingStrategy;
@@ -21,13 +28,13 @@ pub trait RealEstatePolicy: std::fmt::Debug {
 ///
 /// # 法的根拠
 /// 宅地建物取引業法 第46条第1項
-/// 国土交通省告示（2024年7月1日施行）
+/// 国土交通省告示（2018年1月1日施行・2024年7月1日改正）
 #[derive(Debug, Clone, Copy)]
 pub struct StandardMliitPolicy;
 
 impl RealEstatePolicy for StandardMliitPolicy {
-    fn should_apply_low_cost_special(&self, price: u64, flags: &HashSet<RealEstateFlag>) -> bool {
-        price <= 8_000_000 && flags.contains(&RealEstateFlag::IsLowCostVacantHouse)
+    fn should_apply_low_cost_special(&self, flags: &HashSet<RealEstateFlag>) -> bool {
+        flags.contains(&RealEstateFlag::IsLowCostVacantHouse)
     }
 
     fn tier_rounding(&self) -> RoundingStrategy {

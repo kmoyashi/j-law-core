@@ -17,13 +17,18 @@ pub struct TierParam {
     pub rate: Fraction,
 }
 
-/// 低廉な空き家特例パラメータ（2024年7月施行）。
+/// 低廉な空き家特例パラメータ（2018年1月施行・2024年7月改正）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct LowCostSpecialParam {
     /// 特例が適用される売買価格の上限（以下）。
     pub price_ceiling_inclusive: u64,
-    /// 税抜き報酬額の上限。
+    /// 税抜き報酬額の上限（最低保証額として機能）。
     pub fee_ceiling_exclusive_tax: u64,
+    /// `true` の場合、売主側の取引にのみ特例が適用される。
+    ///
+    /// 2018年1月1日〜2024年6月30日の特例は売主のみ対象（平成29年国土交通省告示第98号）。
+    /// `false` の場合、売主・買主双方に適用される（2024年7月1日施行以降）。
+    pub seller_only: bool,
 }
 
 /// 1世代の計算パラメータ群。
