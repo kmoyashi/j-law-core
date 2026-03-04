@@ -1,0 +1,225 @@
+{
+  "consumption_tax": [
+    {
+      "id": "rate_3pct_1990",
+      "description": "3%税率（1990-01-01）: 100,000円 → 税額3,000円",
+      "input": {
+        "amount": 100000,
+        "year": 1990, "month": 1, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 3000,
+        "amount_with_tax": 103000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 3,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "rate_5pct_2000",
+      "description": "5%税率（2000-01-01）: 100,000円 → 税額5,000円",
+      "input": {
+        "amount": 100000,
+        "year": 2000, "month": 1, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 5000,
+        "amount_with_tax": 105000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 5,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "rate_8pct_2016",
+      "description": "8%税率（2016-01-01）: 100,000円 → 税額8,000円",
+      "input": {
+        "amount": 100000,
+        "year": 2016, "month": 1, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 8000,
+        "amount_with_tax": 108000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 8,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "rate_10pct_2024",
+      "description": "10%税率（2024-01-01）: 100,000円 → 税額10,000円",
+      "input": {
+        "amount": 100000,
+        "year": 2024, "month": 1, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "amount_with_tax": 110000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 10,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "rate_8pct_reduced_2024",
+      "description": "軽減8%税率（2024-01-01）: 100,000円 → 税額8,000円",
+      "input": {
+        "amount": 100000,
+        "year": 2024, "month": 1, "day": 1,
+        "is_reduced_rate": true
+      },
+      "expected": {
+        "tax_amount": 8000,
+        "amount_with_tax": 108000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 8,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": true
+      }
+    },
+    {
+      "id": "before_introduction_1988",
+      "description": "消費税導入前（1988-01-01）: 税額0円",
+      "input": {
+        "amount": 100000,
+        "year": 1988, "month": 1, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 0,
+        "amount_with_tax": 100000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 0,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "boundary_1989_04_01",
+      "description": "消費税導入初日（1989-04-01）: 3%",
+      "input": {
+        "amount": 100000,
+        "year": 1989, "month": 4, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 3000,
+        "amount_with_tax": 103000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 3,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "boundary_1997_04_01",
+      "description": "5%引上げ初日（1997-04-01）: 5%",
+      "input": {
+        "amount": 100000,
+        "year": 1997, "month": 4, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 5000,
+        "amount_with_tax": 105000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 5,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "boundary_2014_04_01",
+      "description": "8%引上げ初日（2014-04-01）: 8%",
+      "input": {
+        "amount": 100000,
+        "year": 2014, "month": 4, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 8000,
+        "amount_with_tax": 108000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 8,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "boundary_2019_10_01_standard",
+      "description": "10%引上げ初日（2019-10-01）標準税率: 10%",
+      "input": {
+        "amount": 100000,
+        "year": 2019, "month": 10, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "amount_with_tax": 110000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 10,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "boundary_2019_10_01_reduced",
+      "description": "10%引上げ初日（2019-10-01）軽減税率: 8%",
+      "input": {
+        "amount": 100000,
+        "year": 2019, "month": 10, "day": 1,
+        "is_reduced_rate": true
+      },
+      "expected": {
+        "tax_amount": 8000,
+        "amount_with_tax": 108000,
+        "amount_without_tax": 100000,
+        "applied_rate_numer": 8,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": true
+      }
+    },
+    {
+      "id": "floor_rounding_10pct",
+      "description": "端数切捨て（10%）: 1,001円 → 税額100円（0.1円切捨て）",
+      "input": {
+        "amount": 1001,
+        "year": 2024, "month": 1, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 100,
+        "amount_with_tax": 1101,
+        "amount_without_tax": 1001,
+        "applied_rate_numer": 10,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    },
+    {
+      "id": "zero_amount",
+      "description": "課税標準額0円: 税額0円",
+      "input": {
+        "amount": 0,
+        "year": 2024, "month": 1, "day": 1,
+        "is_reduced_rate": false
+      },
+      "expected": {
+        "tax_amount": 0,
+        "amount_with_tax": 0,
+        "amount_without_tax": 0,
+        "applied_rate_numer": 10,
+        "applied_rate_denom": 100,
+        "is_reduced_rate": false
+      }
+    }
+  ]
+}
