@@ -1,4 +1,5 @@
 use crate::schema::{BrokerageFeeRegistry, HistoryEntry};
+use j_law_core::domains::consumption_tax::params::{ConsumptionTaxParams, ConsumptionTaxRate};
 use j_law_core::domains::real_estate::params::{
     BrokerageFeeParams, LowCostSpecialParams, TierParam,
 };
@@ -66,10 +67,18 @@ fn to_params(entry: &HistoryEntry) -> BrokerageFeeParams {
             seller_only: s.seller_only,
         });
 
+    // 不動産仲介報酬には軽減税率は適用されない（標準税率のみ）
+    let consumption_tax = ConsumptionTaxParams {
+        standard_rate: ConsumptionTaxRate {
+            numer: entry.params.consumption_tax.numer,
+            denom: entry.params.consumption_tax.denom,
+        },
+        reduced_rate: None,
+    };
+
     BrokerageFeeParams {
         tiers,
-        tax_numer: entry.params.consumption_tax.numer,
-        tax_denom: entry.params.consumption_tax.denom,
+        consumption_tax,
         low_cost_special,
     }
 }
@@ -84,8 +93,8 @@ mod tests {
     fn load_2024_active_params() {
         let params = load_brokerage_fee_params(LegalDate::new(2024, 8, 1)).unwrap();
         assert_eq!(params.tiers.len(), 3);
-        assert_eq!(params.tax_numer, 10);
-        assert_eq!(params.tax_denom, 100);
+        assert_eq!(params.consumption_tax.standard_rate.numer, 10);
+        assert_eq!(params.consumption_tax.standard_rate.denom, 100);
         assert!(params.low_cost_special.is_some());
         let special = params.low_cost_special.unwrap();
         assert_eq!(special.price_ceiling_inclusive, 8_000_000);
@@ -136,8 +145,8 @@ mod tests {
     fn load_2018_params() {
         let params = load_brokerage_fee_params(LegalDate::new(2018, 6, 1)).unwrap();
         assert_eq!(params.tiers.len(), 3);
-        assert_eq!(params.tax_numer, 8);
-        assert_eq!(params.tax_denom, 100);
+        assert_eq!(params.consumption_tax.standard_rate.numer, 8);
+        assert_eq!(params.consumption_tax.standard_rate.denom, 100);
         let special = params.low_cost_special.as_ref().unwrap();
         assert_eq!(special.price_ceiling_inclusive, 4_000_000);
         assert_eq!(special.fee_ceiling_exclusive_tax, 180_000);
@@ -148,7 +157,7 @@ mod tests {
     fn boundary_2019_10_01_uses_new_tax_rate() {
         // 2019-10-01 から消費税10%
         let params = load_brokerage_fee_params(LegalDate::new(2019, 10, 1)).unwrap();
-        assert_eq!(params.tax_numer, 10);
+        assert_eq!(params.consumption_tax.standard_rate.numer, 10);
         // 低廉特例は引き続き売主限定・400万円以下
         let special = params.low_cost_special.as_ref().unwrap();
         assert_eq!(special.price_ceiling_inclusive, 4_000_000);
@@ -159,7 +168,7 @@ mod tests {
     fn boundary_2019_09_30_uses_8pct_tax() {
         // 2019-09-30 まで消費税8%
         let params = load_brokerage_fee_params(LegalDate::new(2019, 9, 30)).unwrap();
-        assert_eq!(params.tax_numer, 8);
+        assert_eq!(params.consumption_tax.standard_rate.numer, 8);
     }
 
     #[test]

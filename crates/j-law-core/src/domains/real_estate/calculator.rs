@@ -1,5 +1,8 @@
 use std::collections::HashSet;
 
+use crate::domains::consumption_tax::calculator::calculate_consumption_tax;
+use crate::domains::consumption_tax::context::ConsumptionTaxContext;
+use crate::domains::consumption_tax::policy::StandardConsumptionTaxPolicy;
 use crate::domains::real_estate::context::{RealEstateContext, RealEstateFlag};
 use crate::domains::real_estate::params::BrokerageFeeParams;
 use crate::error::{CalculationError, JLawError};
@@ -44,14 +47,13 @@ pub struct CalculationResult {
 /// 2. 各ティアの結果を合算して税抜き合計を得る
 /// 3. 低廉な空き家特例が適用される場合、通常計算が保証額を下回るなら保証額まで引き上げる
 ///    （NOTE: `.max()` による最低保証であり、`.min()` による上限キャップではない）
-/// 4. 消費税を乗じ切り捨てて税込合計を得る
+/// 4. 消費税ドメイン（消費税法第29条）に処理を委譲して税額・税込額を得る
 pub fn calculate_brokerage_fee(
     ctx: &RealEstateContext,
     params: &BrokerageFeeParams,
 ) -> Result<CalculationResult, JLawError> {
     let price = ctx.price;
     let tier_rounding = ctx.policy.tier_rounding();
-    let tax_rounding = ctx.policy.tax_rounding();
 
     // --- ティア計算 ---
     let mut breakdown: Vec<CalculationStep> = Vec::new();
@@ -111,29 +113,19 @@ pub fn calculate_brokerage_fee(
 
     let total_without_tax = FinalAmount::new(subtotal);
 
-    // --- 消費税 ---
-    let tax_rate = Rate {
-        numer: params.tax_numer,
-        denom: params.tax_denom,
+    // --- 消費税（消費税ドメインに委譲）---
+    let tax_ctx = ConsumptionTaxContext {
+        amount: subtotal,
+        target_date: ctx.target_date,
+        flags: HashSet::new(), // 不動産仲介報酬は標準税率のみ適用
+        policy: Box::new(StandardConsumptionTaxPolicy),
     };
-    let tax_amount = tax_rate
-        .apply(
-            &IntermediateAmount::from_exact(subtotal),
-            MultiplyOrder::MultiplyFirst,
-            tax_rounding,
-        )?
-        .finalize(tax_rounding)?;
-
-    let total_with_tax = FinalAmount::new(
-        subtotal
-            .checked_add(tax_amount.as_yen())
-            .ok_or_else(|| CalculationError::Overflow { step: "tax".into() })?,
-    );
+    let tax_result = calculate_consumption_tax(&tax_ctx, &params.consumption_tax)?;
 
     Ok(CalculationResult {
-        total_with_tax,
+        total_with_tax: tax_result.amount_with_tax,
         total_without_tax,
-        tax_amount,
+        tax_amount: tax_result.tax_amount,
         breakdown,
         applied_flags: ctx.flags.clone(),
         low_cost_special_applied: low_cost_applied,
