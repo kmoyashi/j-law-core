@@ -3,6 +3,11 @@ use std::collections::HashSet;
 use js_sys::Array;
 use wasm_bindgen::prelude::*;
 
+use ::j_law_core::domains::consumption_tax::{
+    calculator::calculate_consumption_tax,
+    context::{ConsumptionTaxContext, ConsumptionTaxFlag},
+    policy::StandardConsumptionTaxPolicy,
+};
 use ::j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
@@ -19,8 +24,112 @@ use ::j_law_core::domains::stamp_tax::{
 };
 use ::j_law_core::LegalDate;
 use ::j_law_registry::load_brokerage_fee_params;
+use ::j_law_registry::load_consumption_tax_params;
 use ::j_law_registry::load_income_tax_params;
 use ::j_law_registry::load_stamp_tax_params;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  消費税
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// 消費税の計算結果。
+///
+/// Properties:
+/// - `taxAmount`: 消費税額（円）
+/// - `amountWithTax`: 税込金額（円）
+/// - `amountWithoutTax`: 税抜金額（円）
+/// - `appliedRateNumer`: 適用税率の分子
+/// - `appliedRateDenom`: 適用税率の分母
+/// - `isReducedRate`: 軽減税率が適用されたか
+///
+/// NOTE: 金額フィールドは u32（最大約42.9億円）。
+#[wasm_bindgen]
+pub struct ConsumptionTaxResult {
+    tax_amount: u32,
+    amount_with_tax: u32,
+    amount_without_tax: u32,
+    applied_rate_numer: u32,
+    applied_rate_denom: u32,
+    is_reduced_rate: bool,
+}
+
+#[wasm_bindgen]
+impl ConsumptionTaxResult {
+    #[wasm_bindgen(getter, js_name = "taxAmount")]
+    pub fn tax_amount(&self) -> u32 {
+        self.tax_amount
+    }
+
+    #[wasm_bindgen(getter, js_name = "amountWithTax")]
+    pub fn amount_with_tax(&self) -> u32 {
+        self.amount_with_tax
+    }
+
+    #[wasm_bindgen(getter, js_name = "amountWithoutTax")]
+    pub fn amount_without_tax(&self) -> u32 {
+        self.amount_without_tax
+    }
+
+    #[wasm_bindgen(getter, js_name = "appliedRateNumer")]
+    pub fn applied_rate_numer(&self) -> u32 {
+        self.applied_rate_numer
+    }
+
+    #[wasm_bindgen(getter, js_name = "appliedRateDenom")]
+    pub fn applied_rate_denom(&self) -> u32 {
+        self.applied_rate_denom
+    }
+
+    #[wasm_bindgen(getter, js_name = "isReducedRate")]
+    pub fn is_reduced_rate(&self) -> bool {
+        self.is_reduced_rate
+    }
+}
+
+/// 消費税法第29条に基づく消費税額を計算する。
+///
+/// @param amount - 課税標準額（税抜き・円）
+/// @param year - 基準日（年）
+/// @param month - 基準日（月）
+/// @param day - 基準日（日）
+/// @param isReducedRate - 軽減税率フラグ（2019-10-01以降の飲食料品・新聞等）
+/// @returns ConsumptionTaxResult
+/// @throws 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
+#[wasm_bindgen(js_name = "calcConsumptionTax")]
+pub fn calc_consumption_tax(
+    amount: u32,
+    year: u16,
+    month: u8,
+    day: u8,
+    is_reduced_rate: bool,
+) -> Result<ConsumptionTaxResult, JsValue> {
+    let params = load_consumption_tax_params(LegalDate::new(year, month, day))
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let mut flags = HashSet::new();
+    if is_reduced_rate {
+        flags.insert(ConsumptionTaxFlag::ReducedRate);
+    }
+
+    let ctx = ConsumptionTaxContext {
+        amount: amount as u64,
+        target_date: LegalDate::new(year, month, day),
+        flags,
+        policy: Box::new(StandardConsumptionTaxPolicy),
+    };
+
+    let result =
+        calculate_consumption_tax(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    Ok(ConsumptionTaxResult {
+        tax_amount: result.tax_amount.as_yen() as u32,
+        amount_with_tax: result.amount_with_tax.as_yen() as u32,
+        amount_without_tax: result.amount_without_tax.as_yen() as u32,
+        applied_rate_numer: result.applied_rate_numer as u32,
+        applied_rate_denom: result.applied_rate_denom as u32,
+        is_reduced_rate: result.is_reduced_rate,
+    })
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  不動産（宅建業法）

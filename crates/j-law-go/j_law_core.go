@@ -233,6 +233,80 @@ func toGoResult(c *C.JLawBrokerageFeeResult) *BrokerageFeeResult {
 	}
 }
 
+// ─── 消費税 Go 公開型 ───────────────────────────────────────────────────────────
+
+// ConsumptionTaxResult は消費税の計算結果を表す。
+type ConsumptionTaxResult struct {
+	// TaxAmount は消費税額（円）。
+	TaxAmount uint64
+	// AmountWithTax は税込金額（円）。
+	AmountWithTax uint64
+	// AmountWithoutTax は税抜金額（円）。
+	AmountWithoutTax uint64
+	// AppliedRateNumer は適用税率の分子。
+	AppliedRateNumer uint64
+	// AppliedRateDenom は適用税率の分母。
+	AppliedRateDenom uint64
+	// IsReducedRate は軽減税率が適用されたかを示す。
+	IsReducedRate bool
+}
+
+// ─── 消費税 Go 公開関数 ─────────────────────────────────────────────────────────
+
+// CalcConsumptionTax は消費税法第29条に基づく消費税額を計算する。
+//
+// 法的根拠: 消費税法 第29条（税率）
+//
+// 引数:
+//   - amount: 課税標準額（税抜き・円）
+//   - year, month, day: 基準日
+//   - isReducedRate: 軽減税率フラグ（2019-10-01以降の飲食料品・新聞等）
+//     WARNING: 対象が軽減税率の適用要件を満たすかの事実認定は呼び出し元の責任。
+//
+// エラー: 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合。
+func CalcConsumptionTax(
+	amount uint64,
+	year, month, day int,
+	isReducedRate bool,
+) (*ConsumptionTaxResult, error) {
+	var cResult C.JLawConsumptionTaxResult
+	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
+	defer C.free(unsafe.Pointer(errorBuf))
+
+	isReduced := C.int(0)
+	if isReducedRate {
+		isReduced = 1
+	}
+
+	ret := C.j_law_calc_consumption_tax(
+		C.uint64_t(amount),
+		C.uint16_t(year),
+		C.uint8_t(month),
+		C.uint8_t(day),
+		isReduced,
+		&cResult,
+		errorBuf,
+		C.J_LAW_ERROR_BUF_LEN,
+	)
+	if ret != 0 {
+		return nil, errors.New(C.GoString(errorBuf))
+	}
+
+	return toGoConsumptionTaxResult(&cResult), nil
+}
+
+// toGoConsumptionTaxResult は消費税の C 構造体を Go 構造体に変換する。
+func toGoConsumptionTaxResult(c *C.JLawConsumptionTaxResult) *ConsumptionTaxResult {
+	return &ConsumptionTaxResult{
+		TaxAmount:        uint64(c.tax_amount),
+		AmountWithTax:    uint64(c.amount_with_tax),
+		AmountWithoutTax: uint64(c.amount_without_tax),
+		AppliedRateNumer: uint64(c.applied_rate_numer),
+		AppliedRateDenom: uint64(c.applied_rate_denom),
+		IsReducedRate:    c.is_reduced_rate != 0,
+	}
+}
+
 // ─── 印紙税 Go 公開型 ───────────────────────────────────────────────────────────
 
 // StampTaxResult は印紙税の計算結果を表す。

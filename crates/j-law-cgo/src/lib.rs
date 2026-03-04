@@ -1,6 +1,11 @@
 use std::collections::HashSet;
 use std::os::raw::{c_char, c_int};
 
+use j_law_core::domains::consumption_tax::{
+    calculator::calculate_consumption_tax,
+    context::{ConsumptionTaxContext, ConsumptionTaxFlag},
+    policy::StandardConsumptionTaxPolicy,
+};
 use j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
@@ -17,6 +22,7 @@ use j_law_core::domains::stamp_tax::{
 };
 use j_law_core::LegalDate;
 use j_law_registry::load_brokerage_fee_params;
+use j_law_registry::load_consumption_tax_params;
 use j_law_registry::load_income_tax_params;
 use j_law_registry::load_stamp_tax_params;
 
@@ -313,6 +319,108 @@ pub unsafe extern "C" fn j_law_calc_income_tax(
         out.breakdown[i].result = step.result.as_yen();
         copy_str_to_fixed_buf(&step.label, &mut out.breakdown[i].label);
     }
+
+    0
+}
+
+// ─── 消費税 C 互換型定義 ────────────────────────────────────────────────────────
+
+/// 消費税の計算結果（C 互換）。
+#[repr(C)]
+pub struct JLawConsumptionTaxResult {
+    /// 消費税額（円）。
+    pub tax_amount: u64,
+    /// 税込金額（円）。
+    pub amount_with_tax: u64,
+    /// 税抜金額（円）。
+    pub amount_without_tax: u64,
+    /// 適用税率の分子。
+    pub applied_rate_numer: u64,
+    /// 適用税率の分母。
+    pub applied_rate_denom: u64,
+    /// 軽減税率が適用されたか（0 = false, 1 = true）。
+    pub is_reduced_rate: c_int,
+}
+
+// ─── 消費税 C FFI 公開関数 ──────────────────────────────────────────────────────
+
+/// 消費税法第29条に基づく消費税額を計算する。
+///
+/// # 法的根拠
+/// 消費税法 第29条（税率）
+///
+/// # 引数
+/// - `amount`: 課税標準額（税抜き・円）
+/// - `year`, `month`, `day`: 基準日
+/// - `is_reduced_rate`: 軽減税率フラグ（0 = false, 非0 = true）
+///   2019-10-01以降の飲食料品・新聞等に適用される8%軽減税率。
+///   WARNING: 事実認定は呼び出し元の責任。
+/// - `out_result`: [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
+/// - `error_buf`: [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
+/// - `error_buf_len`: `error_buf` のバイト長（推奨: `J_LAW_ERROR_BUF_LEN` = 256）
+///
+/// # 戻り値
+/// - `0`: 成功。`out_result` にデータが書き込まれている。
+/// - `非0`: 失敗。`error_buf` に NUL 終端エラーメッセージが書き込まれている。
+///
+/// # Safety
+/// - `out_result` は呼び出し元が所有する有効なポインタであること。
+/// - `error_buf` は `error_buf_len` バイト以上の領域を指していること。
+/// - `error_buf_len` は 1 以上であること。
+#[no_mangle]
+pub unsafe extern "C" fn j_law_calc_consumption_tax(
+    amount: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    is_reduced_rate: c_int,
+    out_result: *mut JLawConsumptionTaxResult,
+    error_buf: *mut c_char,
+    error_buf_len: c_int,
+) -> c_int {
+    if out_result.is_null() || error_buf.is_null() || error_buf_len <= 0 {
+        return -1;
+    }
+
+    // パラメータロード
+    let params = match load_consumption_tax_params(LegalDate::new(year, month, day)) {
+        Ok(p) => p,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    // フラグ構築
+    let mut flags = HashSet::new();
+    if is_reduced_rate != 0 {
+        flags.insert(ConsumptionTaxFlag::ReducedRate);
+    }
+
+    let ctx = ConsumptionTaxContext {
+        amount,
+        target_date: LegalDate::new(year, month, day),
+        flags,
+        policy: Box::new(StandardConsumptionTaxPolicy),
+    };
+
+    // 計算実行
+    let result = match calculate_consumption_tax(&ctx, &params) {
+        Ok(r) => r,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    // 結果を out_result に書き込む
+    let out = &mut *out_result;
+    out.tax_amount = result.tax_amount.as_yen();
+    out.amount_with_tax = result.amount_with_tax.as_yen();
+    out.amount_without_tax = result.amount_without_tax.as_yen();
+    out.applied_rate_numer = result.applied_rate_numer;
+    out.applied_rate_denom = result.applied_rate_denom;
+    out.is_reduced_rate = if result.is_reduced_rate { 1 } else { 0 };
 
     0
 }
