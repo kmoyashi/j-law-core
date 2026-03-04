@@ -65,7 +65,7 @@ crates/
 │   └── src/
 │       ├── lib.rs              公開 re-export のみ（ロジックなし）
 │       ├── error.rs            全エラー型
-│       ├── types/              共通型（FinalAmount, Rate, RoundingStrategy 等）
+│       ├── types/              共通型（FinalAmount, Rate, RoundingStrategy, LegalDate 等）
 │       └── domains/            ドメインごとの計算ロジック
 │           ├── income_tax/     所得税（所得税法 第89条）
 │           ├── real_estate/    不動産（宅建業法 第46条）

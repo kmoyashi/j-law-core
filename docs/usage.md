@@ -38,17 +38,18 @@ use j_law_core::domains::real_estate::{
     policy::StandardMliitPolicy,
     RealEstateFlag,
 };
+use j_law_core::LegalDate;
 use j_law_registry::load_brokerage_fee_params;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // 基本的な計算（売買価格 500万円、2024年8月1日）
     let ctx = RealEstateContext {
         price: 5_000_000,
-        target_date: (2024, 8, 1),
+        target_date: LegalDate::new(2024, 8, 1),
         flags: HashSet::new(),
         policy: Box::new(StandardMliitPolicy),
     };
-    let params = load_brokerage_fee_params((2024, 8, 1))?;
+    let params = load_brokerage_fee_params(LegalDate::new(2024, 8, 1))?;
     let result = calculate_brokerage_fee(&ctx, &params)?;
 
     println!("税抜: {}円", result.total_without_tax.as_yen());  // 210,000
@@ -73,7 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let ctx_special = RealEstateContext {
         price: 8_000_000,
-        target_date: (2024, 8, 1),
+        target_date: LegalDate::new(2024, 8, 1),
         flags,
         policy: Box::new(StandardMliitPolicy),
     };
@@ -87,10 +88,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     flags2.insert(RealEstateFlag::IsLowCostVacantHouse);
     flags2.insert(RealEstateFlag::IsSeller);
 
-    let params2 = load_brokerage_fee_params((2022, 4, 1))?;
+    let params2 = load_brokerage_fee_params(LegalDate::new(2022, 4, 1))?;
     let ctx2 = RealEstateContext {
         price: 4_000_000,
-        target_date: (2022, 4, 1),
+        target_date: LegalDate::new(2022, 4, 1),
         flags: flags2,
         policy: Box::new(StandardMliitPolicy),
     };
@@ -108,7 +109,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust
 use j_law_core::error::{JLawError, InputError, CalculationError, RegistryError};
 
-match load_brokerage_fee_params((2017, 12, 31)) {
+match load_brokerage_fee_params(LegalDate::new(2017, 12, 31)) {
     Ok(params) => { /* ... */ },
     Err(JLawError::Input(InputError::DateOutOfRange { date })) => {
         eprintln!("対象日が範囲外です: {}", date);

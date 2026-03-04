@@ -101,13 +101,14 @@ use j_law_core::domains::real_estate::{
     context::{RealEstateContext, RealEstateFlag},
     policy::StandardMliitPolicy,
 };
+use j_law_core::LegalDate;
 use j_law_registry::load_brokerage_fee_params;
 use std::collections::HashSet;
 
 // 基本的な計算（売買価格 500万円、2024年8月1日）
 let ctx = RealEstateContext {
     price: 5_000_000,
-    target_date: (2024, 8, 1),
+    target_date: LegalDate::new(2024, 8, 1),
     flags: HashSet::new(),
     policy: Box::new(StandardMliitPolicy),
 };
@@ -121,7 +122,7 @@ flags.insert(RealEstateFlag::IsLowCostVacantHouse);
 flags.insert(RealEstateFlag::IsSeller);
 let ctx2 = RealEstateContext {
     price: 4_000_000,
-    target_date: (2022, 4, 1),
+    target_date: LegalDate::new(2022, 4, 1),
     flags,
     policy: Box::new(StandardMliitPolicy),
 };
