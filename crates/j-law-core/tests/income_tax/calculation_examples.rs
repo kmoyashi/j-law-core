@@ -16,6 +16,7 @@ use j_law_core::domains::income_tax::{
     params::{IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams},
     policy::StandardIncomeTaxPolicy,
 };
+use j_law_core::LegalDate;
 
 /// 令和6年分の所得税速算表（所得税法 第89条第1項）。
 fn tax_params_2024() -> IncomeTaxParams {
@@ -92,7 +93,7 @@ fn ctx_with_reconstruction(income: u64) -> IncomeTaxContext {
     flags.insert(IncomeTaxFlag::ApplyReconstructionTax);
     IncomeTaxContext {
         taxable_income: income,
-        target_date: (2024, 1, 1),
+        target_date: LegalDate::new(2024, 1, 1),
         flags,
         policy: Box::new(StandardIncomeTaxPolicy),
     }
@@ -101,7 +102,7 @@ fn ctx_with_reconstruction(income: u64) -> IncomeTaxContext {
 fn ctx_without_reconstruction(income: u64) -> IncomeTaxContext {
     IncomeTaxContext {
         taxable_income: income,
-        target_date: (2024, 1, 1),
+        target_date: LegalDate::new(2024, 1, 1),
         flags: HashSet::new(),
         policy: Box::new(StandardIncomeTaxPolicy),
     }

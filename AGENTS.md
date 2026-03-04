@@ -115,6 +115,17 @@ pub fn calculate_brokerage_fee(...) -> Result<CalculationResult, JLawError> {
 `FinalAmount` と `IntermediateAmount` は用途を混在させないこと。
 どのドメインでもこの2型を使い、ドメイン固有の金額型を新設してはいけません。
 
+### 日付型
+
+| 型 | 用途 | 備考 |
+|---|---|---|
+| `LegalDate { year: u16, month: u8, day: u8 }` | 法令の施行日・基準日 | `(u16, u8, u8)` 匿名タプルの代わりに使う |
+
+- `LegalDate::new(year, month, day)` で生成する
+- `to_date_str()` で `"YYYY-MM-DD"` 形式の文字列に変換できる
+- Registry loader（`load_*_params`）はすべて `LegalDate` を引数として受け取る
+- 匿名タプル `(u16, u8, u8)` をそのまま使わないこと（フィールドの意味が不明確になる）
+
 ### エラー型階層（全ドメイン共通）
 
 ```

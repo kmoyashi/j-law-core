@@ -15,6 +15,7 @@ use j_law_core::domains::stamp_tax::{
     context::{StampTaxContext, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
+use j_law_core::LegalDate;
 use j_law_registry::load_brokerage_fee_params;
 use j_law_registry::load_income_tax_params;
 use j_law_registry::load_stamp_tax_params;
@@ -133,7 +134,7 @@ pub unsafe extern "C" fn j_law_calc_brokerage_fee(
     }
 
     // パラメータロード
-    let params = match load_brokerage_fee_params((year, month, day)) {
+    let params = match load_brokerage_fee_params(LegalDate::new(year, month, day)) {
         Ok(p) => p,
         Err(e) => {
             write_error_msg(&e.to_string(), error_buf, error_buf_len);
@@ -152,7 +153,7 @@ pub unsafe extern "C" fn j_law_calc_brokerage_fee(
 
     let ctx = RealEstateContext {
         price,
-        target_date: (year, month, day),
+        target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardMliitPolicy),
     };
@@ -262,7 +263,7 @@ pub unsafe extern "C" fn j_law_calc_income_tax(
     }
 
     // パラメータロード
-    let params = match load_income_tax_params((year, month, day)) {
+    let params = match load_income_tax_params(LegalDate::new(year, month, day)) {
         Ok(p) => p,
         Err(e) => {
             write_error_msg(&e.to_string(), error_buf, error_buf_len);
@@ -278,7 +279,7 @@ pub unsafe extern "C" fn j_law_calc_income_tax(
 
     let ctx = IncomeTaxContext {
         taxable_income,
-        target_date: (year, month, day),
+        target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardIncomeTaxPolicy),
     };
@@ -368,7 +369,7 @@ pub unsafe extern "C" fn j_law_calc_stamp_tax(
     }
 
     // パラメータロード
-    let params = match load_stamp_tax_params((year, month, day)) {
+    let params = match load_stamp_tax_params(LegalDate::new(year, month, day)) {
         Ok(p) => p,
         Err(e) => {
             write_error_msg(&e.to_string(), error_buf, error_buf_len);
@@ -384,7 +385,7 @@ pub unsafe extern "C" fn j_law_calc_stamp_tax(
 
     let ctx = StampTaxContext {
         contract_amount,
-        target_date: (year, month, day),
+        target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardNtaPolicy),
     };

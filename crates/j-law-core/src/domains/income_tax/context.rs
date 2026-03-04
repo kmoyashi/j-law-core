@@ -1,4 +1,5 @@
 use crate::domains::income_tax::policy::IncomeTaxPolicy;
+use crate::types::date::LegalDate;
 use std::collections::HashSet;
 
 /// 所得税計算に関わる法的フラグ。
@@ -28,8 +29,8 @@ pub struct IncomeTaxContext {
     /// 1,000円未満の端数は切り捨て済みであること。
     /// 法的根拠: 所得税法 第89条第1項
     pub taxable_income: u64,
-    /// 対象年度 `(year, month, day)` — 確定申告の対象となる年の基準日。
-    pub target_date: (u16, u8, u8),
+    /// 確定申告の対象となる年の基準日。
+    pub target_date: LegalDate,
     /// 適用する法的フラグの集合。
     pub flags: HashSet<IncomeTaxFlag>,
     /// 計算ポリシー（テスト・カスタム計算での差し替えを可能にする）。
@@ -48,7 +49,7 @@ mod tests {
 
         let ctx = IncomeTaxContext {
             taxable_income: 5_000_000,
-            target_date: (2024, 1, 1),
+            target_date: LegalDate::new(2024, 1, 1),
             flags,
             policy: Box::new(StandardIncomeTaxPolicy),
         };

@@ -16,6 +16,7 @@ use ::j_law_core::domains::stamp_tax::{
     context::{StampTaxContext, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
+use ::j_law_core::LegalDate;
 use ::j_law_registry::load_brokerage_fee_params;
 use ::j_law_registry::load_income_tax_params;
 use ::j_law_registry::load_stamp_tax_params;
@@ -138,7 +139,8 @@ fn calc_brokerage_fee(
     is_low_cost_vacant_house: bool,
     is_seller: bool,
 ) -> Result<RbBrokerageFeeResult, Error> {
-    let params = load_brokerage_fee_params((year, month, day)).map_err(into_runtime_error)?;
+    let params =
+        load_brokerage_fee_params(LegalDate::new(year, month, day)).map_err(into_runtime_error)?;
 
     let mut flags = HashSet::new();
     if is_low_cost_vacant_house {
@@ -150,7 +152,7 @@ fn calc_brokerage_fee(
 
     let ctx = RealEstateContext {
         price,
-        target_date: (year, month, day),
+        target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardMliitPolicy),
     };
@@ -289,7 +291,8 @@ fn calc_income_tax(
     day: u8,
     apply_reconstruction_tax: bool,
 ) -> Result<RbIncomeTaxResult, Error> {
-    let params = load_income_tax_params((year, month, day)).map_err(into_runtime_error)?;
+    let params =
+        load_income_tax_params(LegalDate::new(year, month, day)).map_err(into_runtime_error)?;
 
     let mut flags = HashSet::new();
     if apply_reconstruction_tax {
@@ -298,7 +301,7 @@ fn calc_income_tax(
 
     let ctx = IncomeTaxContext {
         taxable_income,
-        target_date: (year, month, day),
+        target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardIncomeTaxPolicy),
     };
@@ -394,7 +397,8 @@ fn calc_stamp_tax(
     day: u8,
     is_reduced_rate_applicable: bool,
 ) -> Result<RbStampTaxResult, Error> {
-    let params = load_stamp_tax_params((year, month, day)).map_err(into_runtime_error)?;
+    let params =
+        load_stamp_tax_params(LegalDate::new(year, month, day)).map_err(into_runtime_error)?;
 
     let mut flags = HashSet::new();
     if is_reduced_rate_applicable {
@@ -403,7 +407,7 @@ fn calc_stamp_tax(
 
     let ctx = StampTaxContext {
         contract_amount,
-        target_date: (year, month, day),
+        target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardNtaPolicy),
     };

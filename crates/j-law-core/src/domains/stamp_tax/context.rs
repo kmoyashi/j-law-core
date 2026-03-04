@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use crate::types::date::LegalDate;
+
 use super::policy::StampTaxPolicy;
 
 /// 印紙税の適用フラグ。
@@ -24,8 +26,8 @@ pub enum StampTaxFlag {
 pub struct StampTaxContext {
     /// 契約金額（円）。
     pub contract_amount: u64,
-    /// 契約書の作成日 (year, month, day)。
-    pub target_date: (u16, u8, u8),
+    /// 契約書の作成日。
+    pub target_date: LegalDate,
     /// 適用フラグ。
     pub flags: HashSet<StampTaxFlag>,
     /// 計算ポリシー。
