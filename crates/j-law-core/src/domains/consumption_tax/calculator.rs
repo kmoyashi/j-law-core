@@ -94,7 +94,6 @@ pub fn calculate_consumption_tax(
     })
 }
 
-
 #[cfg(test)]
 #[allow(clippy::disallowed_methods)]
 mod tests {
@@ -170,7 +169,10 @@ mod tests {
     #[test]
     fn zero_rate_no_tax() {
         let params = ConsumptionTaxParams {
-            standard_rate: ConsumptionTaxRate { numer: 0, denom: 100 },
+            standard_rate: ConsumptionTaxRate {
+                numer: 0,
+                denom: 100,
+            },
             reduced_rate: None,
         };
         let result = calculate_consumption_tax(&ctx_standard(100_000), &params).unwrap();

@@ -27,7 +27,10 @@ pub fn load_consumption_tax_params(
         Some(entry) => Ok(to_params(entry)),
         // 消費税導入前（1989-04-01以前）: エラーではなく0%を返す
         None => Ok(ConsumptionTaxParams {
-            standard_rate: ConsumptionTaxRate { numer: 0, denom: 100 },
+            standard_rate: ConsumptionTaxRate {
+                numer: 0,
+                denom: 100,
+            },
             reduced_rate: None,
         }),
     }
