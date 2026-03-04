@@ -18,11 +18,10 @@ class TestConsumptionTax < Minitest::Test
       inp = tc["input"]
       exp = tc["expected"]
 
+      year, month, day = inp["date"].split("-").map(&:to_i)
       result = JLawRuby::ConsumptionTax.calc_consumption_tax(
         inp["amount"],
-        inp["year"],
-        inp["month"],
-        inp["day"],
+        year, month, day,
         inp["is_reduced_rate"]
       )
 

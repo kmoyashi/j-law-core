@@ -29,7 +29,8 @@ const fixtures = JSON.parse(
 describe("calcConsumptionTax - フィクスチャ駆動", () => {
   for (const c of fixtures.consumption_tax) {
     it(`${c.id}: ${c.description}`, () => {
-      const { amount, year, month, day, is_reduced_rate } = c.input;
+      const { amount, is_reduced_rate } = c.input;
+      const [year, month, day] = c.input.date.split("-").map(Number);
       const r = calcConsumptionTax(amount, year, month, day, is_reduced_rate);
       const exp = c.expected;
 

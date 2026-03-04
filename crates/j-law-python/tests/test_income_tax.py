@@ -26,11 +26,10 @@ def test_income_tax(case):
     inp = case["input"]
     exp = case["expected"]
 
+    year, month, day = (int(x) for x in inp["date"].split("-"))
     r = calc_income_tax(
         inp["taxable_income"],
-        inp["year"],
-        inp["month"],
-        inp["day"],
+        year, month, day,
         apply_reconstruction_tax=inp["apply_reconstruction_tax"],
     )
 

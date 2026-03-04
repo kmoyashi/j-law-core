@@ -18,11 +18,10 @@ class TestStampTax < Minitest::Test
       inp = tc["input"]
       exp = tc["expected"]
 
+      year, month, day = inp["date"].split("-").map(&:to_i)
       result = JLawRuby::StampTax.calc_stamp_tax(
         inp["contract_amount"],
-        inp["year"],
-        inp["month"],
-        inp["day"],
+        year, month, day,
         inp["is_reduced_rate_applicable"]
       )
 

@@ -26,11 +26,10 @@ def test_consumption_tax(case):
     inp = case["input"]
     exp = case["expected"]
 
+    year, month, day = (int(x) for x in inp["date"].split("-"))
     r = calc_consumption_tax(
         inp["amount"],
-        inp["year"],
-        inp["month"],
-        inp["day"],
+        year, month, day,
         is_reduced_rate=inp["is_reduced_rate"],
     )
 

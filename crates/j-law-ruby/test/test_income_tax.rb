@@ -24,8 +24,9 @@ class TestIncomeTaxFixtures < Minitest::Test
       inp = c["input"]
       exp = c["expected"]
 
+      year, month, day = inp["date"].split("-").map(&:to_i)
       r = JLawRuby::IncomeTax.calc_income_tax(
-        inp["taxable_income"], inp["year"], inp["month"], inp["day"],
+        inp["taxable_income"], year, month, day,
         inp["apply_reconstruction_tax"]
       )
 

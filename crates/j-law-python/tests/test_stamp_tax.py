@@ -26,11 +26,10 @@ def test_stamp_tax(case):
     inp = case["input"]
     exp = case["expected"]
 
+    year, month, day = (int(x) for x in inp["date"].split("-"))
     r = calc_stamp_tax(
         inp["contract_amount"],
-        inp["year"],
-        inp["month"],
-        inp["day"],
+        year, month, day,
         is_reduced_rate_applicable=inp["is_reduced_rate_applicable"],
     )
 

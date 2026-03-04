@@ -3,19 +3,32 @@ package jlawcore_test
 import (
 	"encoding/json"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
 	jlawcore "github.com/kmoyashi/j-law-go"
 )
 
+// ─── 日付ユーティリティ ──────────────────────────────────────────────────────
+
+func parseDate(t *testing.T, date string) (int, int, int) {
+	t.Helper()
+	parts := strings.Split(date, "-")
+	if len(parts) != 3 {
+		t.Fatalf("invalid date format: %s", date)
+	}
+	year, _ := strconv.Atoi(parts[0])
+	month, _ := strconv.Atoi(parts[1])
+	day, _ := strconv.Atoi(parts[2])
+	return year, month, day
+}
+
 // ─── フィクスチャ型定義 ──────────────────────────────────────────────────────
 
 type brokerageFeeInput struct {
 	Price                uint64 `json:"price"`
-	Year                 int    `json:"year"`
-	Month                int    `json:"month"`
-	Day                  int    `json:"day"`
+	Date                 string `json:"date"`
 	IsLowCostVacantHouse bool   `json:"is_low_cost_vacant_house"`
 	IsSeller             bool   `json:"is_seller"`
 }
@@ -41,9 +54,7 @@ type realEstateFixtures struct {
 
 type incomeTaxInput struct {
 	TaxableIncome          uint64 `json:"taxable_income"`
-	Year                   int    `json:"year"`
-	Month                  int    `json:"month"`
-	Day                    int    `json:"day"`
+	Date                   string `json:"date"`
 	ApplyReconstructionTax bool   `json:"apply_reconstruction_tax"`
 }
 
@@ -67,9 +78,7 @@ type incomeTaxFixtures struct {
 
 type stampTaxInput struct {
 	ContractAmount          uint64 `json:"contract_amount"`
-	Year                    int    `json:"year"`
-	Month                   int    `json:"month"`
-	Day                     int    `json:"day"`
+	Date                    string `json:"date"`
 	IsReducedRateApplicable bool   `json:"is_reduced_rate_applicable"`
 }
 
@@ -90,11 +99,9 @@ type stampTaxFixtures struct {
 }
 
 type consumptionTaxInput struct {
-	Amount       uint64 `json:"amount"`
-	Year         int    `json:"year"`
-	Month        int    `json:"month"`
-	Day          int    `json:"day"`
-	IsReducedRate bool  `json:"is_reduced_rate"`
+	Amount        uint64 `json:"amount"`
+	Date          string `json:"date"`
+	IsReducedRate bool   `json:"is_reduced_rate"`
 }
 
 type consumptionTaxExpected struct {
@@ -178,9 +185,10 @@ func TestBrokerageFee(t *testing.T) {
 
 	for _, tc := range fixtures.BrokerageFee {
 		t.Run(tc.ID, func(t *testing.T) {
+			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcBrokerageFee(
 				tc.Input.Price,
-				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				year, month, day,
 				tc.Input.IsLowCostVacantHouse,
 				tc.Input.IsSeller,
 			)
@@ -230,9 +238,10 @@ func TestIncomeTax(t *testing.T) {
 
 	for _, tc := range fixtures.IncomeTax {
 		t.Run(tc.ID, func(t *testing.T) {
+			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcIncomeTax(
 				tc.Input.TaxableIncome,
-				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				year, month, day,
 				tc.Input.ApplyReconstructionTax,
 			)
 			if err != nil {
@@ -316,9 +325,10 @@ func TestStampTax(t *testing.T) {
 
 	for _, tc := range fixtures.StampTax {
 		t.Run(tc.ID, func(t *testing.T) {
+			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcStampTax(
 				tc.Input.ContractAmount,
-				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				year, month, day,
 				tc.Input.IsReducedRateApplicable,
 			)
 			if err != nil {
@@ -343,9 +353,10 @@ func TestConsumptionTax(t *testing.T) {
 
 	for _, tc := range fixtures.ConsumptionTax {
 		t.Run(tc.ID, func(t *testing.T) {
+			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcConsumptionTax(
 				tc.Input.Amount,
-				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				year, month, day,
 				tc.Input.IsReducedRate,
 			)
 			if err != nil {

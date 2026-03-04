@@ -5,7 +5,7 @@
       "description": "売買価格 1,000,000円（tier1のみ）",
       "input": {
         "price": 1000000,
-        "year": 2024, "month": 8, "day": 1,
+        "date": "2024-08-01",
         "is_low_cost_vacant_house": false,
         "is_seller": false
       },
@@ -21,7 +21,7 @@
       "description": "売買価格 2,000,000円（tier1 上限境界）",
       "input": {
         "price": 2000000,
-        "year": 2024, "month": 8, "day": 1,
+        "date": "2024-08-01",
         "is_low_cost_vacant_house": false,
         "is_seller": false
       },
@@ -37,7 +37,7 @@
       "description": "売買価格 5,000,000円（全3ティア適用）",
       "input": {
         "price": 5000000,
-        "year": 2024, "month": 8, "day": 1,
+        "date": "2024-08-01",
         "is_low_cost_vacant_house": false,
         "is_seller": false
       },
@@ -54,7 +54,7 @@
       "description": "売買価格 10,000,000円",
       "input": {
         "price": 10000000,
-        "year": 2024, "month": 8, "day": 1,
+        "date": "2024-08-01",
         "is_low_cost_vacant_house": false,
         "is_seller": false
       },
@@ -70,7 +70,7 @@
       "description": "売買価格 30,000,000円",
       "input": {
         "price": 30000000,
-        "year": 2024, "month": 8, "day": 1,
+        "date": "2024-08-01",
         "is_low_cost_vacant_house": false,
         "is_seller": false
       },
@@ -86,7 +86,7 @@
       "description": "売買価格 8,000,000円・低廉な空き家特例適用（2024年7月以降・買主でも適用）",
       "input": {
         "price": 8000000,
-        "year": 2024, "month": 8, "day": 1,
+        "date": "2024-08-01",
         "is_low_cost_vacant_house": true,
         "is_seller": false
       },
@@ -102,7 +102,7 @@
       "description": "売買価格 8,000,001円・特例フラグあり（価格超過のため特例対象外）",
       "input": {
         "price": 8000001,
-        "year": 2024, "month": 8, "day": 1,
+        "date": "2024-08-01",
         "is_low_cost_vacant_house": true,
         "is_seller": false
       },
@@ -115,7 +115,7 @@
       "description": "売買価格 8,000,000円・フラグなし（特例適用されない）",
       "input": {
         "price": 8000000,
-        "year": 2024, "month": 8, "day": 1,
+        "date": "2024-08-01",
         "is_low_cost_vacant_house": false,
         "is_seller": false
       },
@@ -131,7 +131,7 @@
       "description": "売買価格 5,000,000円（2019年旧告示・400万円超のため特例不適用）",
       "input": {
         "price": 5000000,
-        "year": 2019, "month": 12, "day": 1,
+        "date": "2019-12-01",
         "is_low_cost_vacant_house": false,
         "is_seller": false
       },
@@ -147,7 +147,7 @@
       "description": "売買価格 4,000,000円・売主側・低廉特例フラグあり（2022年1月・旧告示10%）→ 特例適用",
       "input": {
         "price": 4000000,
-        "year": 2022, "month": 1, "day": 1,
+        "date": "2022-01-01",
         "is_low_cost_vacant_house": true,
         "is_seller": true
       },
@@ -163,7 +163,7 @@
       "description": "売買価格 3,000,000円・買主側・低廉特例フラグあり（2022年1月・旧告示）→ 特例不適用",
       "input": {
         "price": 3000000,
-        "year": 2022, "month": 1, "day": 1,
+        "date": "2022-01-01",
         "is_low_cost_vacant_house": true,
         "is_seller": false
       },
