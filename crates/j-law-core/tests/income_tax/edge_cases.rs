@@ -12,6 +12,7 @@ use j_law_core::domains::income_tax::{
     params::{IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams},
     policy::StandardIncomeTaxPolicy,
 };
+use j_law_core::LegalDate;
 
 fn tax_params_2024() -> IncomeTaxParams {
     IncomeTaxParams {
@@ -85,7 +86,7 @@ fn tax_params_2024() -> IncomeTaxParams {
 fn ctx(income: u64) -> IncomeTaxContext {
     IncomeTaxContext {
         taxable_income: income,
-        target_date: (2024, 1, 1),
+        target_date: LegalDate::new(2024, 1, 1),
         flags: HashSet::new(),
         policy: Box::new(StandardIncomeTaxPolicy),
     }

@@ -2,6 +2,7 @@ use crate::income_tax_schema::{IncomeTaxHistoryEntry, IncomeTaxRegistry};
 use j_law_core::domains::income_tax::params::{
     IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams,
 };
+use j_law_core::types::date::LegalDate;
 use j_law_core::{InputError, JLawError, RegistryError};
 
 /// `income_tax.json` をロードして `target_date` に対応するパラメータを返す。
@@ -11,7 +12,7 @@ use j_law_core::{InputError, JLawError, RegistryError};
 ///
 /// # エラー
 /// - `target_date` がどの有効期間にも該当しない → `InputError::DateOutOfRange`
-pub fn load_income_tax_params(target_date: (u16, u8, u8)) -> Result<IncomeTaxParams, JLawError> {
+pub fn load_income_tax_params(target_date: LegalDate) -> Result<IncomeTaxParams, JLawError> {
     let json_str = include_str!("../data/income_tax/income_tax.json");
 
     let registry: IncomeTaxRegistry =
@@ -19,10 +20,7 @@ pub fn load_income_tax_params(target_date: (u16, u8, u8)) -> Result<IncomeTaxPar
             path: format!("income_tax/income_tax.json: {}", e),
         })?;
 
-    let date_str = format!(
-        "{:04}-{:02}-{:02}",
-        target_date.0, target_date.1, target_date.2
-    );
+    let date_str = target_date.to_date_str();
 
     let entry = find_entry(&registry, &date_str).ok_or_else(|| InputError::DateOutOfRange {
         date: date_str.clone(),
@@ -85,7 +83,7 @@ mod tests {
 
     #[test]
     fn load_2024_params() {
-        let params = load_income_tax_params((2024, 1, 1)).unwrap();
+        let params = load_income_tax_params(LegalDate::new(2024, 1, 1)).unwrap();
         assert_eq!(params.brackets.len(), 7);
         assert!(params.reconstruction_tax.is_some());
         let rt = params.reconstruction_tax.unwrap();
@@ -95,13 +93,13 @@ mod tests {
 
     #[test]
     fn load_2015_params() {
-        let params = load_income_tax_params((2015, 1, 1)).unwrap();
+        let params = load_income_tax_params(LegalDate::new(2015, 1, 1)).unwrap();
         assert_eq!(params.brackets.len(), 7);
     }
 
     #[test]
     fn date_out_of_range_returns_error() {
-        let result = load_income_tax_params((2014, 12, 31));
+        let result = load_income_tax_params(LegalDate::new(2014, 12, 31));
         assert!(matches!(
             result,
             Err(JLawError::Input(InputError::DateOutOfRange { .. }))

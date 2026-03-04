@@ -58,10 +58,7 @@ pub fn calculate_stamp_tax(
         })?;
 
     // --- 軽減措置の適用判定 ---
-    let date_str = format!(
-        "{:04}-{:02}-{:02}",
-        ctx.target_date.0, ctx.target_date.1, ctx.target_date.2
-    );
+    let date_str = ctx.target_date.to_date_str();
 
     let should_reduce = ctx.policy.should_apply_reduced_rate(
         &date_str,

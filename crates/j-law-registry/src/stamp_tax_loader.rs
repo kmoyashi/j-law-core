@@ -1,5 +1,6 @@
 use crate::stamp_tax_schema::{StampTaxHistoryEntry, StampTaxRegistry};
 use j_law_core::domains::stamp_tax::params::{StampTaxBracket, StampTaxParams};
+use j_law_core::types::date::LegalDate;
 use j_law_core::{InputError, JLawError, RegistryError};
 
 /// `stamp_tax.json` をロードして `target_date` に対応するパラメータを返す。
@@ -9,7 +10,7 @@ use j_law_core::{InputError, JLawError, RegistryError};
 ///
 /// # エラー
 /// - `target_date` がどの有効期間にも該当しない → `InputError::DateOutOfRange`
-pub fn load_stamp_tax_params(target_date: (u16, u8, u8)) -> Result<StampTaxParams, JLawError> {
+pub fn load_stamp_tax_params(target_date: LegalDate) -> Result<StampTaxParams, JLawError> {
     let json_str = include_str!("../data/stamp_tax/stamp_tax.json");
 
     let registry: StampTaxRegistry =
@@ -17,10 +18,7 @@ pub fn load_stamp_tax_params(target_date: (u16, u8, u8)) -> Result<StampTaxParam
             path: format!("stamp_tax/stamp_tax.json: {}", e),
         })?;
 
-    let date_str = format!(
-        "{:04}-{:02}-{:02}",
-        target_date.0, target_date.1, target_date.2
-    );
+    let date_str = target_date.to_date_str();
 
     let entry = find_entry(&registry, &date_str).ok_or_else(|| InputError::DateOutOfRange {
         date: date_str.clone(),
@@ -71,7 +69,7 @@ mod tests {
 
     #[test]
     fn load_2024_params() {
-        let params = load_stamp_tax_params((2024, 1, 1)).unwrap();
+        let params = load_stamp_tax_params(LegalDate::new(2024, 1, 1)).unwrap();
         assert_eq!(params.brackets.len(), 12);
         assert!(params.reduced_rate_from.is_some());
         assert!(params.reduced_rate_until.is_some());
@@ -79,13 +77,13 @@ mod tests {
 
     #[test]
     fn load_2014_params() {
-        let params = load_stamp_tax_params((2014, 4, 1)).unwrap();
+        let params = load_stamp_tax_params(LegalDate::new(2014, 4, 1)).unwrap();
         assert_eq!(params.brackets.len(), 12);
     }
 
     #[test]
     fn date_out_of_range_returns_error() {
-        let result = load_stamp_tax_params((2014, 3, 31));
+        let result = load_stamp_tax_params(LegalDate::new(2014, 3, 31));
         assert!(matches!(
             result,
             Err(JLawError::Input(InputError::DateOutOfRange { .. }))

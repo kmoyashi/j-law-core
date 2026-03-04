@@ -1,4 +1,5 @@
 use crate::domains::real_estate::policy::RealEstatePolicy;
+use crate::types::date::LegalDate;
 use std::collections::HashSet;
 
 /// 不動産取引計算に関わる法的フラグ。
@@ -30,8 +31,8 @@ pub enum RealEstateFlag {
 pub struct RealEstateContext {
     /// 売買価格（円）。
     pub price: u64,
-    /// 契約日・適用する告示を選択するための基準日 `(year, month, day)`。
-    pub target_date: (u16, u8, u8),
+    /// 契約日・適用する告示を選択するための基準日。
+    pub target_date: LegalDate,
     /// 適用する法的フラグの集合。
     pub flags: HashSet<RealEstateFlag>,
     /// 計算ポリシー（テスト・カスタム計算での差し替えを可能にする）。

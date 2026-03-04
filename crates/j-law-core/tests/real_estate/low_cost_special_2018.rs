@@ -16,10 +16,11 @@ use j_law_core::domains::real_estate::{
     calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
     RealEstateFlag,
 };
+use j_law_core::LegalDate;
 use j_law_registry::load_brokerage_fee_params;
 
 /// フラグなしのコンテキストを生成する。
-fn ctx(price: u64, date: (u16, u8, u8)) -> RealEstateContext {
+fn ctx(price: u64, date: LegalDate) -> RealEstateContext {
     RealEstateContext {
         price,
         target_date: date,
@@ -29,7 +30,7 @@ fn ctx(price: u64, date: (u16, u8, u8)) -> RealEstateContext {
 }
 
 /// 指定フラグを付けたコンテキストを生成する。
-fn ctx_flags(price: u64, date: (u16, u8, u8), flags: &[RealEstateFlag]) -> RealEstateContext {
+fn ctx_flags(price: u64, date: LegalDate, flags: &[RealEstateFlag]) -> RealEstateContext {
     let flags: HashSet<RealEstateFlag> = flags.iter().copied().collect();
     RealEstateContext {
         price,
@@ -53,7 +54,7 @@ fn ctx_flags(price: u64, date: (u16, u8, u8), flags: &[RealEstateFlag]) -> RealE
 /// 期待: 税抜 180,000円 / 税額 18,000円 / 税込 198,000円
 #[test]
 fn low_cost_2022_seller_3m_special_applied() {
-    let date = (2022, 1, 1);
+    let date = LegalDate::new(2022, 1, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(
@@ -81,7 +82,7 @@ fn low_cost_2022_seller_3m_special_applied() {
 /// 期待: 税抜 140,000円 / 税額 14,000円 / 税込 154,000円
 #[test]
 fn low_cost_2022_buyer_3m_special_not_applied() {
-    let date = (2022, 1, 1);
+    let date = LegalDate::new(2022, 1, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(3_000_000, date, &[RealEstateFlag::IsLowCostVacantHouse]),
@@ -106,7 +107,7 @@ fn low_cost_2022_buyer_3m_special_not_applied() {
 /// 期待: 税抜 180,000円 / 税額 18,000円 / 税込 198,000円
 #[test]
 fn low_cost_2022_seller_4m_boundary_equals_special() {
-    let date = (2022, 1, 1);
+    let date = LegalDate::new(2022, 1, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(
@@ -135,7 +136,7 @@ fn low_cost_2022_seller_4m_boundary_equals_special() {
 /// 期待: 税抜 180,000円 / 特例不適用
 #[test]
 fn low_cost_2022_seller_4m_plus_1_special_not_applied() {
-    let date = (2022, 1, 1);
+    let date = LegalDate::new(2022, 1, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(
@@ -159,7 +160,7 @@ fn low_cost_2022_seller_4m_plus_1_special_not_applied() {
 /// 通常計算: 140,000 円
 #[test]
 fn low_cost_2022_no_flag_no_special() {
-    let date = (2022, 1, 1);
+    let date = LegalDate::new(2022, 1, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(&ctx(3_000_000, date), &params).unwrap();
     assert!(!result.low_cost_special_applied);
@@ -177,7 +178,7 @@ fn low_cost_2022_no_flag_no_special() {
 /// 期待: 税抜 180,000円 / 税額 14,400円 / 税込 194,400円
 #[test]
 fn low_cost_2018_seller_3m_special_applied() {
-    let date = (2018, 6, 1);
+    let date = LegalDate::new(2018, 6, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(
@@ -204,7 +205,7 @@ fn low_cost_2018_seller_3m_special_applied() {
 /// 通常計算: 税抜 140,000 / 税額 11,200 / 税込 151,200
 #[test]
 fn low_cost_2018_buyer_3m_special_not_applied() {
-    let date = (2018, 6, 1);
+    let date = LegalDate::new(2018, 6, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(3_000_000, date, &[RealEstateFlag::IsLowCostVacantHouse]),
@@ -231,7 +232,7 @@ fn low_cost_2018_buyer_3m_special_not_applied() {
 /// 期待: 税抜 330,000円 / 特例適用
 #[test]
 fn low_cost_2024_buyer_5m_special_applied_without_seller_flag() {
-    let date = (2024, 8, 1);
+    let date = LegalDate::new(2024, 8, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(5_000_000, date, &[RealEstateFlag::IsLowCostVacantHouse]),
@@ -253,7 +254,7 @@ fn low_cost_2024_buyer_5m_special_applied_without_seller_flag() {
 /// 期待: 税抜 300,000円 / 特例不適用
 #[test]
 fn low_cost_2024_buyer_8m_plus_1_special_not_applied() {
-    let date = (2024, 8, 1);
+    let date = LegalDate::new(2024, 8, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(8_000_001, date, &[RealEstateFlag::IsLowCostVacantHouse]),
@@ -274,7 +275,7 @@ fn low_cost_2024_buyer_8m_plus_1_special_not_applied() {
 /// 期待: 税抜 330,000円 / 特例適用
 #[test]
 fn low_cost_2024_buyer_6m_special_applied_no_seller_flag() {
-    let date = (2024, 8, 1);
+    let date = LegalDate::new(2024, 8, 1);
     let params = load_brokerage_fee_params(date).unwrap();
     let result = calculate_brokerage_fee(
         &ctx_flags(6_000_000, date, &[RealEstateFlag::IsLowCostVacantHouse]),
