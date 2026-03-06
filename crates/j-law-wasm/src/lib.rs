@@ -88,7 +88,9 @@ impl ConsumptionTaxResult {
 
 /// 消費税法第29条に基づく消費税額を計算する。
 ///
-/// @param amount - 課税標準額（税抜き・円）
+/// @param amount - 課税標準額（税抜き・円）。JavaScript の Number 型は 53bit 整数精度のため
+///   u64 を直接受け取れない。法人取引では 42.9 億円（u32 上限）を超える課税標準額が
+///   現実的に発生するため、f64 で受け取り u64 に変換する。
 /// @param year - 基準日（年）
 /// @param month - 基準日（月）
 /// @param day - 基準日（日）
@@ -97,7 +99,7 @@ impl ConsumptionTaxResult {
 /// @throws 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
 #[wasm_bindgen(js_name = "calcConsumptionTax")]
 pub fn calc_consumption_tax(
-    amount: u32,
+    amount: f64,
     year: u16,
     month: u8,
     day: u8,

@@ -11,14 +11,17 @@ use j_law_core::{JLawError, RegistryError};
 /// # 日付の範囲外について
 /// 消費税導入前（1989年4月1日以前）の日付には消費税が存在しないため、
 /// エラーではなく税率0%のパラメータを返す。
+/// 返却される `standard_rate` は `{ numer: 0, denom: 1 }`（0/1 = 0%）。
+/// `denom: 1` はゼロ除算が起きない最小の分母であり、「導入前＝非課税」を意味する。
 pub fn load_consumption_tax_params(
     target_date: LegalDate,
 ) -> Result<ConsumptionTaxParams, JLawError> {
     let json_str = include_str!("../data/consumption_tax/consumption_tax.json");
 
     let registry: ConsumptionTaxRegistry =
-        serde_json::from_str(json_str).map_err(|e| RegistryError::FileNotFound {
-            path: format!("consumption_tax/consumption_tax.json: {}", e),
+        serde_json::from_str(json_str).map_err(|e| RegistryError::ParseError {
+            path: "consumption_tax/consumption_tax.json".into(),
+            cause: e.to_string(),
         })?;
 
     let date_str = target_date.to_date_str();
@@ -27,10 +30,7 @@ pub fn load_consumption_tax_params(
         Some(entry) => Ok(to_params(entry)),
         // 消費税導入前（1989-04-01以前）: エラーではなく0%を返す
         None => Ok(ConsumptionTaxParams {
-            standard_rate: ConsumptionTaxRate {
-                numer: 0,
-                denom: 100,
-            },
+            standard_rate: ConsumptionTaxRate { numer: 0, denom: 1 },
             reduced_rate: None,
         }),
     }
@@ -122,7 +122,7 @@ mod tests {
     }
 
     #[test]
-    fn boundary_1997_03_31_is_5pct() {
+    fn boundary_1997_03_31_is_3pct() {
         // 1997-03-31 まで3%
         let params = load_consumption_tax_params(LegalDate::new(1997, 3, 31)).unwrap();
         assert_eq!(params.standard_rate.numer, 3);

@@ -16,6 +16,7 @@ pub enum ConsumptionTaxFlag {
 }
 
 /// 消費税計算のコンテキスト。
+#[derive(Debug)]
 pub struct ConsumptionTaxContext {
     /// 課税標準額（税抜き金額・円）。
     pub amount: u64,

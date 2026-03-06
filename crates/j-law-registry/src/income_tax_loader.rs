@@ -16,8 +16,9 @@ pub fn load_income_tax_params(target_date: LegalDate) -> Result<IncomeTaxParams,
     let json_str = include_str!("../data/income_tax/income_tax.json");
 
     let registry: IncomeTaxRegistry =
-        serde_json::from_str(json_str).map_err(|e| RegistryError::FileNotFound {
-            path: format!("income_tax/income_tax.json: {}", e),
+        serde_json::from_str(json_str).map_err(|e| RegistryError::ParseError {
+            path: "income_tax/income_tax.json".into(),
+            cause: e.to_string(),
         })?;
 
     let date_str = target_date.to_date_str();

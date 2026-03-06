@@ -28,6 +28,9 @@ pub enum RegistryError {
 
     #[error("JSONファイルが見つかりません: {path}")]
     FileNotFound { path: String },
+
+    #[error("JSONのパースに失敗しました: path={path}, cause={cause}")]
+    ParseError { path: String, cause: String },
 }
 
 /// ユーザー入力の不正エラー。

@@ -98,7 +98,7 @@
         "amount_with_tax": 100000,
         "amount_without_tax": 100000,
         "applied_rate_numer": 0,
-        "applied_rate_denom": 100,
+        "applied_rate_denom": 1,
         "is_reduced_rate": false
       }
     },
