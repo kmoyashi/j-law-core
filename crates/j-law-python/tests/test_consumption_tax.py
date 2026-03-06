@@ -68,3 +68,10 @@ class TestLanguageSpecific:
         r = calc_consumption_tax(100_000, datetime.date(1988, 1, 1))
         assert r.tax_amount == 0
         assert r.amount_with_tax == 100_000
+
+    def test_type_error_invalid_date(self):
+        """date に datetime.date 以外を渡すと TypeError。"""
+        with pytest.raises(TypeError):
+            calc_consumption_tax(100_000, "2024-01-01")
+        with pytest.raises(TypeError):
+            calc_consumption_tax(100_000, 20240101)

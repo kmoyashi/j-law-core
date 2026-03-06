@@ -54,4 +54,13 @@ class TestConsumptionTax < Minitest::Test
     result = JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, Date.new(2024, 1, 1), false)
     assert_match(/ConsumptionTaxResult/, result.inspect)
   end
+
+  def test_type_error_invalid_date
+    assert_raises(TypeError) do
+      JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, "2024-01-01", false)
+    end
+    assert_raises(TypeError) do
+      JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, 20_240_101, false)
+    end
+  end
 end

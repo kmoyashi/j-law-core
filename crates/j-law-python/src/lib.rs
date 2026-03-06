@@ -88,6 +88,7 @@ impl ConsumptionTaxResult {
 ///     ConsumptionTaxResult
 ///
 /// Raises:
+///     TypeError: date が datetime.date 型でない場合
 ///     ValueError: 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
 #[pyfunction]
 #[pyo3(signature = (amount, date, is_reduced_rate=false))]
@@ -213,6 +214,7 @@ impl BrokerageFeeResult {
 ///     BrokerageFeeResult
 ///
 /// Raises:
+///     TypeError: date が datetime.date 型でない場合
 ///     ValueError: 売買価格が不正、または対象日に有効な法令パラメータが存在しない場合
 #[pyfunction]
 #[pyo3(signature = (price, date, is_low_cost_vacant_house=false, is_seller=false))]
@@ -357,6 +359,7 @@ impl IncomeTaxResult {
 ///     IncomeTaxResult
 ///
 /// Raises:
+///     TypeError: date が datetime.date 型でない場合
 ///     ValueError: 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合
 #[pyfunction]
 #[pyo3(signature = (taxable_income, date, apply_reconstruction_tax=true))]
@@ -455,6 +458,7 @@ impl StampTaxResult {
 ///     StampTaxResult
 ///
 /// Raises:
+///     TypeError: date が datetime.date 型でない場合
 ///     ValueError: 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合
 #[pyfunction]
 #[pyo3(signature = (contract_amount, date, is_reduced_rate_applicable=false))]
