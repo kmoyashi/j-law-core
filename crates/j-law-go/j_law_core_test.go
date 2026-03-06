@@ -3,19 +3,32 @@ package jlawcore_test
 import (
 	"encoding/json"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
 	jlawcore "github.com/kmoyashi/j-law-go"
 )
 
+// ─── 日付ユーティリティ ──────────────────────────────────────────────────────
+
+func parseDate(t *testing.T, date string) (int, int, int) {
+	t.Helper()
+	parts := strings.Split(date, "-")
+	if len(parts) != 3 {
+		t.Fatalf("invalid date format: %s", date)
+	}
+	year, _ := strconv.Atoi(parts[0])
+	month, _ := strconv.Atoi(parts[1])
+	day, _ := strconv.Atoi(parts[2])
+	return year, month, day
+}
+
 // ─── フィクスチャ型定義 ──────────────────────────────────────────────────────
 
 type brokerageFeeInput struct {
 	Price                uint64 `json:"price"`
-	Year                 int    `json:"year"`
-	Month                int    `json:"month"`
-	Day                  int    `json:"day"`
+	Date                 string `json:"date"`
 	IsLowCostVacantHouse bool   `json:"is_low_cost_vacant_house"`
 	IsSeller             bool   `json:"is_seller"`
 }
@@ -41,9 +54,7 @@ type realEstateFixtures struct {
 
 type incomeTaxInput struct {
 	TaxableIncome          uint64 `json:"taxable_income"`
-	Year                   int    `json:"year"`
-	Month                  int    `json:"month"`
-	Day                    int    `json:"day"`
+	Date                   string `json:"date"`
 	ApplyReconstructionTax bool   `json:"apply_reconstruction_tax"`
 }
 
@@ -67,9 +78,7 @@ type incomeTaxFixtures struct {
 
 type stampTaxInput struct {
 	ContractAmount          uint64 `json:"contract_amount"`
-	Year                    int    `json:"year"`
-	Month                   int    `json:"month"`
-	Day                     int    `json:"day"`
+	Date                    string `json:"date"`
 	IsReducedRateApplicable bool   `json:"is_reduced_rate_applicable"`
 }
 
@@ -87,6 +96,32 @@ type stampTaxCase struct {
 
 type stampTaxFixtures struct {
 	StampTax []stampTaxCase `json:"stamp_tax"`
+}
+
+type consumptionTaxInput struct {
+	Amount        uint64 `json:"amount"`
+	Date          string `json:"date"`
+	IsReducedRate bool   `json:"is_reduced_rate"`
+}
+
+type consumptionTaxExpected struct {
+	TaxAmount        uint64 `json:"tax_amount"`
+	AmountWithTax    uint64 `json:"amount_with_tax"`
+	AmountWithoutTax uint64 `json:"amount_without_tax"`
+	AppliedRateNumer uint64 `json:"applied_rate_numer"`
+	AppliedRateDenom uint64 `json:"applied_rate_denom"`
+	IsReducedRate    bool   `json:"is_reduced_rate"`
+}
+
+type consumptionTaxCase struct {
+	ID          string                 `json:"id"`
+	Description string                 `json:"description"`
+	Input       consumptionTaxInput    `json:"input"`
+	Expected    consumptionTaxExpected `json:"expected"`
+}
+
+type consumptionTaxFixtures struct {
+	ConsumptionTax []consumptionTaxCase `json:"consumption_tax"`
 }
 
 // ─── フィクスチャ読み込み ────────────────────────────────────────────────────
@@ -130,6 +165,19 @@ func loadStampTaxFixtures(t *testing.T) stampTaxFixtures {
 	return f
 }
 
+func loadConsumptionTaxFixtures(t *testing.T) consumptionTaxFixtures {
+	t.Helper()
+	data, err := os.ReadFile("../../tests/fixtures/consumption_tax.json")
+	if err != nil {
+		t.Fatalf("failed to read consumption_tax.json: %v", err)
+	}
+	var f consumptionTaxFixtures
+	if err := json.Unmarshal(data, &f); err != nil {
+		t.Fatalf("failed to parse consumption_tax.json: %v", err)
+	}
+	return f
+}
+
 // ─── 不動産: データ駆動テスト ─────────────────────────────────────────────────
 
 func TestBrokerageFee(t *testing.T) {
@@ -137,9 +185,10 @@ func TestBrokerageFee(t *testing.T) {
 
 	for _, tc := range fixtures.BrokerageFee {
 		t.Run(tc.ID, func(t *testing.T) {
+			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcBrokerageFee(
 				tc.Input.Price,
-				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				year, month, day,
 				tc.Input.IsLowCostVacantHouse,
 				tc.Input.IsSeller,
 			)
@@ -189,9 +238,10 @@ func TestIncomeTax(t *testing.T) {
 
 	for _, tc := range fixtures.IncomeTax {
 		t.Run(tc.ID, func(t *testing.T) {
+			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcIncomeTax(
 				tc.Input.TaxableIncome,
-				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				year, month, day,
 				tc.Input.ApplyReconstructionTax,
 			)
 			if err != nil {
@@ -275,9 +325,10 @@ func TestStampTax(t *testing.T) {
 
 	for _, tc := range fixtures.StampTax {
 		t.Run(tc.ID, func(t *testing.T) {
+			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcStampTax(
 				tc.Input.ContractAmount,
-				tc.Input.Year, tc.Input.Month, tc.Input.Day,
+				year, month, day,
 				tc.Input.IsReducedRateApplicable,
 			)
 			if err != nil {
@@ -292,6 +343,70 @@ func TestStampTax(t *testing.T) {
 				t.Errorf("ReducedRateApplied: got %v, want %v", result.ReducedRateApplied, exp.ReducedRateApplied)
 			}
 		})
+	}
+}
+
+// ─── 消費税: データ駆動テスト ─────────────────────────────────────────────────
+
+func TestConsumptionTax(t *testing.T) {
+	fixtures := loadConsumptionTaxFixtures(t)
+
+	for _, tc := range fixtures.ConsumptionTax {
+		t.Run(tc.ID, func(t *testing.T) {
+			year, month, day := parseDate(t, tc.Input.Date)
+			result, err := jlawcore.CalcConsumptionTax(
+				tc.Input.Amount,
+				year, month, day,
+				tc.Input.IsReducedRate,
+			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			exp := tc.Expected
+			if result.TaxAmount != exp.TaxAmount {
+				t.Errorf("TaxAmount: got %d, want %d", result.TaxAmount, exp.TaxAmount)
+			}
+			if result.AmountWithTax != exp.AmountWithTax {
+				t.Errorf("AmountWithTax: got %d, want %d", result.AmountWithTax, exp.AmountWithTax)
+			}
+			if result.AmountWithoutTax != exp.AmountWithoutTax {
+				t.Errorf("AmountWithoutTax: got %d, want %d", result.AmountWithoutTax, exp.AmountWithoutTax)
+			}
+			if result.AppliedRateNumer != exp.AppliedRateNumer {
+				t.Errorf("AppliedRateNumer: got %d, want %d", result.AppliedRateNumer, exp.AppliedRateNumer)
+			}
+			if result.AppliedRateDenom != exp.AppliedRateDenom {
+				t.Errorf("AppliedRateDenom: got %d, want %d", result.AppliedRateDenom, exp.AppliedRateDenom)
+			}
+			if result.IsReducedRate != exp.IsReducedRate {
+				t.Errorf("IsReducedRate: got %v, want %v", result.IsReducedRate, exp.IsReducedRate)
+			}
+		})
+	}
+}
+
+// ─── 消費税: 言語固有テスト ────────────────────────────────────────────────────
+
+func TestConsumptionTax_ErrorReducedRateWithoutSupport(t *testing.T) {
+	// 2016年は標準8%のみ、軽減税率は存在しないためエラー
+	_, err := jlawcore.CalcConsumptionTax(100_000, 2016, 1, 1, true)
+	if err == nil {
+		t.Fatal("expected error for reduced rate without support, got nil")
+	}
+}
+
+func TestConsumptionTax_BeforeIntroductionNoTax(t *testing.T) {
+	// 消費税導入前（1988年）は税額ゼロで正常終了
+	result, err := jlawcore.CalcConsumptionTax(100_000, 1988, 1, 1, false)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if result.TaxAmount != 0 {
+		t.Errorf("TaxAmount: got %d, want 0", result.TaxAmount)
+	}
+	if result.AmountWithTax != 100_000 {
+		t.Errorf("AmountWithTax: got %d, want 100000", result.AmountWithTax)
 	}
 }
 

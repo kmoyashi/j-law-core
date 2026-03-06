@@ -29,7 +29,8 @@ const fixtures = JSON.parse(
 describe("calcIncomeTax - フィクスチャ駆動", () => {
   for (const c of fixtures.income_tax) {
     it(`${c.id}: ${c.description}`, () => {
-      const { taxable_income, year, month, day, apply_reconstruction_tax } = c.input;
+      const { taxable_income, apply_reconstruction_tax } = c.input;
+      const [year, month, day] = c.input.date.split("-").map(Number);
       const r = calcIncomeTax(taxable_income, year, month, day, apply_reconstruction_tax);
       const exp = c.expected;
 

@@ -67,6 +67,7 @@ crates/
 │       ├── error.rs            全エラー型
 │       ├── types/              共通型（FinalAmount, Rate, RoundingStrategy, LegalDate 等）
 │       └── domains/            ドメインごとの計算ロジック
+│           ├── consumption_tax/ 消費税（消費税法 第29条）
 │           ├── income_tax/     所得税（所得税法 第89条）
 │           ├── real_estate/    不動産（宅建業法 第46条）
 │           └── stamp_tax/      印紙税（印紙税法 別表第一）
@@ -228,6 +229,52 @@ pub fn calculate_brokerage_fee(...) -> Result<CalculationResult, JLawError> {
 必須セクション:
 - **`# 法的根拠`** — 条文番号を具体的に記載（「所得税法 第89条第1項」等）
 - **`# 計算手順`** — アルゴリズムを日本語で箇条書き
+
+---
+
+## 日付型のルール
+
+### フィクスチャ JSON
+
+クロス言語テストで共有する `tests/fixtures/<domain>.json` の日付フィールドは、
+**ISO 8601 文字列（`"YYYY-MM-DD"`）** を使用してください。
+レジストリ JSON の `effective_from` / `effective_until` と同じ形式で統一します。
+
+```jsonc
+// NG — 言語固有の数値フィールドを直接埋め込む
+{ "year": 2024, "month": 8, "day": 1 }
+
+// OK — ISO 8601 文字列で記述
+{ "date": "2024-08-01" }
+```
+
+各言語のテストコードでは、日付文字列を分割して年・月・日の整数に変換してからバインディング関数に渡します。
+
+```python
+# Python
+year, month, day = (int(x) for x in inp["date"].split("-"))
+```
+
+```javascript
+// JavaScript / WASM
+const [year, month, day] = c.input.date.split("-").map(Number);
+```
+
+```ruby
+# Ruby
+year, month, day = inp["date"].split("-").map(&:to_i)
+```
+
+```go
+// Go — parseDate ヘルパーを使う
+year, month, day := parseDate(t, tc.Input.Date)
+```
+
+### バインディング関数シグネチャ
+
+Rust コアと全バインディングの公開 API では、日付は `year: u16, month: u8, day: u8` の
+**3 引数** で受け取ります。フィクスチャ JSON の文字列形式はあくまで「テストデータの記述形式」であり、
+関数インターフェースは変えません。
 
 ---
 

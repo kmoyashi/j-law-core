@@ -2,6 +2,11 @@ use std::collections::HashSet;
 
 use magnus::{function, method, Error, Module, RArray, Ruby, Symbol};
 
+use ::j_law_core::domains::consumption_tax::{
+    calculator::calculate_consumption_tax,
+    context::{ConsumptionTaxContext, ConsumptionTaxFlag},
+    policy::StandardConsumptionTaxPolicy,
+};
 use ::j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
@@ -18,11 +23,127 @@ use ::j_law_core::domains::stamp_tax::{
 };
 use ::j_law_core::LegalDate;
 use ::j_law_registry::load_brokerage_fee_params;
+use ::j_law_registry::load_consumption_tax_params;
 use ::j_law_registry::load_income_tax_params;
 use ::j_law_registry::load_stamp_tax_params;
 
 fn into_runtime_error<E: std::fmt::Debug>(e: E) -> Error {
     Error::new(magnus::exception::runtime_error(), format!("{e:?}"))
+}
+
+// ─── 消費税 Ruby公開型 ──────────────────────────────────────────────────────────
+
+/// 消費税の計算結果。
+///
+/// メソッド:
+/// - `tax_amount` → Integer（消費税額・円）
+/// - `amount_with_tax` → Integer（税込金額・円）
+/// - `amount_without_tax` → Integer（税抜金額・円）
+/// - `applied_rate_numer` → Integer（適用税率の分子）
+/// - `applied_rate_denom` → Integer（適用税率の分母）
+/// - `is_reduced_rate?` → true/false
+///
+/// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
+/// Cargo.toml で disallowed_methods = "allow" を設定している
+#[magnus::wrap(
+    class = "JLawRuby::ConsumptionTax::ConsumptionTaxResult",
+    free_immediately,
+    frozen_shareable
+)]
+pub struct RbConsumptionTaxResult {
+    tax_amount: u64,
+    amount_with_tax: u64,
+    amount_without_tax: u64,
+    applied_rate_numer: u64,
+    applied_rate_denom: u64,
+    is_reduced_rate: bool,
+}
+
+impl RbConsumptionTaxResult {
+    fn tax_amount(&self) -> u64 {
+        self.tax_amount
+    }
+
+    fn amount_with_tax(&self) -> u64 {
+        self.amount_with_tax
+    }
+
+    fn amount_without_tax(&self) -> u64 {
+        self.amount_without_tax
+    }
+
+    fn applied_rate_numer(&self) -> u64 {
+        self.applied_rate_numer
+    }
+
+    fn applied_rate_denom(&self) -> u64 {
+        self.applied_rate_denom
+    }
+
+    fn is_reduced_rate(&self) -> bool {
+        self.is_reduced_rate
+    }
+
+    fn inspect(&self) -> String {
+        format!(
+            "#<JLawRuby::ConsumptionTax::ConsumptionTaxResult tax_amount={} amount_with_tax={} amount_without_tax={} applied_rate={}/{} is_reduced_rate={}>",
+            self.tax_amount,
+            self.amount_with_tax,
+            self.amount_without_tax,
+            self.applied_rate_numer,
+            self.applied_rate_denom,
+            self.is_reduced_rate,
+        )
+    }
+}
+
+// ─── 消費税 Ruby公開関数 ────────────────────────────────────────────────────────
+
+/// 消費税法第29条に基づく消費税額を計算する。
+///
+/// # 法的根拠
+/// 消費税法 第29条（税率）
+///
+/// @param amount [Integer] 課税標準額（税抜き・円）
+/// @param year  [Integer] 基準日（年）
+/// @param month [Integer] 基準日（月）
+/// @param day   [Integer] 基準日（日）
+/// @param is_reduced_rate [true, false] 軽減税率フラグ（2019-10-01以降の飲食料品・新聞等）
+///   WARNING: 対象が軽減税率の適用要件を満たすかの事実認定は呼び出し元の責任。
+/// @return [JLawRuby::ConsumptionTax::ConsumptionTaxResult]
+/// @raise [RuntimeError] 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
+fn calc_consumption_tax(
+    amount: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    is_reduced_rate: bool,
+) -> Result<RbConsumptionTaxResult, Error> {
+    let params = load_consumption_tax_params(LegalDate::new(year, month, day))
+        .map_err(into_runtime_error)?;
+
+    let mut flags = HashSet::new();
+    if is_reduced_rate {
+        flags.insert(ConsumptionTaxFlag::ReducedRate);
+    }
+
+    let ctx = ConsumptionTaxContext {
+        amount,
+        target_date: LegalDate::new(year, month, day),
+        flags,
+        policy: Box::new(StandardConsumptionTaxPolicy),
+    };
+
+    let result = calculate_consumption_tax(&ctx, &params).map_err(into_runtime_error)?;
+
+    Ok(RbConsumptionTaxResult {
+        tax_amount: result.tax_amount.as_yen(),
+        amount_with_tax: result.amount_with_tax.as_yen(),
+        amount_without_tax: result.amount_without_tax.as_yen(),
+        applied_rate_numer: result.applied_rate_numer,
+        applied_rate_denom: result.applied_rate_denom,
+        is_reduced_rate: result.is_reduced_rate,
+    })
 }
 
 // ─── BreakdownStep（内部データ型） ──────────────────────────────────────────────
@@ -426,6 +547,44 @@ fn calc_stamp_tax(
 #[magnus::init]
 fn init(ruby: &Ruby) -> Result<(), Error> {
     let j_law_core = ruby.define_module("JLawRuby")?;
+
+    // ─── 消費税 ───────────────────────────────────────────────────────────────
+    let consumption_tax = j_law_core.define_module("ConsumptionTax")?;
+
+    // ConsumptionTaxResult クラス
+    let consumption_tax_result_class =
+        consumption_tax.define_class("ConsumptionTaxResult", ruby.class_object())?;
+    consumption_tax_result_class
+        .define_method("tax_amount", method!(RbConsumptionTaxResult::tax_amount, 0))?;
+    consumption_tax_result_class.define_method(
+        "amount_with_tax",
+        method!(RbConsumptionTaxResult::amount_with_tax, 0),
+    )?;
+    consumption_tax_result_class.define_method(
+        "amount_without_tax",
+        method!(RbConsumptionTaxResult::amount_without_tax, 0),
+    )?;
+    consumption_tax_result_class.define_method(
+        "applied_rate_numer",
+        method!(RbConsumptionTaxResult::applied_rate_numer, 0),
+    )?;
+    consumption_tax_result_class.define_method(
+        "applied_rate_denom",
+        method!(RbConsumptionTaxResult::applied_rate_denom, 0),
+    )?;
+    consumption_tax_result_class.define_method(
+        "is_reduced_rate?",
+        method!(RbConsumptionTaxResult::is_reduced_rate, 0),
+    )?;
+    consumption_tax_result_class
+        .define_method("inspect", method!(RbConsumptionTaxResult::inspect, 0))?;
+    consumption_tax_result_class
+        .define_method("to_s", method!(RbConsumptionTaxResult::inspect, 0))?;
+
+    // モジュール関数: JLawRuby::ConsumptionTax.calc_consumption_tax(...)
+    consumption_tax
+        .define_module_function("calc_consumption_tax", function!(calc_consumption_tax, 5))?;
+
     let real_estate = j_law_core.define_module("RealEstate")?;
 
     // BrokerageFeeResult クラス

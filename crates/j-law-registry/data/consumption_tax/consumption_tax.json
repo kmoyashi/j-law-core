@@ -1,0 +1,70 @@
+{
+  "domain": "consumption_tax",
+  "description": "消費税法第29条に基づく消費税率の歴史",
+  "history": [
+    {
+      "effective_from": "1989-04-01",
+      "effective_until": "1997-03-31",
+      "status": "superseded",
+      "citation": {
+        "law_id": "shohizei-29",
+        "law_name": "消費税法",
+        "article": 29,
+        "paragraph": null,
+        "ministry": "財務省"
+      },
+      "params": {
+        "standard_rate": { "numer": 3, "denom": 100 },
+        "reduced_rate": null
+      }
+    },
+    {
+      "effective_from": "1997-04-01",
+      "effective_until": "2014-03-31",
+      "status": "superseded",
+      "citation": {
+        "law_id": "shohizei-29",
+        "law_name": "消費税法",
+        "article": 29,
+        "paragraph": null,
+        "ministry": "財務省"
+      },
+      "params": {
+        "standard_rate": { "numer": 5, "denom": 100 },
+        "reduced_rate": null
+      }
+    },
+    {
+      "effective_from": "2014-04-01",
+      "effective_until": "2019-09-30",
+      "status": "superseded",
+      "citation": {
+        "law_id": "shohizei-29",
+        "law_name": "消費税法",
+        "article": 29,
+        "paragraph": null,
+        "ministry": "財務省"
+      },
+      "params": {
+        "standard_rate": { "numer": 8, "denom": 100 },
+        "reduced_rate": null
+      }
+    },
+    {
+      "effective_from": "2019-10-01",
+      "effective_until": null,
+      "status": "active",
+      "citation": {
+        "law_id": "shohizei-29",
+        "law_name": "消費税法",
+        "article": 29,
+        "paragraph": null,
+        "ministry": "財務省"
+      },
+      "params": {
+        "standard_rate": { "numer": 10, "denom": 100 },
+        "reduced_rate": { "numer": 8, "denom": 100 }
+      }
+    }
+  ]
+}

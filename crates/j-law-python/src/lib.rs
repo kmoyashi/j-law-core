@@ -2,6 +2,11 @@ use std::collections::HashSet;
 
 use pyo3::prelude::*;
 
+use ::j_law_core::domains::consumption_tax::{
+    calculator::calculate_consumption_tax,
+    context::{ConsumptionTaxContext, ConsumptionTaxFlag},
+    policy::StandardConsumptionTaxPolicy,
+};
 use ::j_law_core::domains::income_tax::{
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
@@ -18,8 +23,109 @@ use ::j_law_core::domains::stamp_tax::{
 };
 use ::j_law_core::LegalDate;
 use ::j_law_registry::load_brokerage_fee_params;
+use ::j_law_registry::load_consumption_tax_params;
 use ::j_law_registry::load_income_tax_params;
 use ::j_law_registry::load_stamp_tax_params;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  消費税
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// 消費税の計算結果。
+///
+/// Attributes:
+///     tax_amount (int): 消費税額（円）
+///     amount_with_tax (int): 税込金額（円）
+///     amount_without_tax (int): 税抜金額（円）
+///     applied_rate_numer (int): 適用税率の分子
+///     applied_rate_denom (int): 適用税率の分母
+///     is_reduced_rate (bool): 軽減税率が適用されたか
+#[pyclass]
+struct ConsumptionTaxResult {
+    #[pyo3(get)]
+    tax_amount: u64,
+    #[pyo3(get)]
+    amount_with_tax: u64,
+    #[pyo3(get)]
+    amount_without_tax: u64,
+    #[pyo3(get)]
+    applied_rate_numer: u64,
+    #[pyo3(get)]
+    applied_rate_denom: u64,
+    #[pyo3(get)]
+    is_reduced_rate: bool,
+}
+
+#[pymethods]
+impl ConsumptionTaxResult {
+    fn __repr__(&self) -> String {
+        format!(
+            "ConsumptionTaxResult(tax_amount={}, amount_with_tax={}, amount_without_tax={}, applied_rate={}/{}, is_reduced_rate={})",
+            self.tax_amount,
+            self.amount_with_tax,
+            self.amount_without_tax,
+            self.applied_rate_numer,
+            self.applied_rate_denom,
+            self.is_reduced_rate,
+        )
+    }
+}
+
+/// 消費税法第29条に基づく消費税額を計算する。
+///
+/// # 法的根拠
+/// 消費税法 第29条（税率）
+///
+/// Args:
+///     amount (int): 課税標準額（税抜き・円）
+///     year (int): 基準日（年）
+///     month (int): 基準日（月）
+///     day (int): 基準日（日）
+///     is_reduced_rate (bool): 軽減税率フラグ（デフォルト: False）
+///         2019-10-01以降の飲食料品・新聞等に適用される8%軽減税率。
+///         WARNING: 対象が軽減税率の適用要件を満たすかの事実認定は呼び出し元の責任。
+///
+/// Returns:
+///     ConsumptionTaxResult
+///
+/// Raises:
+///     ValueError: 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
+#[pyfunction]
+#[pyo3(signature = (amount, year, month, day, is_reduced_rate=false))]
+fn calc_consumption_tax(
+    amount: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    is_reduced_rate: bool,
+) -> PyResult<ConsumptionTaxResult> {
+    let params = load_consumption_tax_params(LegalDate::new(year, month, day))
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+    let mut flags = HashSet::new();
+    if is_reduced_rate {
+        flags.insert(ConsumptionTaxFlag::ReducedRate);
+    }
+
+    let ctx = ConsumptionTaxContext {
+        amount,
+        target_date: LegalDate::new(year, month, day),
+        flags,
+        policy: Box::new(StandardConsumptionTaxPolicy),
+    };
+
+    let result = calculate_consumption_tax(&ctx, &params)
+        .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
+
+    Ok(ConsumptionTaxResult {
+        tax_amount: result.tax_amount.as_yen(),
+        amount_with_tax: result.amount_with_tax.as_yen(),
+        amount_without_tax: result.amount_without_tax.as_yen(),
+        applied_rate_numer: result.applied_rate_numer,
+        applied_rate_denom: result.applied_rate_denom,
+        is_reduced_rate: result.is_reduced_rate,
+    })
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  不動産（宅建業法）
@@ -389,6 +495,20 @@ fn calc_stamp_tax(
 //  モジュール定義
 // ═══════════════════════════════════════════════════════════════════════════════
 
+/// 消費税ドメインサブモジュール。
+fn register_consumption_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
+    let py = parent.py();
+    let m = PyModule::new(py, "consumption_tax")?;
+    m.add_class::<ConsumptionTaxResult>()?;
+    m.add_function(wrap_pyfunction!(calc_consumption_tax, &m)?)?;
+    parent.add_submodule(&m)?;
+    // sys.modules に登録して `from j_law_python.consumption_tax import ...` を有効にする
+    py.import("sys")?
+        .getattr("modules")?
+        .set_item("j_law_python.consumption_tax", &m)?;
+    Ok(())
+}
+
 /// 不動産ドメイン（宅建業法）サブモジュール。
 fn register_real_estate(parent: &Bound<'_, PyModule>) -> PyResult<()> {
     let py = parent.py();
@@ -454,6 +574,7 @@ fn register_stamp_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
 ///     print(result.tax_amount)         # 2000
 #[pymodule]
 fn j_law_python(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    register_consumption_tax(m)?;
     register_real_estate(m)?;
     register_income_tax(m)?;
     register_stamp_tax(m)?;

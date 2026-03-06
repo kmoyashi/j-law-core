@@ -29,7 +29,8 @@ const fixtures = JSON.parse(
 describe("calcStampTax - フィクスチャ駆動", () => {
   for (const c of fixtures.stamp_tax) {
     it(`${c.id}: ${c.description}`, () => {
-      const { contract_amount, year, month, day, is_reduced_rate_applicable } = c.input;
+      const { contract_amount, is_reduced_rate_applicable } = c.input;
+      const [year, month, day] = c.input.date.split("-").map(Number);
       const r = calcStampTax(contract_amount, year, month, day, is_reduced_rate_applicable);
       const exp = c.expected;
 

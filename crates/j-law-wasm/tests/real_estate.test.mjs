@@ -29,8 +29,9 @@ const fixtures = JSON.parse(
 describe("calcBrokerageFee - フィクスチャ駆動", () => {
   for (const c of fixtures.brokerage_fee) {
     it(`${c.id}: ${c.description}`, () => {
-      const { price, year, month, day, is_low_cost_vacant_house } = c.input;
+      const { price, is_low_cost_vacant_house } = c.input;
       const is_seller = c.input.is_seller ?? false;
+      const [year, month, day] = c.input.date.split("-").map(Number);
       const r = calcBrokerageFee(price, year, month, day, is_low_cost_vacant_house, is_seller);
       const exp = c.expected;
 

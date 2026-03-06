@@ -149,6 +149,56 @@ int j_law_calc_income_tax(
     int      error_buf_len
 );
 
+/* ─── 消費税 構造体 ───────────────────────────────────────────────────────── */
+
+/**
+ * 消費税の計算結果。
+ */
+typedef struct {
+    /** 消費税額（円）。 */
+    uint64_t tax_amount;
+    /** 税込金額（円）。 */
+    uint64_t amount_with_tax;
+    /** 税抜金額（円）。 */
+    uint64_t amount_without_tax;
+    /** 適用税率の分子。 */
+    uint64_t applied_rate_numer;
+    /** 適用税率の分母。 */
+    uint64_t applied_rate_denom;
+    /** 軽減税率が適用されたか（0 = false, 1 = true）。 */
+    int      is_reduced_rate;
+} JLawConsumptionTaxResult;
+
+/* ─── 消費税 関数 ─────────────────────────────────────────────────────────── */
+
+/**
+ * 消費税法第29条に基づく消費税額を計算する。
+ *
+ * 法的根拠: 消費税法 第29条（税率）
+ *
+ * @param amount              課税標準額（税抜き・円）
+ * @param year                基準日（年）
+ * @param month               基準日（月）
+ * @param day                 基準日（日）
+ * @param is_reduced_rate     軽減税率フラグ（0 = false, 非0 = true）
+ *                            2019-10-01以降の飲食料品・新聞等に適用される8%軽減税率。
+ *                            WARNING: 事実認定は呼び出し元の責任。
+ * @param out_result          [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
+ * @param error_buf           [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
+ * @param error_buf_len       error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
+ * @return                    成功時 0、失敗時 非0
+ */
+int j_law_calc_consumption_tax(
+    uint64_t amount,
+    uint16_t year,
+    uint8_t  month,
+    uint8_t  day,
+    int      is_reduced_rate,
+    JLawConsumptionTaxResult *out_result,
+    char    *error_buf,
+    int      error_buf_len
+);
+
 /* ─── 印紙税 構造体 ───────────────────────────────────────────────────────── */
 
 /**

@@ -24,8 +24,9 @@ class TestBrokerageFeeFixtures < Minitest::Test
       inp = c["input"]
       exp = c["expected"]
 
+      year, month, day = inp["date"].split("-").map(&:to_i)
       r = JLawRuby::RealEstate.calc_brokerage_fee(
-        inp["price"], inp["year"], inp["month"], inp["day"],
+        inp["price"], year, month, day,
         inp["is_low_cost_vacant_house"], inp.fetch("is_seller", false)
       )
 

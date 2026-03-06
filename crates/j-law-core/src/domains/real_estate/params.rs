@@ -1,3 +1,5 @@
+use crate::domains::consumption_tax::params::ConsumptionTaxParams;
+
 /// 1ティアの計算パラメータ。
 #[derive(Debug, Clone)]
 pub struct TierParam {
@@ -35,7 +37,7 @@ pub struct LowCostSpecialParams {
 #[derive(Debug, Clone)]
 pub struct BrokerageFeeParams {
     pub tiers: Vec<TierParam>,
-    pub tax_numer: u64,
-    pub tax_denom: u64,
+    /// 消費税パラメータ（消費税ドメインに処理を委譲する）。
+    pub consumption_tax: ConsumptionTaxParams,
     pub low_cost_special: Option<LowCostSpecialParams>,
 }

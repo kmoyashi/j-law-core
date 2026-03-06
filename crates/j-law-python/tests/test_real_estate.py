@@ -26,11 +26,10 @@ def test_brokerage_fee(case):
     inp = case["input"]
     exp = case["expected"]
 
+    year, month, day = (int(x) for x in inp["date"].split("-"))
     r = calc_brokerage_fee(
         inp["price"],
-        inp["year"],
-        inp["month"],
-        inp["day"],
+        year, month, day,
         is_low_cost_vacant_house=inp["is_low_cost_vacant_house"],
         is_seller=inp.get("is_seller", False),
     )
