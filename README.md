@@ -33,25 +33,26 @@ J-Law-Core は、日本の法令・告示・省令が定める各種計算を、
 ### Python
 
 ```python
+import datetime
 from j_law_python.real_estate import calc_brokerage_fee
 from j_law_python.income_tax import calc_income_tax
 
 # 媒介報酬の計算（宅建業法 第46条）
-result = calc_brokerage_fee(5_000_000, 2024, 8, 1)
+result = calc_brokerage_fee(5_000_000, datetime.date(2024, 8, 1))
 print(result.total_with_tax)     # 231000
 print(result.total_without_tax)  # 210000
 print(result.tax_amount)         # 21000
 
 # 低廉な空き家特例（2024年7月施行・800万円以下・売主買主双方）
-result = calc_brokerage_fee(8_000_000, 2024, 8, 1, is_low_cost_vacant_house=True)
+result = calc_brokerage_fee(8_000_000, datetime.date(2024, 8, 1), is_low_cost_vacant_house=True)
 print(result.total_with_tax)     # 363000
 
 # 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
-result = calc_brokerage_fee(4_000_000, 2022, 4, 1, is_low_cost_vacant_house=True, is_seller=True)
+result = calc_brokerage_fee(4_000_000, datetime.date(2022, 4, 1), is_low_cost_vacant_house=True, is_seller=True)
 print(result.total_with_tax)     # 198000
 
 # 所得税の計算（所得税法 第89条）
-result = calc_income_tax(5_000_000, 2024, 1, 1, apply_reconstruction_tax=True)
+result = calc_income_tax(5_000_000, datetime.date(2024, 1, 1), apply_reconstruction_tax=True)
 print(result.total_tax)          # 584500
 print(result.base_tax)           # 572500
 print(result.reconstruction_tax) # 12022
@@ -62,10 +63,10 @@ print(result.reconstruction_tax) # 12022
 ```javascript
 const { calcBrokerageFee, calcIncomeTax } = require("j-law-wasm");
 
-const fee = calcBrokerageFee(5_000_000, 2024, 8, 1, false, false);
+const fee = calcBrokerageFee(5_000_000, new Date(2024, 7, 1), false, false);
 console.log(fee.totalWithTax); // 231000
 
-const tax = calcIncomeTax(5_000_000, 2024, 1, 1, true);
+const tax = calcIncomeTax(5_000_000, new Date(2024, 0, 1), true);
 console.log(tax.totalTax); // 584500
 ```
 
@@ -73,23 +74,27 @@ console.log(tax.totalTax); // 584500
 
 ```ruby
 require "j_law_ruby"
-
-result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
+require "date"
+result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2024, 8, 1), false, false)
 puts result.total_with_tax  # 231000
 
-result = JLawRuby::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, true)
+result = JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2024, 1, 1), true)
 puts result.total_tax       # 584500
 ```
 
 ### Go
 
 ```go
-import jlawcore "github.com/kmoyashi/j-law-go"
-
-result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false, false)
+import (
+    "time"
+    jlawcore "github.com/kmoyashi/j-law-go"
+)
+date := time.Date(2024, time.August, 1, 0, 0, 0, 0, time.UTC)
+result, err := jlawcore.CalcBrokerageFee(5_000_000, date, false, false)
 fmt.Println(result.TotalWithTax) // 231000
 
-taxResult, err := jlawcore.CalcIncomeTax(5_000_000, 2024, 1, 1, true)
+taxDate := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+taxResult, err := jlawcore.CalcIncomeTax(5_000_000, taxDate, true)
 fmt.Println(taxResult.TotalTax)  // 584500
 ```
 

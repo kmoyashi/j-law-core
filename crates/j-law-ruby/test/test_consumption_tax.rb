@@ -2,6 +2,7 @@
 
 require "minitest/autorun"
 require "json"
+require "date"
 require "j_law_ruby"
 
 # 消費税法第29条に基づく消費税額計算のテスト。
@@ -18,10 +19,10 @@ class TestConsumptionTax < Minitest::Test
       inp = tc["input"]
       exp = tc["expected"]
 
-      year, month, day = inp["date"].split("-").map(&:to_i)
+      date = Date.parse(inp["date"])
       result = JLawRuby::ConsumptionTax.calc_consumption_tax(
         inp["amount"],
-        year, month, day,
+        date,
         inp["is_reduced_rate"]
       )
 
@@ -38,19 +39,19 @@ class TestConsumptionTax < Minitest::Test
 
   def test_error_reduced_rate_without_support
     err = assert_raises(RuntimeError) do
-      JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, 2016, 1, 1, true)
+      JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, Date.new(2016, 1, 1), true)
     end
     refute_nil err.message
   end
 
   def test_before_introduction_no_tax
-    result = JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, 1988, 1, 1, false)
+    result = JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, Date.new(1988, 1, 1), false)
     assert_equal 0, result.tax_amount
     assert_equal 100_000, result.amount_with_tax
   end
 
   def test_inspect
-    result = JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, 2024, 1, 1, false)
+    result = JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, Date.new(2024, 1, 1), false)
     assert_match(/ConsumptionTaxResult/, result.inspect)
   end
 end

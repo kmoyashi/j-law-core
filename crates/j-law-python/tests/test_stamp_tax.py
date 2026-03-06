@@ -5,6 +5,7 @@
 テストケースは tests/fixtures/stamp_tax.json から読み込む。
 """
 
+import datetime
 import json
 import pathlib
 
@@ -26,10 +27,10 @@ def test_stamp_tax(case):
     inp = case["input"]
     exp = case["expected"]
 
-    year, month, day = (int(x) for x in inp["date"].split("-"))
+    date = datetime.date.fromisoformat(inp["date"])
     r = calc_stamp_tax(
         inp["contract_amount"],
-        year, month, day,
+        date,
         is_reduced_rate_applicable=inp["is_reduced_rate_applicable"],
     )
 
@@ -47,8 +48,8 @@ class TestLanguageSpecific:
 
     def test_error_date_out_of_range(self):
         with pytest.raises(ValueError, match="2014-03-31"):
-            calc_stamp_tax(5_000_000, 2014, 3, 31)
+            calc_stamp_tax(5_000_000, datetime.date(2014, 3, 31))
 
     def test_repr(self):
-        r = calc_stamp_tax(5_000_000, 2024, 8, 1)
+        r = calc_stamp_tax(5_000_000, datetime.date(2024, 8, 1))
         assert "StampTaxResult" in repr(r)

@@ -10,6 +10,7 @@
 
 require "minitest/autorun"
 require "json"
+require "date"
 require "j_law_ruby"
 
 REAL_ESTATE_FIXTURES = JSON.parse(
@@ -24,9 +25,9 @@ class TestBrokerageFeeFixtures < Minitest::Test
       inp = c["input"]
       exp = c["expected"]
 
-      year, month, day = inp["date"].split("-").map(&:to_i)
+      date = Date.parse(inp["date"])
       r = JLawRuby::RealEstate.calc_brokerage_fee(
-        inp["price"], year, month, day,
+        inp["price"], date,
         inp["is_low_cost_vacant_house"], inp.fetch("is_seller", false)
       )
 
@@ -60,13 +61,13 @@ class TestBrokerageFeeLanguageSpecific < Minitest::Test
   def test_error_date_out_of_range
     # 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
     err = assert_raises(RuntimeError) do
-      JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2017, 12, 31, false, false)
+      JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2017, 12, 31), false, false)
     end
     assert_match(/2017-12-31/, err.message)
   end
 
   def test_breakdown_fields
-    r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
+    r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2024, 8, 1), false, false)
     r.breakdown.each do |step|
       refute_empty step[:label]
       assert_operator step[:rate_denom], :>, 0
@@ -74,7 +75,7 @@ class TestBrokerageFeeLanguageSpecific < Minitest::Test
   end
 
   def test_inspect
-    r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
+    r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2024, 8, 1), false, false)
     assert_match(/BrokerageFeeResult/, r.inspect)
   end
 end

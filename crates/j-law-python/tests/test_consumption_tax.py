@@ -5,6 +5,7 @@
 テストケースは tests/fixtures/consumption_tax.json から読み込む。
 """
 
+import datetime
 import json
 import pathlib
 
@@ -26,10 +27,10 @@ def test_consumption_tax(case):
     inp = case["input"]
     exp = case["expected"]
 
-    year, month, day = (int(x) for x in inp["date"].split("-"))
+    date = datetime.date.fromisoformat(inp["date"])
     r = calc_consumption_tax(
         inp["amount"],
-        year, month, day,
+        date,
         is_reduced_rate=inp["is_reduced_rate"],
     )
 
@@ -56,14 +57,14 @@ class TestLanguageSpecific:
     def test_error_reduced_rate_without_support(self):
         """軽減税率フラグを立てても対応期間外ならエラー。"""
         with pytest.raises(ValueError):
-            calc_consumption_tax(100_000, 2016, 1, 1, is_reduced_rate=True)
+            calc_consumption_tax(100_000, datetime.date(2016, 1, 1), is_reduced_rate=True)
 
     def test_repr(self):
-        r = calc_consumption_tax(100_000, 2024, 1, 1)
+        r = calc_consumption_tax(100_000, datetime.date(2024, 1, 1))
         assert "ConsumptionTaxResult" in repr(r)
 
     def test_before_introduction_no_tax(self):
         """消費税導入前は税額ゼロで正常終了（エラーにならない）。"""
-        r = calc_consumption_tax(100_000, 1988, 1, 1)
+        r = calc_consumption_tax(100_000, datetime.date(1988, 1, 1))
         assert r.tax_amount == 0
         assert r.amount_with_tax == 100_000

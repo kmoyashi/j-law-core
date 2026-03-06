@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use pyo3::prelude::*;
+use pyo3::types::{PyDate, PyDateAccess};
 
 use ::j_law_core::domains::consumption_tax::{
     calculator::calculate_consumption_tax,
@@ -78,9 +79,7 @@ impl ConsumptionTaxResult {
 ///
 /// Args:
 ///     amount (int): 課税標準額（税抜き・円）
-///     year (int): 基準日（年）
-///     month (int): 基準日（月）
-///     day (int): 基準日（日）
+///     date (datetime.date): 基準日
 ///     is_reduced_rate (bool): 軽減税率フラグ（デフォルト: False）
 ///         2019-10-01以降の飲食料品・新聞等に適用される8%軽減税率。
 ///         WARNING: 対象が軽減税率の適用要件を満たすかの事実認定は呼び出し元の責任。
@@ -91,14 +90,16 @@ impl ConsumptionTaxResult {
 /// Raises:
 ///     ValueError: 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
 #[pyfunction]
-#[pyo3(signature = (amount, year, month, day, is_reduced_rate=false))]
+#[pyo3(signature = (amount, date, is_reduced_rate=false))]
 fn calc_consumption_tax(
     amount: u64,
-    year: u16,
-    month: u8,
-    day: u8,
+    date: &Bound<'_, PyDate>,
     is_reduced_rate: bool,
 ) -> PyResult<ConsumptionTaxResult> {
+    let year = date.get_year() as u16;
+    let month = date.get_month();
+    let day = date.get_day();
+
     let params = load_consumption_tax_params(LegalDate::new(year, month, day))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
@@ -201,9 +202,7 @@ impl BrokerageFeeResult {
 ///
 /// Args:
 ///     price (int): 売買価格（円）
-///     year (int): 基準日（年）
-///     month (int): 基準日（月）
-///     day (int): 基準日（日）
+///     date (datetime.date): 基準日
 ///     is_low_cost_vacant_house (bool): 低廉な空き家特例フラグ（デフォルト: False）
 ///         WARNING: 対象物件が「低廉な空き家」に該当するかの事実認定は呼び出し元の責任。
 ///     is_seller (bool): 売主側フラグ（デフォルト: False）
@@ -216,15 +215,17 @@ impl BrokerageFeeResult {
 /// Raises:
 ///     ValueError: 売買価格が不正、または対象日に有効な法令パラメータが存在しない場合
 #[pyfunction]
-#[pyo3(signature = (price, year, month, day, is_low_cost_vacant_house=false, is_seller=false))]
+#[pyo3(signature = (price, date, is_low_cost_vacant_house=false, is_seller=false))]
 fn calc_brokerage_fee(
     price: u64,
-    year: u16,
-    month: u8,
-    day: u8,
+    date: &Bound<'_, PyDate>,
     is_low_cost_vacant_house: bool,
     is_seller: bool,
 ) -> PyResult<BrokerageFeeResult> {
+    let year = date.get_year() as u16;
+    let month = date.get_month();
+    let day = date.get_day();
+
     let params = load_brokerage_fee_params(LegalDate::new(year, month, day))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
@@ -349,9 +350,7 @@ impl IncomeTaxResult {
 ///
 /// Args:
 ///     taxable_income (int): 課税所得金額（円・1,000円未満切り捨て済み）
-///     year (int): 対象年度（年）
-///     month (int): 基準日（月）
-///     day (int): 基準日（日）
+///     date (datetime.date): 基準日
 ///     apply_reconstruction_tax (bool): 復興特別所得税を適用するか（デフォルト: True）
 ///
 /// Returns:
@@ -360,14 +359,16 @@ impl IncomeTaxResult {
 /// Raises:
 ///     ValueError: 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合
 #[pyfunction]
-#[pyo3(signature = (taxable_income, year, month, day, apply_reconstruction_tax=true))]
+#[pyo3(signature = (taxable_income, date, apply_reconstruction_tax=true))]
 fn calc_income_tax(
     taxable_income: u64,
-    year: u16,
-    month: u8,
-    day: u8,
+    date: &Bound<'_, PyDate>,
     apply_reconstruction_tax: bool,
 ) -> PyResult<IncomeTaxResult> {
+    let year = date.get_year() as u16;
+    let month = date.get_month();
+    let day = date.get_day();
+
     let params = load_income_tax_params(LegalDate::new(year, month, day))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
@@ -446,9 +447,7 @@ impl StampTaxResult {
 ///
 /// Args:
 ///     contract_amount (int): 契約金額（円）
-///     year (int): 契約書作成日（年）
-///     month (int): 契約書作成日（月）
-///     day (int): 契約書作成日（日）
+///     date (datetime.date): 契約書作成日
 ///     is_reduced_rate_applicable (bool): 軽減税率適用フラグ（デフォルト: False）
 ///         WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
 ///
@@ -458,14 +457,16 @@ impl StampTaxResult {
 /// Raises:
 ///     ValueError: 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合
 #[pyfunction]
-#[pyo3(signature = (contract_amount, year, month, day, is_reduced_rate_applicable=false))]
+#[pyo3(signature = (contract_amount, date, is_reduced_rate_applicable=false))]
 fn calc_stamp_tax(
     contract_amount: u64,
-    year: u16,
-    month: u8,
-    day: u8,
+    date: &Bound<'_, PyDate>,
     is_reduced_rate_applicable: bool,
 ) -> PyResult<StampTaxResult> {
+    let year = date.get_year() as u16;
+    let month = date.get_month();
+    let day = date.get_day();
+
     let params = load_stamp_tax_params(LegalDate::new(year, month, day))
         .map_err(|e| pyo3::exceptions::PyValueError::new_err(e.to_string()))?;
 
@@ -557,19 +558,20 @@ fn register_stamp_tax(parent: &Bound<'_, PyModule>) -> PyResult<()> {
 ///
 /// 使用例::
 ///
+///     import datetime
 ///     import j_law_python
 ///     result = j_law_python.real_estate.calc_brokerage_fee(
-///         price=5_000_000, year=2024, month=8, day=1
+///         price=5_000_000, date=datetime.date(2024, 8, 1)
 ///     )
 ///     print(result.total_with_tax)     # 231000
 ///
 ///     result = j_law_python.income_tax.calc_income_tax(
-///         taxable_income=5_000_000, year=2024, month=1, day=1
+///         taxable_income=5_000_000, date=datetime.date(2024, 1, 1)
 ///     )
 ///     print(result.total_tax)          # 584500
 ///
 ///     result = j_law_python.stamp_tax.calc_stamp_tax(
-///         contract_amount=5_000_000, year=2024, month=8, day=1
+///         contract_amount=5_000_000, date=datetime.date(2024, 8, 1)
 ///     )
 ///     print(result.tax_amount)         # 2000
 #[pymodule]

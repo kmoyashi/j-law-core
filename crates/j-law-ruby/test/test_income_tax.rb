@@ -10,6 +10,7 @@
 
 require "minitest/autorun"
 require "json"
+require "date"
 require "j_law_ruby"
 
 INCOME_TAX_FIXTURES = JSON.parse(
@@ -24,9 +25,9 @@ class TestIncomeTaxFixtures < Minitest::Test
       inp = c["input"]
       exp = c["expected"]
 
-      year, month, day = inp["date"].split("-").map(&:to_i)
+      date = Date.parse(inp["date"])
       r = JLawRuby::IncomeTax.calc_income_tax(
-        inp["taxable_income"], year, month, day,
+        inp["taxable_income"], date,
         inp["apply_reconstruction_tax"]
       )
 
@@ -47,12 +48,12 @@ end
 class TestIncomeTaxLanguageSpecific < Minitest::Test
   def test_error_date_out_of_range
     assert_raises(RuntimeError) do
-      JLawRuby::IncomeTax.calc_income_tax(5_000_000, 2014, 12, 31, true)
+      JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2014, 12, 31), true)
     end
   end
 
   def test_breakdown_fields
-    r = JLawRuby::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, true)
+    r = JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2024, 1, 1), true)
     refute_empty r.breakdown
     r.breakdown.each do |step|
       refute_empty step[:label]
@@ -61,7 +62,7 @@ class TestIncomeTaxLanguageSpecific < Minitest::Test
   end
 
   def test_inspect
-    r = JLawRuby::IncomeTax.calc_income_tax(5_000_000, 2024, 1, 1, true)
+    r = JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2024, 1, 1), true)
     assert_match(/IncomeTaxResult/, r.inspect)
   end
 end
