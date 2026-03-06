@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
-use magnus::{function, method, Error, Module, RArray, Ruby, Symbol};
+use magnus::value::ReprValue;
+use magnus::{function, method, Error, Module, RArray, Ruby, Symbol, Value};
 
 use ::j_law_core::domains::consumption_tax::{
     calculator::calculate_consumption_tax,
@@ -29,6 +30,14 @@ use ::j_law_registry::load_stamp_tax_params;
 
 fn into_runtime_error<E: std::fmt::Debug>(e: E) -> Error {
     Error::new(magnus::exception::runtime_error(), format!("{e:?}"))
+}
+
+/// Ruby の Date / DateTime オブジェクトから (year, month, day) を取得する。
+fn extract_date(date: Value) -> Result<(u16, u8, u8), Error> {
+    let year: i32 = date.funcall("year", ())?;
+    let month: i32 = date.funcall("month", ())?;
+    let day: i32 = date.funcall("day", ())?;
+    Ok((year as u16, month as u8, day as u8))
 }
 
 // ─── 消費税 Ruby公開型 ──────────────────────────────────────────────────────────
@@ -105,20 +114,18 @@ impl RbConsumptionTaxResult {
 /// 消費税法 第29条（税率）
 ///
 /// @param amount [Integer] 課税標準額（税抜き・円）
-/// @param year  [Integer] 基準日（年）
-/// @param month [Integer] 基準日（月）
-/// @param day   [Integer] 基準日（日）
+/// @param date [Date] 基準日
 /// @param is_reduced_rate [true, false] 軽減税率フラグ（2019-10-01以降の飲食料品・新聞等）
 ///   WARNING: 対象が軽減税率の適用要件を満たすかの事実認定は呼び出し元の責任。
 /// @return [JLawRuby::ConsumptionTax::ConsumptionTaxResult]
 /// @raise [RuntimeError] 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
 fn calc_consumption_tax(
     amount: u64,
-    year: u16,
-    month: u8,
-    day: u8,
+    date: Value,
     is_reduced_rate: bool,
 ) -> Result<RbConsumptionTaxResult, Error> {
+    let (year, month, day) = extract_date(date)?;
+
     let params = load_consumption_tax_params(LegalDate::new(year, month, day))
         .map_err(into_runtime_error)?;
 
@@ -243,9 +250,7 @@ impl RbBrokerageFeeResult {
 /// 宅地建物取引業法 第46条第1項 / 国土交通省告示
 ///
 /// @param price [Integer] 売買価格（円）
-/// @param year  [Integer] 基準日（年）
-/// @param month [Integer] 基準日（月）
-/// @param day   [Integer] 基準日（日）
+/// @param date [Date] 基準日
 /// @param is_low_cost_vacant_house [true, false] 低廉な空き家特例フラグ
 ///   WARNING: 対象物件が「低廉な空き家」に該当するかの事実認定は呼び出し元の責任。
 /// @param is_seller [true, false] 売主側フラグ（2018年〜2024年6月30日の低廉特例は売主のみ適用）
@@ -254,12 +259,12 @@ impl RbBrokerageFeeResult {
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_brokerage_fee(
     price: u64,
-    year: u16,
-    month: u8,
-    day: u8,
+    date: Value,
     is_low_cost_vacant_house: bool,
     is_seller: bool,
 ) -> Result<RbBrokerageFeeResult, Error> {
+    let (year, month, day) = extract_date(date)?;
+
     let params =
         load_brokerage_fee_params(LegalDate::new(year, month, day)).map_err(into_runtime_error)?;
 
@@ -399,19 +404,17 @@ impl RbIncomeTaxResult {
 /// 所得税法 第89条第1項 / 復興財源確保法 第13条
 ///
 /// @param taxable_income [Integer] 課税所得金額（円）
-/// @param year  [Integer] 対象年度（年）
-/// @param month [Integer] 基準日（月）
-/// @param day   [Integer] 基準日（日）
+/// @param date [Date] 基準日
 /// @param apply_reconstruction_tax [true, false] 復興特別所得税を適用するか
 /// @return [JLawRuby::IncomeTax::IncomeTaxResult]
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_income_tax(
     taxable_income: u64,
-    year: u16,
-    month: u8,
-    day: u8,
+    date: Value,
     apply_reconstruction_tax: bool,
 ) -> Result<RbIncomeTaxResult, Error> {
+    let (year, month, day) = extract_date(date)?;
+
     let params =
         load_income_tax_params(LegalDate::new(year, month, day)).map_err(into_runtime_error)?;
 
@@ -504,20 +507,18 @@ impl RbStampTaxResult {
 /// 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
 ///
 /// @param contract_amount [Integer] 契約金額（円）
-/// @param year  [Integer] 契約書作成日（年）
-/// @param month [Integer] 契約書作成日（月）
-/// @param day   [Integer] 契約書作成日（日）
+/// @param date [Date] 契約書作成日
 /// @param is_reduced_rate_applicable [true, false] 軽減税率適用フラグ
 ///   WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
 /// @return [JLawRuby::StampTax::StampTaxResult]
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_stamp_tax(
     contract_amount: u64,
-    year: u16,
-    month: u8,
-    day: u8,
+    date: Value,
     is_reduced_rate_applicable: bool,
 ) -> Result<RbStampTaxResult, Error> {
+    let (year, month, day) = extract_date(date)?;
+
     let params =
         load_stamp_tax_params(LegalDate::new(year, month, day)).map_err(into_runtime_error)?;
 
@@ -583,7 +584,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
 
     // モジュール関数: JLawRuby::ConsumptionTax.calc_consumption_tax(...)
     consumption_tax
-        .define_module_function("calc_consumption_tax", function!(calc_consumption_tax, 5))?;
+        .define_module_function("calc_consumption_tax", function!(calc_consumption_tax, 3))?;
 
     let real_estate = j_law_core.define_module("RealEstate")?;
 
@@ -607,7 +608,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     result_class.define_method("to_s", method!(RbBrokerageFeeResult::inspect, 0))?;
 
     // モジュール関数: JLawRuby::RealEstate.calc_brokerage_fee(...)
-    real_estate.define_module_function("calc_brokerage_fee", function!(calc_brokerage_fee, 6))?;
+    real_estate.define_module_function("calc_brokerage_fee", function!(calc_brokerage_fee, 4))?;
 
     // ─── 所得税 ───────────────────────────────────────────────────────────────
     let income_tax = j_law_core.define_module("IncomeTax")?;
@@ -630,7 +631,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     income_tax_result_class.define_method("to_s", method!(RbIncomeTaxResult::inspect, 0))?;
 
     // モジュール関数: JLawRuby::IncomeTax.calc_income_tax(...)
-    income_tax.define_module_function("calc_income_tax", function!(calc_income_tax, 5))?;
+    income_tax.define_module_function("calc_income_tax", function!(calc_income_tax, 3))?;
 
     // ─── 印紙税 ───────────────────────────────────────────────────────────────
     let stamp_tax = j_law_core.define_module("StampTax")?;
@@ -648,7 +649,7 @@ fn init(ruby: &Ruby) -> Result<(), Error> {
     stamp_tax_result_class.define_method("to_s", method!(RbStampTaxResult::inspect, 0))?;
 
     // モジュール関数: JLawRuby::StampTax.calc_stamp_tax(...)
-    stamp_tax.define_module_function("calc_stamp_tax", function!(calc_stamp_tax, 5))?;
+    stamp_tax.define_module_function("calc_stamp_tax", function!(calc_stamp_tax, 3))?;
 
     Ok(())
 }

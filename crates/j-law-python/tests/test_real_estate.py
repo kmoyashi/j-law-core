@@ -5,6 +5,7 @@
 テストケースは tests/fixtures/real_estate.json から読み込む。
 """
 
+import datetime
 import json
 import pathlib
 
@@ -26,10 +27,10 @@ def test_brokerage_fee(case):
     inp = case["input"]
     exp = case["expected"]
 
-    year, month, day = (int(x) for x in inp["date"].split("-"))
+    date = datetime.date.fromisoformat(inp["date"])
     r = calc_brokerage_fee(
         inp["price"],
-        year, month, day,
+        date,
         is_low_cost_vacant_house=inp["is_low_cost_vacant_house"],
         is_seller=inp.get("is_seller", False),
     )
@@ -56,14 +57,14 @@ class TestLanguageSpecific:
     def test_error_date_out_of_range(self):
         # 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
         with pytest.raises(ValueError, match="2017-12-31"):
-            calc_brokerage_fee(5_000_000, 2017, 12, 31)
+            calc_brokerage_fee(5_000_000, datetime.date(2017, 12, 31))
 
     def test_breakdown_fields(self):
-        r = calc_brokerage_fee(5_000_000, 2024, 8, 1)
+        r = calc_brokerage_fee(5_000_000, datetime.date(2024, 8, 1))
         for step in r.breakdown:
             assert step.label != ""
             assert step.rate_denom > 0
 
     def test_repr(self):
-        r = calc_brokerage_fee(5_000_000, 2024, 8, 1)
+        r = calc_brokerage_fee(5_000_000, datetime.date(2024, 8, 1))
         assert "BrokerageFeeResult" in repr(r)

@@ -3,25 +3,22 @@ package jlawcore_test
 import (
 	"encoding/json"
 	"os"
-	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	jlawcore "github.com/kmoyashi/j-law-go"
 )
 
 // ─── 日付ユーティリティ ──────────────────────────────────────────────────────
 
-func parseDate(t *testing.T, date string) (int, int, int) {
+func parseDate(t *testing.T, date string) time.Time {
 	t.Helper()
-	parts := strings.Split(date, "-")
-	if len(parts) != 3 {
-		t.Fatalf("invalid date format: %s", date)
+	d, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		t.Fatalf("invalid date: %s", date)
 	}
-	year, _ := strconv.Atoi(parts[0])
-	month, _ := strconv.Atoi(parts[1])
-	day, _ := strconv.Atoi(parts[2])
-	return year, month, day
+	return d
 }
 
 // ─── フィクスチャ型定義 ──────────────────────────────────────────────────────
@@ -185,10 +182,9 @@ func TestBrokerageFee(t *testing.T) {
 
 	for _, tc := range fixtures.BrokerageFee {
 		t.Run(tc.ID, func(t *testing.T) {
-			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcBrokerageFee(
 				tc.Input.Price,
-				year, month, day,
+				parseDate(t, tc.Input.Date),
 				tc.Input.IsLowCostVacantHouse,
 				tc.Input.IsSeller,
 			)
@@ -238,10 +234,9 @@ func TestIncomeTax(t *testing.T) {
 
 	for _, tc := range fixtures.IncomeTax {
 		t.Run(tc.ID, func(t *testing.T) {
-			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcIncomeTax(
 				tc.Input.TaxableIncome,
-				year, month, day,
+				parseDate(t, tc.Input.Date),
 				tc.Input.ApplyReconstructionTax,
 			)
 			if err != nil {
@@ -269,7 +264,7 @@ func TestIncomeTax(t *testing.T) {
 
 func TestBrokerageFee_ErrorDateOutOfRange(t *testing.T) {
 	// 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
-	_, err := jlawcore.CalcBrokerageFee(5_000_000, 2017, 12, 31, false, false)
+	_, err := jlawcore.CalcBrokerageFee(5_000_000, time.Date(2017, time.December, 31, 0, 0, 0, 0, time.UTC), false, false)
 	if err == nil {
 		t.Fatal("expected error for date out of range, got nil")
 	}
@@ -279,7 +274,7 @@ func TestBrokerageFee_ErrorDateOutOfRange(t *testing.T) {
 }
 
 func TestBrokerageFee_BreakdownFields(t *testing.T) {
-	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false, false)
+	result, err := jlawcore.CalcBrokerageFee(5_000_000, time.Date(2024, time.August, 1, 0, 0, 0, 0, time.UTC), false, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -294,14 +289,14 @@ func TestBrokerageFee_BreakdownFields(t *testing.T) {
 }
 
 func TestIncomeTax_ErrorDateOutOfRange(t *testing.T) {
-	_, err := jlawcore.CalcIncomeTax(5_000_000, 2014, 12, 31, true)
+	_, err := jlawcore.CalcIncomeTax(5_000_000, time.Date(2014, time.December, 31, 0, 0, 0, 0, time.UTC), true)
 	if err == nil {
 		t.Fatal("expected error for date out of range, got nil")
 	}
 }
 
 func TestIncomeTax_BreakdownFields(t *testing.T) {
-	result, err := jlawcore.CalcIncomeTax(5_000_000, 2024, 1, 1, true)
+	result, err := jlawcore.CalcIncomeTax(5_000_000, time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC), true)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -325,10 +320,9 @@ func TestStampTax(t *testing.T) {
 
 	for _, tc := range fixtures.StampTax {
 		t.Run(tc.ID, func(t *testing.T) {
-			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcStampTax(
 				tc.Input.ContractAmount,
-				year, month, day,
+				parseDate(t, tc.Input.Date),
 				tc.Input.IsReducedRateApplicable,
 			)
 			if err != nil {
@@ -353,10 +347,9 @@ func TestConsumptionTax(t *testing.T) {
 
 	for _, tc := range fixtures.ConsumptionTax {
 		t.Run(tc.ID, func(t *testing.T) {
-			year, month, day := parseDate(t, tc.Input.Date)
 			result, err := jlawcore.CalcConsumptionTax(
 				tc.Input.Amount,
-				year, month, day,
+				parseDate(t, tc.Input.Date),
 				tc.Input.IsReducedRate,
 			)
 			if err != nil {
@@ -390,7 +383,7 @@ func TestConsumptionTax(t *testing.T) {
 
 func TestConsumptionTax_ErrorReducedRateWithoutSupport(t *testing.T) {
 	// 2016年は標準8%のみ、軽減税率は存在しないためエラー
-	_, err := jlawcore.CalcConsumptionTax(100_000, 2016, 1, 1, true)
+	_, err := jlawcore.CalcConsumptionTax(100_000, time.Date(2016, time.January, 1, 0, 0, 0, 0, time.UTC), true)
 	if err == nil {
 		t.Fatal("expected error for reduced rate without support, got nil")
 	}
@@ -398,7 +391,7 @@ func TestConsumptionTax_ErrorReducedRateWithoutSupport(t *testing.T) {
 
 func TestConsumptionTax_BeforeIntroductionNoTax(t *testing.T) {
 	// 消費税導入前（1988年）は税額ゼロで正常終了
-	result, err := jlawcore.CalcConsumptionTax(100_000, 1988, 1, 1, false)
+	result, err := jlawcore.CalcConsumptionTax(100_000, time.Date(1988, time.January, 1, 0, 0, 0, 0, time.UTC), false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -413,14 +406,14 @@ func TestConsumptionTax_BeforeIntroductionNoTax(t *testing.T) {
 // ─── 印紙税: 言語固有テスト ────────────────────────────────────────────────────
 
 func TestStampTax_ErrorDateOutOfRange(t *testing.T) {
-	_, err := jlawcore.CalcStampTax(5_000_000, 2014, 3, 31, false)
+	_, err := jlawcore.CalcStampTax(5_000_000, time.Date(2014, time.March, 31, 0, 0, 0, 0, time.UTC), false)
 	if err == nil {
 		t.Fatal("expected error for date out of range, got nil")
 	}
 }
 
 func TestStampTax_BracketLabelPresent(t *testing.T) {
-	result, err := jlawcore.CalcStampTax(5_000_000, 2024, 8, 1, false)
+	result, err := jlawcore.CalcStampTax(5_000_000, time.Date(2024, time.August, 1, 0, 0, 0, 0, time.UTC), false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

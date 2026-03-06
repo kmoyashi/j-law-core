@@ -142,14 +142,13 @@ maturin develop -m crates/j-law-python/Cargo.toml
 ### 使用例
 
 ```python
+import datetime
 import j_law_python
 
 # 基本的な計算（売買価格 500万円、2024年8月1日）
 result = j_law_python.real_estate.calc_brokerage_fee(
     price=5_000_000,
-    year=2024,
-    month=8,
-    day=1,
+    date=datetime.date(2024, 8, 1),
 )
 
 print(result.total_without_tax)  # 210000
@@ -166,9 +165,7 @@ for step in result.breakdown:
 # 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
 result = j_law_python.real_estate.calc_brokerage_fee(
     price=8_000_000,
-    year=2024,
-    month=8,
-    day=1,
+    date=datetime.date(2024, 8, 1),
     is_low_cost_vacant_house=True,
 )
 
@@ -178,9 +175,7 @@ print(result.total_with_tax)            # 363000
 # 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
 result = j_law_python.real_estate.calc_brokerage_fee(
     price=4_000_000,
-    year=2022,
-    month=4,
-    day=1,
+    date=datetime.date(2022, 4, 1),
     is_low_cost_vacant_house=True,
     is_seller=True,
 )
@@ -192,12 +187,11 @@ print(result.total_with_tax)            # 198000
 ### エラーハンドリング
 
 ```python
+import datetime
 try:
     result = j_law_python.real_estate.calc_brokerage_fee(
         price=5_000_000,
-        year=2017,
-        month=12,
-        day=31,  # 施行前のためエラー
+        date=datetime.date(2017, 12, 31),  # 施行前のためエラー
     )
 except ValueError as e:
     print(f"エラー: {e}")
@@ -208,9 +202,7 @@ except ValueError as e:
 ```python
 j_law_python.real_estate.calc_brokerage_fee(
     price: int,                              # 売買価格（円）
-    year: int,                               # 基準日（年）
-    month: int,                              # 基準日（月）
-    day: int,                                # 基準日（日）
+    date: datetime.date,                     # 基準日
     is_low_cost_vacant_house: bool = False,  # 低廉な空き家特例フラグ
     is_seller: bool = False,                 # 売主側として計算するか（2018〜2024年の特例判定に使用）
 ) -> BrokerageFeeResult
@@ -257,11 +249,16 @@ wasm-pack build --target web        # ブラウザ直接読み込み向け
 
 ### 使用例（JavaScript）
 
+> **タイムゾーンに関する注意**: 渡した `Date` オブジェクトは常に **JST（UTC+9）** として解釈されます。
+> `new Date("2024-08-01")` のような ISO 文字列からの生成は UTC midnight になるため、
+> `new Date(Date.UTC(2024, 7, 1))` または `new Date(2024, 7, 1)` を使ってください。
+
 ```javascript
 import { calcBrokerageFee } from "j-law-wasm";
 
 // 基本的な計算（売買価格 500万円、2024年8月1日）
-const result = calcBrokerageFee(5_000_000, 2024, 8, 1, false, false);
+// Date.UTC() を使うとタイムゾーンに依存しない
+const result = calcBrokerageFee(5_000_000, new Date(Date.UTC(2024, 7, 1)), false, false);
 
 console.log(result.totalWithoutTax); // 210000
 console.log(result.totalWithTax); // 231000
@@ -275,13 +272,13 @@ for (const step of result.breakdown()) {
 }
 
 // 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
-const result2 = calcBrokerageFee(8_000_000, 2024, 8, 1, true, false);
+const result2 = calcBrokerageFee(8_000_000, new Date(Date.UTC(2024, 7, 1)), true, false);
 
 console.log(result2.lowCostSpecialApplied); // true
 console.log(result2.totalWithTax); // 363000
 
 // 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
-const result3 = calcBrokerageFee(4_000_000, 2022, 4, 1, true, true);
+const result3 = calcBrokerageFee(4_000_000, new Date(Date.UTC(2022, 3, 1)), true, true);
 
 console.log(result3.lowCostSpecialApplied); // true
 console.log(result3.totalWithTax); // 198000
@@ -294,9 +291,7 @@ import { calcBrokerageFee, BrokerageFeeResult } from "j-law-wasm";
 
 const result: BrokerageFeeResult = calcBrokerageFee(
   5_000_000,
-  2024,
-  8,
-  1,
+  new Date(Date.UTC(2024, 7, 1)),
   false,
   false,
 );
@@ -321,7 +316,7 @@ breakdown.forEach((step) => {
 
 ```javascript
 try {
-  const result = calcBrokerageFee(5_000_000, 2017, 12, 31, false, false);
+  const result = calcBrokerageFee(5_000_000, new Date(Date.UTC(2017, 11, 31)), false, false);
 } catch (e) {
   console.error(`計算エラー: ${e}`); // 文字列として throw される
 }
@@ -332,9 +327,7 @@ try {
 ```typescript
 function calcBrokerageFee(
   price: number, // 売買価格（円）※ u32 上限: 約42.9億円
-  year: number, // 基準日（年）
-  month: number, // 基準日（月）
-  day: number, // 基準日（日）
+  date: Date, // 基準日
   isLowCostVacantHouse: boolean, // 低廉な空き家特例フラグ
   isSeller: boolean, // 売主側として計算するか（2018〜2024年の特例判定に使用）
 ): BrokerageFeeResult;

@@ -248,33 +248,40 @@ pub fn calculate_brokerage_fee(...) -> Result<CalculationResult, JLawError> {
 { "date": "2024-08-01" }
 ```
 
-各言語のテストコードでは、日付文字列を分割して年・月・日の整数に変換してからバインディング関数に渡します。
+各言語のテストコードでは、日付文字列を各言語のネイティブ日付型に変換してからバインディング関数に渡します。
 
 ```python
-# Python
-year, month, day = (int(x) for x in inp["date"].split("-"))
+# Python — datetime.date.fromisoformat() を使う
+date = datetime.date.fromisoformat(inp["date"])
 ```
 
 ```javascript
-// JavaScript / WASM
-const [year, month, day] = c.input.date.split("-").map(Number);
+// JavaScript — Date.UTC() を使う（JST 解釈・タイムゾーン非依存）
+const [y, m, d] = c.input.date.split("-").map(Number);
+const date = new Date(Date.UTC(y, m - 1, d));
 ```
 
 ```ruby
-# Ruby
-year, month, day = inp["date"].split("-").map(&:to_i)
+# Ruby — Date.parse() を使う
+date = Date.parse(inp["date"])
 ```
 
 ```go
-// Go — parseDate ヘルパーを使う
-year, month, day := parseDate(t, tc.Input.Date)
+// Go — time.Parse() を使う
+date, _ := time.Parse("2006-01-02", tc.Input.Date)
 ```
 
 ### バインディング関数シグネチャ
 
-Rust コアと全バインディングの公開 API では、日付は `year: u16, month: u8, day: u8` の
-**3 引数** で受け取ります。フィクスチャ JSON の文字列形式はあくまで「テストデータの記述形式」であり、
-関数インターフェースは変えません。
+Rust コアと C FFI では、日付は `year: u16, month: u8, day: u8` の **3 引数** で受け取ります。
+各言語バインディング（Python / WASM / Ruby / Go）では、各言語のネイティブ日付型を使用します:
+
+- **Python**: `datetime.date`
+- **JavaScript (WASM)**: `Date`
+- **Ruby**: `Date`
+- **Go**: `time.Time`
+
+バインディング層でネイティブ日付型から year / month / day を抽出し、Rust コアに渡します。
 
 ---
 

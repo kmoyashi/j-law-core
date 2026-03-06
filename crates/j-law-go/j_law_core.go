@@ -5,13 +5,15 @@
 //
 // 使用例:
 //
-//	result, err := jlawcore.CalcBrokerageFee(5_000_000, 2024, 8, 1, false)
+//	date := time.Date(2024, time.August, 1, 0, 0, 0, 0, time.UTC)
+//	result, err := jlawcore.CalcBrokerageFee(5_000_000, date, false, false)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
 //	fmt.Println(result.TotalWithTax) // 231000
 //
-//	taxResult, err := jlawcore.CalcIncomeTax(5_000_000, 2024, 1, 1, true)
+//	taxDate := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
+//	taxResult, err := jlawcore.CalcIncomeTax(5_000_000, taxDate, true)
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
@@ -26,6 +28,7 @@ package jlawcore
 import "C"
 import (
 	"errors"
+	"time"
 	"unsafe"
 )
 
@@ -65,7 +68,7 @@ type BrokerageFeeResult struct {
 //
 // 引数:
 //   - price: 売買価格（円）
-//   - year, month, day: 基準日
+//   - date: 基準日
 //   - isLowCostVacantHouse: 低廉な空き家特例フラグ
 //     WARNING: 対象物件が「低廉な空き家等」に該当するかの事実認定は呼び出し元の責任。
 //   - isSeller: 売主側フラグ（2018年1月1日〜2024年6月30日の低廉特例は売主のみ適用）
@@ -74,10 +77,13 @@ type BrokerageFeeResult struct {
 // エラー: 売買価格が不正、または対象日に有効な法令パラメータが存在しない場合。
 func CalcBrokerageFee(
 	price uint64,
-	year, month, day int,
+	date time.Time,
 	isLowCostVacantHouse bool,
 	isSeller bool,
 ) (*BrokerageFeeResult, error) {
+	year := date.Year()
+	month := int(date.Month())
+	day := date.Day()
 	var cResult C.JLawBrokerageFeeResult
 	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
 	defer C.free(unsafe.Pointer(errorBuf))
@@ -147,15 +153,18 @@ type IncomeTaxResult struct {
 //
 // 引数:
 //   - taxableIncome: 課税所得金額（円）
-//   - year, month, day: 基準日
+//   - date: 基準日
 //   - applyReconstructionTax: 復興特別所得税を適用するか
 //
 // エラー: 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合。
 func CalcIncomeTax(
 	taxableIncome uint64,
-	year, month, day int,
+	date time.Time,
 	applyReconstructionTax bool,
 ) (*IncomeTaxResult, error) {
+	year := date.Year()
+	month := int(date.Month())
+	day := date.Day()
 	var cResult C.JLawIncomeTaxResult
 	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
 	defer C.free(unsafe.Pointer(errorBuf))
@@ -259,16 +268,19 @@ type ConsumptionTaxResult struct {
 //
 // 引数:
 //   - amount: 課税標準額（税抜き・円）
-//   - year, month, day: 基準日
+//   - date: 基準日
 //   - isReducedRate: 軽減税率フラグ（2019-10-01以降の飲食料品・新聞等）
 //     WARNING: 対象が軽減税率の適用要件を満たすかの事実認定は呼び出し元の責任。
 //
 // エラー: 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合。
 func CalcConsumptionTax(
 	amount uint64,
-	year, month, day int,
+	date time.Time,
 	isReducedRate bool,
 ) (*ConsumptionTaxResult, error) {
+	year := date.Year()
+	month := int(date.Month())
+	day := date.Day()
 	var cResult C.JLawConsumptionTaxResult
 	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
 	defer C.free(unsafe.Pointer(errorBuf))
@@ -327,16 +339,19 @@ type StampTaxResult struct {
 //
 // 引数:
 //   - contractAmount: 契約金額（円）
-//   - year, month, day: 契約書作成日
+//   - date: 契約書作成日
 //   - isReducedRateApplicable: 軽減税率適用フラグ
 //     WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
 //
 // エラー: 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合。
 func CalcStampTax(
 	contractAmount uint64,
-	year, month, day int,
+	date time.Time,
 	isReducedRateApplicable bool,
 ) (*StampTaxResult, error) {
+	year := date.Year()
+	month := int(date.Month())
+	day := date.Day()
 	var cResult C.JLawStampTaxResult
 	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
 	defer C.free(unsafe.Pointer(errorBuf))
