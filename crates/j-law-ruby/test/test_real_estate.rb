@@ -78,4 +78,13 @@ class TestBrokerageFeeLanguageSpecific < Minitest::Test
     r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2024, 8, 1), false, false)
     assert_match(/BrokerageFeeResult/, r.inspect)
   end
+
+  def test_type_error_invalid_date
+    assert_raises(TypeError) do
+      JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, "2024-08-01", false, false)
+    end
+    assert_raises(TypeError) do
+      JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 20_240_801, false, false)
+    end
+  end
 end

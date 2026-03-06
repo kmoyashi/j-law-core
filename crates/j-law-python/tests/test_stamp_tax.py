@@ -53,3 +53,10 @@ class TestLanguageSpecific:
     def test_repr(self):
         r = calc_stamp_tax(5_000_000, datetime.date(2024, 8, 1))
         assert "StampTaxResult" in repr(r)
+
+    def test_type_error_invalid_date(self):
+        """date に datetime.date 以外を渡すと TypeError。"""
+        with pytest.raises(TypeError):
+            calc_stamp_tax(5_000_000, "2024-08-01")
+        with pytest.raises(TypeError):
+            calc_stamp_tax(5_000_000, 20240801)

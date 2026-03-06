@@ -33,7 +33,21 @@ fn into_runtime_error<E: std::fmt::Debug>(e: E) -> Error {
 }
 
 /// Ruby の Date / DateTime オブジェクトから (year, month, day) を取得する。
+///
+/// Date / DateTime 以外のオブジェクトを渡した場合は TypeError を送出する。
 fn extract_date(date: Value) -> Result<(u16, u8, u8), Error> {
+    // SAFETY: classname() は Magnus の ReprValue トレイトが提供する。
+    // Ruby の GIL 保持下でのみ呼ばれるため安全。
+    let class_name = unsafe { date.classname() };
+    if class_name != "Date" && class_name != "DateTime" {
+        return Err(Error::new(
+            magnus::exception::type_error(),
+            format!(
+                "date には Date または DateTime を指定してください (got {})",
+                class_name
+            ),
+        ));
+    }
     let year: i32 = date.funcall("year", ())?;
     let month: i32 = date.funcall("month", ())?;
     let day: i32 = date.funcall("day", ())?;
@@ -118,6 +132,7 @@ impl RbConsumptionTaxResult {
 /// @param is_reduced_rate [true, false] 軽減税率フラグ（2019-10-01以降の飲食料品・新聞等）
 ///   WARNING: 対象が軽減税率の適用要件を満たすかの事実認定は呼び出し元の責任。
 /// @return [JLawRuby::ConsumptionTax::ConsumptionTaxResult]
+/// @raise [TypeError] date が Date / DateTime 以外の場合
 /// @raise [RuntimeError] 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
 fn calc_consumption_tax(
     amount: u64,
@@ -256,6 +271,7 @@ impl RbBrokerageFeeResult {
 /// @param is_seller [true, false] 売主側フラグ（2018年〜2024年6月30日の低廉特例は売主のみ適用）
 ///   WARNING: 売主・買主の事実認定は呼び出し元の責任。
 /// @return [JLawRuby::RealEstate::BrokerageFeeResult]
+/// @raise [TypeError] date が Date / DateTime 以外の場合
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_brokerage_fee(
     price: u64,
@@ -407,6 +423,7 @@ impl RbIncomeTaxResult {
 /// @param date [Date] 基準日
 /// @param apply_reconstruction_tax [true, false] 復興特別所得税を適用するか
 /// @return [JLawRuby::IncomeTax::IncomeTaxResult]
+/// @raise [TypeError] date が Date / DateTime 以外の場合
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_income_tax(
     taxable_income: u64,
@@ -511,6 +528,7 @@ impl RbStampTaxResult {
 /// @param is_reduced_rate_applicable [true, false] 軽減税率適用フラグ
 ///   WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
 /// @return [JLawRuby::StampTax::StampTaxResult]
+/// @raise [TypeError] date が Date / DateTime 以外の場合
 /// @raise [RuntimeError] 対象日に有効な法令パラメータが存在しない場合
 fn calc_stamp_tax(
     contract_amount: u64,

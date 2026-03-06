@@ -65,4 +65,13 @@ class TestIncomeTaxLanguageSpecific < Minitest::Test
     r = JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2024, 1, 1), true)
     assert_match(/IncomeTaxResult/, r.inspect)
   end
+
+  def test_type_error_invalid_date
+    assert_raises(TypeError) do
+      JLawRuby::IncomeTax.calc_income_tax(5_000_000, "2024-01-01", true)
+    end
+    assert_raises(TypeError) do
+      JLawRuby::IncomeTax.calc_income_tax(5_000_000, 20_240_101, true)
+    end
+  end
 end

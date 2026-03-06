@@ -60,3 +60,10 @@ class TestLanguageSpecific:
     def test_repr(self):
         r = calc_income_tax(5_000_000, datetime.date(2024, 1, 1))
         assert "IncomeTaxResult" in repr(r)
+
+    def test_type_error_invalid_date(self):
+        """date に datetime.date 以外を渡すと TypeError。"""
+        with pytest.raises(TypeError):
+            calc_income_tax(5_000_000, "2024-01-01")
+        with pytest.raises(TypeError):
+            calc_income_tax(5_000_000, 20240101)
