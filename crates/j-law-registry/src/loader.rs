@@ -18,8 +18,9 @@ pub fn load_brokerage_fee_params(target_date: LegalDate) -> Result<BrokerageFeeP
     let json_str = include_str!("../data/real_estate/brokerage_fee.json");
 
     let registry: BrokerageFeeRegistry =
-        serde_json::from_str(json_str).map_err(|e| RegistryError::FileNotFound {
-            path: format!("real_estate/brokerage_fee.json: {}", e),
+        serde_json::from_str(json_str).map_err(|e| RegistryError::ParseError {
+            path: "real_estate/brokerage_fee.json".into(),
+            cause: e.to_string(),
         })?;
 
     let date_str = target_date.to_date_str();

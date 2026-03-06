@@ -68,6 +68,8 @@ pub fn calculate_consumption_tax(
             numer: applied_rate.numer,
             denom: applied_rate.denom,
         };
+        // Rate::apply() は端数処理済みの整数を from_exact で包んで返す（numer=0）。
+        // そのため .finalize() では端数部が0として評価され、二重端数処理は発生しない。
         rate.apply(
             &IntermediateAmount::from_exact(amount),
             MultiplyOrder::MultiplyFirst,
