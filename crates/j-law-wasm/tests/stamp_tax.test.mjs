@@ -31,7 +31,7 @@ describe("calcStampTax - フィクスチャ駆動", () => {
     it(`${c.id}: ${c.description}`, () => {
       const { contract_amount, is_reduced_rate_applicable } = c.input;
       const [year, month, day] = c.input.date.split("-").map(Number);
-      const date = new Date(year, month - 1, day);
+      const date = new Date(Date.UTC(year, month - 1, day));
       const r = calcStampTax(contract_amount, date, is_reduced_rate_applicable);
       const exp = c.expected;
 
@@ -45,11 +45,11 @@ describe("calcStampTax - フィクスチャ駆動", () => {
 
 describe("calcStampTax - JS固有テスト", () => {
   it("対象日が範囲外の場合にエラー", () => {
-    assert.throws(() => calcStampTax(5_000_000, new Date(2014, 2, 31), false));
+    assert.throws(() => calcStampTax(5_000_000, new Date(Date.UTC(2014, 2, 31)), false));
   });
 
   it("bracket_label が返される", () => {
-    const r = calcStampTax(5_000_000, new Date(2024, 7, 1), false);
+    const r = calcStampTax(5_000_000, new Date(Date.UTC(2024, 7, 1)), false);
     assert.ok(r.bracketLabel, "bracketLabel must not be empty");
   });
 });

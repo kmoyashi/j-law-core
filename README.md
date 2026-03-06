@@ -63,10 +63,11 @@ print(result.reconstruction_tax) # 12022
 ```javascript
 const { calcBrokerageFee, calcIncomeTax } = require("j-law-wasm");
 
-const fee = calcBrokerageFee(5_000_000, new Date(2024, 7, 1), false, false);
+// Date は JST で解釈される。Date.UTC() を使うとタイムゾーン非依存になる
+const fee = calcBrokerageFee(5_000_000, new Date(Date.UTC(2024, 7, 1)), false, false);
 console.log(fee.totalWithTax); // 231000
 
-const tax = calcIncomeTax(5_000_000, new Date(2024, 0, 1), true);
+const tax = calcIncomeTax(5_000_000, new Date(Date.UTC(2024, 0, 1)), true);
 console.log(tax.totalTax); // 584500
 ```
 

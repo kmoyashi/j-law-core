@@ -31,7 +31,7 @@ describe("calcIncomeTax - フィクスチャ駆動", () => {
     it(`${c.id}: ${c.description}`, () => {
       const { taxable_income, apply_reconstruction_tax } = c.input;
       const [year, month, day] = c.input.date.split("-").map(Number);
-      const date = new Date(year, month - 1, day);
+      const date = new Date(Date.UTC(year, month - 1, day));
       const r = calcIncomeTax(taxable_income, date, apply_reconstruction_tax);
       const exp = c.expected;
 
@@ -47,11 +47,11 @@ describe("calcIncomeTax - フィクスチャ駆動", () => {
 
 describe("calcIncomeTax - JS固有テスト", () => {
   it("対象日が範囲外の場合にエラー", () => {
-    assert.throws(() => calcIncomeTax(5_000_000, new Date(2014, 11, 31), true));
+    assert.throws(() => calcIncomeTax(5_000_000, new Date(Date.UTC(2014, 11, 31)), true));
   });
 
   it("breakdown の各フィールドが有効", () => {
-    const r = calcIncomeTax(5_000_000, new Date(2024, 0, 1), true);
+    const r = calcIncomeTax(5_000_000, new Date(Date.UTC(2024, 0, 1)), true);
     const bd = r.breakdown();
     assert.ok(bd.length > 0, "breakdown must not be empty");
     for (const step of bd) {

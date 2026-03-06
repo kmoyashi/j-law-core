@@ -256,9 +256,9 @@ date = datetime.date.fromisoformat(inp["date"])
 ```
 
 ```javascript
-// JavaScript — Date コンストラクタを使う（month は 0 始まり）
+// JavaScript — Date.UTC() を使う（JST 解釈・タイムゾーン非依存）
 const [y, m, d] = c.input.date.split("-").map(Number);
-const date = new Date(y, m - 1, d);
+const date = new Date(Date.UTC(y, m - 1, d));
 ```
 
 ```ruby

@@ -249,11 +249,16 @@ wasm-pack build --target web        # ブラウザ直接読み込み向け
 
 ### 使用例（JavaScript）
 
+> **タイムゾーンに関する注意**: 渡した `Date` オブジェクトは常に **JST（UTC+9）** として解釈されます。
+> `new Date("2024-08-01")` のような ISO 文字列からの生成は UTC midnight になるため、
+> `new Date(Date.UTC(2024, 7, 1))` または `new Date(2024, 7, 1)` を使ってください。
+
 ```javascript
 import { calcBrokerageFee } from "j-law-wasm";
 
 // 基本的な計算（売買価格 500万円、2024年8月1日）
-const result = calcBrokerageFee(5_000_000, new Date(2024, 7, 1), false, false);
+// Date.UTC() を使うとタイムゾーンに依存しない
+const result = calcBrokerageFee(5_000_000, new Date(Date.UTC(2024, 7, 1)), false, false);
 
 console.log(result.totalWithoutTax); // 210000
 console.log(result.totalWithTax); // 231000
@@ -267,13 +272,13 @@ for (const step of result.breakdown()) {
 }
 
 // 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
-const result2 = calcBrokerageFee(8_000_000, new Date(2024, 7, 1), true, false);
+const result2 = calcBrokerageFee(8_000_000, new Date(Date.UTC(2024, 7, 1)), true, false);
 
 console.log(result2.lowCostSpecialApplied); // true
 console.log(result2.totalWithTax); // 363000
 
 // 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
-const result3 = calcBrokerageFee(4_000_000, new Date(2022, 3, 1), true, true);
+const result3 = calcBrokerageFee(4_000_000, new Date(Date.UTC(2022, 3, 1)), true, true);
 
 console.log(result3.lowCostSpecialApplied); // true
 console.log(result3.totalWithTax); // 198000
@@ -286,7 +291,7 @@ import { calcBrokerageFee, BrokerageFeeResult } from "j-law-wasm";
 
 const result: BrokerageFeeResult = calcBrokerageFee(
   5_000_000,
-  new Date(2024, 7, 1),
+  new Date(Date.UTC(2024, 7, 1)),
   false,
   false,
 );
@@ -311,7 +316,7 @@ breakdown.forEach((step) => {
 
 ```javascript
 try {
-  const result = calcBrokerageFee(5_000_000, new Date(2017, 11, 31), false, false);
+  const result = calcBrokerageFee(5_000_000, new Date(Date.UTC(2017, 11, 31)), false, false);
 } catch (e) {
   console.error(`計算エラー: ${e}`); // 文字列として throw される
 }

@@ -31,7 +31,7 @@ describe("calcConsumptionTax - フィクスチャ駆動", () => {
     it(`${c.id}: ${c.description}`, () => {
       const { amount, is_reduced_rate } = c.input;
       const [year, month, day] = c.input.date.split("-").map(Number);
-      const date = new Date(year, month - 1, day);
+      const date = new Date(Date.UTC(year, month - 1, day));
       const r = calcConsumptionTax(amount, date, is_reduced_rate);
       const exp = c.expected;
 
@@ -49,11 +49,11 @@ describe("calcConsumptionTax - フィクスチャ駆動", () => {
 
 describe("calcConsumptionTax - JS固有テスト", () => {
   it("軽減税率フラグを立てても対応期間外ならエラー", () => {
-    assert.throws(() => calcConsumptionTax(100_000, new Date(2016, 0, 1), true));
+    assert.throws(() => calcConsumptionTax(100_000, new Date(Date.UTC(2016, 0, 1)), true));
   });
 
   it("消費税導入前は税額ゼロで正常終了", () => {
-    const r = calcConsumptionTax(100_000, new Date(1988, 0, 1), false);
+    const r = calcConsumptionTax(100_000, new Date(Date.UTC(1988, 0, 1)), false);
     assert.equal(r.taxAmount, 0);
     assert.equal(r.amountWithTax, 100_000);
   });
