@@ -16,12 +16,6 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
 
     // 各 tier の denom ゼロチェック
     for entry in &registry.history {
-        let tax = &entry.params.consumption_tax;
-        if tax.denom == 0 {
-            return Err(RegistryError::ZeroDenominator {
-                path: format!("{}/consumption_tax.denom", domain),
-            });
-        }
         for tier in &entry.params.tiers {
             if tier.rate.denom == 0 {
                 return Err(RegistryError::ZeroDenominator {
@@ -72,7 +66,7 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
 #[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
-    use crate::schema::{BrokerageFeeRegistry, CitationEntry, Fraction, HistoryEntry, ParamsEntry};
+    use crate::schema::{BrokerageFeeRegistry, CitationEntry, HistoryEntry, ParamsEntry};
 
     fn make_registry(entries: Vec<HistoryEntry>) -> BrokerageFeeRegistry {
         BrokerageFeeRegistry {
@@ -95,10 +89,6 @@ mod tests {
             },
             params: ParamsEntry {
                 tiers: vec![],
-                consumption_tax: Fraction {
-                    numer: 10,
-                    denom: 100,
-                },
                 low_cost_special: None,
             },
         }
@@ -125,8 +115,14 @@ mod tests {
 
     #[test]
     fn zero_denom_detected() {
+        use crate::schema::{Fraction, TierParam};
         let mut entry: HistoryEntry = make_entry("2024-07-01", None);
-        entry.params.consumption_tax.denom = 0;
+        entry.params.tiers.push(TierParam {
+            label: "tier1".into(),
+            price_from: 0,
+            price_to_inclusive: Some(2_000_000),
+            rate: Fraction { numer: 5, denom: 0 }, // denom ゼロで異常
+        });
         let reg: BrokerageFeeRegistry = make_registry(vec![entry]);
         let err: RegistryError = validate(&reg).unwrap_err();
         assert!(matches!(err, RegistryError::ZeroDenominator { .. }));
