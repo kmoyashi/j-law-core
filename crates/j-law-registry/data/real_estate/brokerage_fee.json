@@ -3,8 +3,45 @@
   "description": "宅地建物取引業法第46条に基づく媒介報酬の上限額計算パラメータ",
   "history": [
     {
+      "effective_from": "1970-12-01",
+      "effective_until": "2017-12-31",
+      "status": "superseded",
+      "citation": {
+        "law_id": "reitaku-46",
+        "law_name": "宅地建物取引業法",
+        "article": 46,
+        "paragraph": 1,
+        "item": null,
+        "notice_date": "1970-10-23",
+        "ministry": "建設省"
+      },
+      "params": {
+        "tiers": [
+          {
+            "label": "tier1",
+            "price_from": 0,
+            "price_to_inclusive": 2000000,
+            "rate": { "numer": 5, "denom": 100 }
+          },
+          {
+            "label": "tier2",
+            "price_from": 2000001,
+            "price_to_inclusive": 4000000,
+            "rate": { "numer": 4, "denom": 100 }
+          },
+          {
+            "label": "tier3",
+            "price_from": 4000001,
+            "price_to_inclusive": null,
+            "rate": { "numer": 3, "denom": 100 }
+          }
+        ],
+        "low_cost_special": null
+      }
+    },
+    {
       "effective_from": "2018-01-01",
-      "effective_until": "2019-09-30",
+      "effective_until": "2024-06-30",
       "status": "superseded",
       "citation": {
         "law_id": "reitaku-46",
@@ -36,49 +73,6 @@
             "rate": { "numer": 3, "denom": 100 }
           }
         ],
-        "consumption_tax": { "numer": 8, "denom": 100 },
-        "low_cost_special": {
-          "price_ceiling_inclusive": 4000000,
-          "fee_ceiling_exclusive_tax": 180000,
-          "seller_only": true
-        }
-      }
-    },
-    {
-      "effective_from": "2019-10-01",
-      "effective_until": "2024-06-30",
-      "status": "superseded",
-      "citation": {
-        "law_id": "reitaku-46",
-        "law_name": "宅地建物取引業法",
-        "article": 46,
-        "paragraph": 1,
-        "item": null,
-        "notice_date": "2019-08-30",
-        "ministry": "国土交通省"
-      },
-      "params": {
-        "tiers": [
-          {
-            "label": "tier1",
-            "price_from": 0,
-            "price_to_inclusive": 2000000,
-            "rate": { "numer": 5, "denom": 100 }
-          },
-          {
-            "label": "tier2",
-            "price_from": 2000001,
-            "price_to_inclusive": 4000000,
-            "rate": { "numer": 4, "denom": 100 }
-          },
-          {
-            "label": "tier3",
-            "price_from": 4000001,
-            "price_to_inclusive": null,
-            "rate": { "numer": 3, "denom": 100 }
-          }
-        ],
-        "consumption_tax": { "numer": 10, "denom": 100 },
         "low_cost_special": {
           "price_ceiling_inclusive": 4000000,
           "fee_ceiling_exclusive_tax": 180000,
@@ -120,7 +114,6 @@
             "rate": { "numer": 3, "denom": 100 }
           }
         ],
-        "consumption_tax": { "numer": 10, "denom": 100 },
         "low_cost_special": {
           "price_ceiling_inclusive": 8000000,
           "fee_ceiling_exclusive_tax": 330000,

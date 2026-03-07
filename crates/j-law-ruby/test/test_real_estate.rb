@@ -59,11 +59,11 @@ end
 
 class TestBrokerageFeeLanguageSpecific < Minitest::Test
   def test_error_date_out_of_range
-    # 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
+    # 1970-12-01 施行のため、それ以前の日付はエラー
     err = assert_raises(RuntimeError) do
-      JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2017, 12, 31), false, false)
+      JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(1970, 11, 30), false, false)
     end
-    assert_match(/2017-12-31/, err.message)
+    assert_match(/1970-11-30/, err.message)
   end
 
   def test_breakdown_fields

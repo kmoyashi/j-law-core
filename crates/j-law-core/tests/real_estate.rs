@@ -6,3 +6,6 @@ mod edge_cases;
 
 #[path = "real_estate/low_cost_special_2018.rs"]
 mod low_cost_special_2018;
+
+#[path = "real_estate/pre2018_basic.rs"]
+mod pre2018_basic;

@@ -263,12 +263,12 @@ func TestIncomeTax(t *testing.T) {
 // ─── 言語固有テスト ──────────────────────────────────────────────────────────
 
 func TestBrokerageFee_ErrorDateOutOfRange(t *testing.T) {
-	// 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
-	_, err := jlawcore.CalcBrokerageFee(5_000_000, time.Date(2017, time.December, 31, 0, 0, 0, 0, time.UTC), false, false)
+	// 1970-12-01 施行のため、それ以前の日付はエラー
+	_, err := jlawcore.CalcBrokerageFee(5_000_000, time.Date(1970, time.November, 30, 0, 0, 0, 0, time.UTC), false, false)
 	if err == nil {
 		t.Fatal("expected error for date out of range, got nil")
 	}
-	if !strings.Contains(err.Error(), "2017-12-31") {
+	if !strings.Contains(err.Error(), "1970-11-30") {
 		t.Errorf("error message should contain the invalid date, got: %s", err.Error())
 	}
 }

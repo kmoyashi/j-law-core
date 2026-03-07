@@ -35,7 +35,6 @@ pub struct LowCostSpecialParam {
 #[derive(Debug, Clone, Deserialize)]
 pub struct ParamsEntry {
     pub tiers: Vec<TierParam>,
-    pub consumption_tax: Fraction,
     pub low_cost_special: Option<LowCostSpecialParam>,
 }
 

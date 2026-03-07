@@ -1,5 +1,5 @@
+use crate::consumption_tax_loader::load_consumption_tax_params;
 use crate::schema::{BrokerageFeeRegistry, HistoryEntry};
-use j_law_core::domains::consumption_tax::params::{ConsumptionTaxParams, ConsumptionTaxRate};
 use j_law_core::domains::real_estate::params::{
     BrokerageFeeParams, LowCostSpecialParams, TierParam,
 };
@@ -29,7 +29,7 @@ pub fn load_brokerage_fee_params(target_date: LegalDate) -> Result<BrokerageFeeP
         date: date_str.clone(),
     })?;
 
-    Ok(to_params(entry))
+    to_params(entry, target_date)
 }
 
 /// `date_str` ("YYYY-MM-DD") に対応する履歴エントリを返す。
@@ -44,7 +44,10 @@ fn find_entry<'a>(registry: &'a BrokerageFeeRegistry, date_str: &str) -> Option<
     })
 }
 
-fn to_params(entry: &HistoryEntry) -> BrokerageFeeParams {
+fn to_params(
+    entry: &HistoryEntry,
+    target_date: LegalDate,
+) -> Result<BrokerageFeeParams, JLawError> {
     let tiers = entry
         .params
         .tiers
@@ -68,20 +71,14 @@ fn to_params(entry: &HistoryEntry) -> BrokerageFeeParams {
             seller_only: s.seller_only,
         });
 
-    // 不動産仲介報酬には軽減税率は適用されない（標準税率のみ）
-    let consumption_tax = ConsumptionTaxParams {
-        standard_rate: ConsumptionTaxRate {
-            numer: entry.params.consumption_tax.numer,
-            denom: entry.params.consumption_tax.denom,
-        },
-        reduced_rate: None,
-    };
+    // 消費税ドメインに委譲（不動産仲介報酬には軽減税率は適用されない）
+    let consumption_tax = load_consumption_tax_params(target_date)?;
 
-    BrokerageFeeParams {
+    Ok(BrokerageFeeParams {
         tiers,
         consumption_tax,
         low_cost_special,
-    }
+    })
 }
 
 #[cfg(test)]
@@ -111,16 +108,20 @@ mod tests {
         assert_eq!(special.price_ceiling_inclusive, 4_000_000);
         assert_eq!(special.fee_ceiling_exclusive_tax, 180_000);
         assert!(special.seller_only);
+        // 2019年10月以降は消費税10%（消費税ドメインから取得）
+        assert_eq!(params.consumption_tax.standard_rate.numer, 10);
     }
 
     #[test]
-    fn date_out_of_range_returns_error() {
-        // 2018年以前はカバー範囲外
-        let result = load_brokerage_fee_params(LegalDate::new(2017, 12, 31));
-        assert!(matches!(
-            result,
-            Err(JLawError::Input(InputError::DateOutOfRange { .. }))
-        ));
+    fn load_2018_params() {
+        let params = load_brokerage_fee_params(LegalDate::new(2018, 6, 1)).unwrap();
+        assert_eq!(params.tiers.len(), 3);
+        let special = params.low_cost_special.as_ref().unwrap();
+        assert_eq!(special.price_ceiling_inclusive, 4_000_000);
+        assert_eq!(special.fee_ceiling_exclusive_tax, 180_000);
+        assert!(special.seller_only);
+        // 2018年は消費税8%（消費税ドメインから取得）
+        assert_eq!(params.consumption_tax.standard_rate.numer, 8);
     }
 
     #[test]
@@ -143,23 +144,11 @@ mod tests {
     }
 
     #[test]
-    fn load_2018_params() {
-        let params = load_brokerage_fee_params(LegalDate::new(2018, 6, 1)).unwrap();
-        assert_eq!(params.tiers.len(), 3);
-        assert_eq!(params.consumption_tax.standard_rate.numer, 8);
-        assert_eq!(params.consumption_tax.standard_rate.denom, 100);
-        let special = params.low_cost_special.as_ref().unwrap();
-        assert_eq!(special.price_ceiling_inclusive, 4_000_000);
-        assert_eq!(special.fee_ceiling_exclusive_tax, 180_000);
-        assert!(special.seller_only);
-    }
-
-    #[test]
-    fn boundary_2019_10_01_uses_new_tax_rate() {
-        // 2019-10-01 から消費税10%
+    fn boundary_2019_10_01_uses_10pct_tax() {
+        // 2019-10-01 から消費税10%（消費税ドメインから取得）
         let params = load_brokerage_fee_params(LegalDate::new(2019, 10, 1)).unwrap();
         assert_eq!(params.consumption_tax.standard_rate.numer, 10);
-        // 低廉特例は引き続き売主限定・400万円以下
+        // 2018-2024-06-30 エントリ内なので低廉特例は売主限定・400万円以下
         let special = params.low_cost_special.as_ref().unwrap();
         assert_eq!(special.price_ceiling_inclusive, 4_000_000);
         assert!(special.seller_only);
@@ -167,9 +156,45 @@ mod tests {
 
     #[test]
     fn boundary_2019_09_30_uses_8pct_tax() {
-        // 2019-09-30 まで消費税8%
+        // 2019-09-30 まで消費税8%（消費税ドメインから取得）
         let params = load_brokerage_fee_params(LegalDate::new(2019, 9, 30)).unwrap();
         assert_eq!(params.consumption_tax.standard_rate.numer, 8);
+    }
+
+    // ─── 2018年以前（全期間対応）─────────────────────────────────────────────
+
+    #[test]
+    fn load_2017_pre_special_params() {
+        // 2017年12月31日（特例導入前）: 低廉特例なし・基本ティア計算のみ
+        let params = load_brokerage_fee_params(LegalDate::new(2017, 12, 31)).unwrap();
+        assert_eq!(params.tiers.len(), 3);
+        assert!(params.low_cost_special.is_none());
+        // 消費税は消費税ドメインから取得（2017年は8%）
+        assert_eq!(params.consumption_tax.standard_rate.numer, 8);
+    }
+
+    #[test]
+    fn boundary_2018_01_01_activates_special() {
+        // 2018-01-01 から低廉特例が有効になる
+        let params = load_brokerage_fee_params(LegalDate::new(2018, 1, 1)).unwrap();
+        assert!(params.low_cost_special.is_some());
+    }
+
+    #[test]
+    fn boundary_2017_12_31_no_special() {
+        // 2017-12-31 では低廉特例なし
+        let params = load_brokerage_fee_params(LegalDate::new(2017, 12, 31)).unwrap();
+        assert!(params.low_cost_special.is_none());
+    }
+
+    #[test]
+    fn load_1990_params() {
+        // 1990年（消費税3%時代）でも計算可能
+        let params = load_brokerage_fee_params(LegalDate::new(1990, 1, 1)).unwrap();
+        assert_eq!(params.tiers.len(), 3);
+        assert!(params.low_cost_special.is_none());
+        // 1990年は消費税3%（消費税ドメインから取得）
+        assert_eq!(params.consumption_tax.standard_rate.numer, 3);
     }
 
     #[test]
