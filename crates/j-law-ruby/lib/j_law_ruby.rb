@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 require "date"
-require_relative "j_law_ruby/j_law_ruby"
+require_relative "j_law_ruby/j_law_uniffi"
 
 # 日本の法令に基づく各種計算を提供するモジュール。
 #
-# ネイティブ拡張（JLawRubyNative）を薄くラップし、
+# UniFFI が生成した Ruby バインディング（JLawUniffi）を薄くラップし、
 # Ruby Date オブジェクトを受け取るインターフェースを提供する。
 module JLawRuby
   # ── 消費税 ──────────────────────────────────────────────────────────────────
@@ -16,13 +16,13 @@ module JLawRuby
       attr_reader :tax_amount, :amount_with_tax, :amount_without_tax,
                   :applied_rate_numer, :applied_rate_denom
 
-      def initialize(h)
-        @tax_amount = h[:tax_amount]
-        @amount_with_tax = h[:amount_with_tax]
-        @amount_without_tax = h[:amount_without_tax]
-        @applied_rate_numer = h[:applied_rate_numer]
-        @applied_rate_denom = h[:applied_rate_denom]
-        @is_reduced_rate = h[:is_reduced_rate] == 1
+      def initialize(r)
+        @tax_amount = r.tax_amount
+        @amount_with_tax = r.amount_with_tax
+        @amount_without_tax = r.amount_without_tax
+        @applied_rate_numer = r.applied_rate_numer
+        @applied_rate_denom = r.applied_rate_denom
+        @is_reduced_rate = r.is_reduced_rate
       end
 
       # 軽減税率が適用されたか。
@@ -56,11 +56,10 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      h = JLawRubyNative.calc_consumption_tax(
-        amount, date.year, date.month, date.day,
-        is_reduced_rate ? 1 : 0
-      )
-      ConsumptionTaxResult.new(h)
+      r = JLawUniffi.calc_consumption_tax(amount, date.year, date.month, date.day, is_reduced_rate)
+      ConsumptionTaxResult.new(r)
+    rescue JLawUniffi::UniError => e
+      raise RuntimeError, e.message
     end
   end
 
@@ -71,12 +70,20 @@ module JLawRuby
     class BrokerageFeeResult
       attr_reader :total_without_tax, :total_with_tax, :tax_amount, :breakdown
 
-      def initialize(h)
-        @total_without_tax = h[:total_without_tax]
-        @total_with_tax = h[:total_with_tax]
-        @tax_amount = h[:tax_amount]
-        @low_cost_special_applied = h[:low_cost_special_applied] == 1
-        @breakdown = h[:breakdown]
+      def initialize(r)
+        @total_without_tax = r.total_without_tax
+        @total_with_tax = r.total_with_tax
+        @tax_amount = r.tax_amount
+        @low_cost_special_applied = r.low_cost_special_applied
+        @breakdown = r.breakdown.map do |step|
+          {
+            label: step.label,
+            base_amount: step.base_amount,
+            rate_numer: step.rate_numer,
+            rate_denom: step.rate_denom,
+            result: step.result,
+          }
+        end
       end
 
       # 低廉な空き家特例が適用されたか。
@@ -110,12 +117,13 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      h = JLawRubyNative.calc_brokerage_fee(
+      r = JLawUniffi.calc_brokerage_fee(
         price, date.year, date.month, date.day,
-        is_low_cost_vacant_house ? 1 : 0,
-        is_seller ? 1 : 0
+        is_low_cost_vacant_house, is_seller
       )
-      BrokerageFeeResult.new(h)
+      BrokerageFeeResult.new(r)
+    rescue JLawUniffi::UniError => e
+      raise RuntimeError, e.message
     end
   end
 
@@ -126,12 +134,21 @@ module JLawRuby
     class IncomeTaxResult
       attr_reader :base_tax, :reconstruction_tax, :total_tax, :breakdown
 
-      def initialize(h)
-        @base_tax = h[:base_tax]
-        @reconstruction_tax = h[:reconstruction_tax]
-        @total_tax = h[:total_tax]
-        @reconstruction_tax_applied = h[:reconstruction_tax_applied] == 1
-        @breakdown = h[:breakdown]
+      def initialize(r)
+        @base_tax = r.base_tax
+        @reconstruction_tax = r.reconstruction_tax
+        @total_tax = r.total_tax
+        @reconstruction_tax_applied = r.reconstruction_tax_applied
+        @breakdown = r.breakdown.map do |step|
+          {
+            label: step.label,
+            taxable_income: step.taxable_income,
+            rate_numer: step.rate_numer,
+            rate_denom: step.rate_denom,
+            deduction: step.deduction,
+            result: step.result,
+          }
+        end
       end
 
       # 復興特別所得税が適用されたか。
@@ -164,11 +181,13 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      h = JLawRubyNative.calc_income_tax(
+      r = JLawUniffi.calc_income_tax(
         taxable_income, date.year, date.month, date.day,
-        apply_reconstruction_tax ? 1 : 0
+        apply_reconstruction_tax
       )
-      IncomeTaxResult.new(h)
+      IncomeTaxResult.new(r)
+    rescue JLawUniffi::UniError => e
+      raise RuntimeError, e.message
     end
   end
 
@@ -179,10 +198,10 @@ module JLawRuby
     class StampTaxResult
       attr_reader :tax_amount, :bracket_label
 
-      def initialize(h)
-        @tax_amount = h[:tax_amount]
-        @bracket_label = h[:bracket_label]
-        @reduced_rate_applied = h[:reduced_rate_applied] == 1
+      def initialize(r)
+        @tax_amount = r.tax_amount
+        @bracket_label = r.bracket_label
+        @reduced_rate_applied = r.reduced_rate_applied
       end
 
       # 軽減税率が適用されたか。
@@ -214,11 +233,13 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      h = JLawRubyNative.calc_stamp_tax(
+      r = JLawUniffi.calc_stamp_tax(
         contract_amount, date.year, date.month, date.day,
-        is_reduced_rate_applicable ? 1 : 0
+        is_reduced_rate_applicable
       )
-      StampTaxResult.new(h)
+      StampTaxResult.new(r)
+    rescue JLawUniffi::UniError => e
+      raise RuntimeError, e.message
     end
   end
 end

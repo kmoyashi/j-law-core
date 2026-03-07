@@ -32,4 +32,5 @@ Gem::Specification.new do |spec|
   spec.extensions = ["ext/j_law_ruby/extconf.rb"]
 
   spec.add_dependency "rb_sys", "~> 0.9"
+  spec.add_dependency "ffi", "~> 1.0"
 end

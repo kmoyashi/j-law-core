@@ -4,16 +4,9 @@ version = "0.0.1"
 edition = "2021"
 license = "MIT"
 
-[lints.clippy]
-# rb-sys の raw unsafe API を直接呼び出すバインディング層のため例外扱い
-disallowed_methods = "allow"
-disallowed_macros = "allow"
-disallowed_types = "allow"
-
 [lib]
 name = "j_law_ruby"
 crate-type = ["cdylib"]
 
 [dependencies]
-rb-sys = { version = "0.9" }
 j-law-uniffi = { path = "../../../j-law-uniffi" }
