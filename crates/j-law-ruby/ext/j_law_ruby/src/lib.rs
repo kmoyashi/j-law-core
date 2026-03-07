@@ -1,10 +1,8 @@
 use j_law_uniffi::{
     calc_brokerage_fee as uniffi_calc_brokerage_fee,
-    calc_consumption_tax as uniffi_calc_consumption_tax,
-    calc_income_tax as uniffi_calc_income_tax,
-    calc_stamp_tax as uniffi_calc_stamp_tax,
-    UniBrokerageFeeResult, UniConsumptionTaxResult, UniError, UniIncomeTaxResult,
-    UniStampTaxResult,
+    calc_consumption_tax as uniffi_calc_consumption_tax, calc_income_tax as uniffi_calc_income_tax,
+    calc_stamp_tax as uniffi_calc_stamp_tax, UniBrokerageFeeResult, UniConsumptionTaxResult,
+    UniError, UniIncomeTaxResult, UniStampTaxResult,
 };
 
 use magnus::value::ReprValue;
@@ -103,9 +101,8 @@ fn calc_consumption_tax(
     is_reduced_rate: bool,
 ) -> Result<RbConsumptionTaxResult, Error> {
     let (year, month, day) = extract_date(date)?;
-    let result =
-        uniffi_calc_consumption_tax(amount, year, month, day, is_reduced_rate)
-            .map_err(into_runtime_error)?;
+    let result = uniffi_calc_consumption_tax(amount, year, month, day, is_reduced_rate)
+        .map_err(into_runtime_error)?;
     Ok(RbConsumptionTaxResult(result))
 }
 
@@ -266,9 +263,8 @@ fn calc_income_tax(
     apply_reconstruction_tax: bool,
 ) -> Result<RbIncomeTaxResult, Error> {
     let (year, month, day) = extract_date(date)?;
-    let result =
-        uniffi_calc_income_tax(taxable_income, year, month, day, apply_reconstruction_tax)
-            .map_err(into_runtime_error)?;
+    let result = uniffi_calc_income_tax(taxable_income, year, month, day, apply_reconstruction_tax)
+        .map_err(into_runtime_error)?;
     Ok(RbIncomeTaxResult(result))
 }
 
@@ -324,9 +320,14 @@ fn calc_stamp_tax(
     is_reduced_rate_applicable: bool,
 ) -> Result<RbStampTaxResult, Error> {
     let (year, month, day) = extract_date(date)?;
-    let result =
-        uniffi_calc_stamp_tax(contract_amount, year, month, day, is_reduced_rate_applicable)
-            .map_err(into_runtime_error)?;
+    let result = uniffi_calc_stamp_tax(
+        contract_amount,
+        year,
+        month,
+        day,
+        is_reduced_rate_applicable,
+    )
+    .map_err(into_runtime_error)?;
     Ok(RbStampTaxResult(result))
 }
 
