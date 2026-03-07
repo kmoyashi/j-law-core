@@ -61,10 +61,10 @@ describe("calcBrokerageFee - フィクスチャ駆動", () => {
 
 describe("calcBrokerageFee - JS固有テスト", () => {
   it("対象日が範囲外の場合にエラー", () => {
-    // 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
+    // 1970-12-01 施行のため、それ以前の日付はエラー
     assert.throws(
-      () => calcBrokerageFee(5_000_000, new Date(Date.UTC(2017, 11, 31)), false, false),
-      /2017-12-31/
+      () => calcBrokerageFee(5_000_000, new Date(Date.UTC(1970, 10, 30)), false, false),
+      /1970-11-30/
     );
   });
 

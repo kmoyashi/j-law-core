@@ -55,9 +55,9 @@ class TestLanguageSpecific:
     """Python 固有の振る舞い検証。"""
 
     def test_error_date_out_of_range(self):
-        # 2018年以前はカバー範囲外（2018-01-01 が施行日のため 2017-12-31 はエラー）
-        with pytest.raises(ValueError, match="2017-12-31"):
-            calc_brokerage_fee(5_000_000, datetime.date(2017, 12, 31))
+        # 1970-12-01 施行のため、それ以前の日付はエラー
+        with pytest.raises(ValueError, match="1970-11-30"):
+            calc_brokerage_fee(5_000_000, datetime.date(1970, 11, 30))
 
     def test_breakdown_fields(self):
         r = calc_brokerage_fee(5_000_000, datetime.date(2024, 8, 1))
