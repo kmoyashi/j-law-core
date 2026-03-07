@@ -1,0 +1,16 @@
+[build-system]
+requires = ["maturin>=1,<2"]
+build-backend = "maturin"
+
+[project]
+name = "j-law-uniffi"
+version = "0.0.1"
+description = "UniFFI バインディング層（Python/Ruby 向け自動生成 FFI）"
+requires-python = ">=3.8"
+license = { text = "MIT" }
+
+[tool.maturin]
+# uniffi モードで Python バインディングを自動生成する
+bindings = "uniffi"
+# ハイフンを含むクレート名はモジュール名に使えないため明示的に指定
+module-name = "j_law_uniffi"

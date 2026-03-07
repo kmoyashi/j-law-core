@@ -2,10 +2,10 @@
 members = [
     "crates/j-law-core",
     "crates/j-law-registry",
-    "crates/j-law-python",
     "crates/j-law-wasm",
-    "crates/j-law-ruby/ext/j_law_ruby",
     "crates/j-law-cgo",
+    "crates/j-law-uniffi",
+    "crates/j-law-ruby/ext/j_law_ruby",
 ]
 resolver = "2"
 

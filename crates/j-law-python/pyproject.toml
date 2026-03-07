@@ -1,6 +1,6 @@
 [build-system]
-requires = ["maturin>=1,<2"]
-build-backend = "maturin"
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "j-law-python"
@@ -14,12 +14,13 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
     "Topic :: Office/Business :: Financial",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+# j_law_uniffi は j-law-uniffi クレートから maturin でビルドしてインストール済みであることを前提とする
+dependencies = ["j-law-uniffi"]
 
 [project.urls]
 Homepage = "https://github.com/kmoyashi/j-law-core"
@@ -29,9 +30,9 @@ Repository = "https://github.com/kmoyashi/j-law-core"
 [project.optional-dependencies]
 test = ["pytest"]
 
-[tool.maturin]
-features = ["pyo3/extension-module"]
-manifest-path = "Cargo.toml"
-
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["j_law_python*"]

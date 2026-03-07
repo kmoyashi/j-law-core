@@ -1,0 +1,20 @@
+[package]
+name = "j-law-uniffi"
+version = "0.0.1"
+edition = "2021"
+description = "UniFFI バインディング層（Python/Ruby 向け自動生成 FFI）"
+
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dependencies]
+j-law-core = { path = "../j-law-core" }
+j-law-registry = { path = "../j-law-registry" }
+uniffi = { version = "0.31", features = ["cli"] }
+thiserror = "1"
+
+[lints.clippy]
+# uniffi マクロは内部で panic!/unwrap() を使用するため例外扱い
+disallowed_methods = "allow"
+disallowed_macros = "allow"
+disallowed_types = "allow"

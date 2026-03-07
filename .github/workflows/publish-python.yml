@@ -3,13 +3,16 @@ name: Publish Python (PyPI)
 # GitHub Releases が公開されたときに PyPI へ公開する。
 # Trusted Publishers (OIDC) を使用するため、PyPI 側で GitHub Actions の設定が必要。
 # Settings > Environments > pypi に環境を作成し、PyPI の Trusted Publisher を登録すること。
+#
+# j-law-python は純 Python パッケージ（setuptools ビルド）。
+# 先に j-law-uniffi を maturin でビルドして PyPI に公開することが前提。
 
 on:
   release:
     types: [published]
 
 jobs:
-  # --- Linux wheels (manylinux) ---
+  # --- j-law-uniffi Linux wheels (manylinux) ---
   linux:
     name: Build Linux wheels (${{ matrix.target }})
     runs-on: ubuntu-latest
@@ -23,7 +26,7 @@ jobs:
           command: build
           args: >-
             --release
-            --manifest-path crates/j-law-python/Cargo.toml
+            --manifest-path crates/j-law-uniffi/Cargo.toml
             --out dist
           manylinux: auto
           target: ${{ matrix.target }}
@@ -32,7 +35,7 @@ jobs:
           name: wheels-linux-${{ matrix.target }}
           path: dist
 
-  # --- macOS wheels ---
+  # --- j-law-uniffi macOS wheels ---
   macos:
     name: Build macOS wheels (${{ matrix.target }})
     runs-on: macos-latest
@@ -46,7 +49,7 @@ jobs:
           command: build
           args: >-
             --release
-            --manifest-path crates/j-law-python/Cargo.toml
+            --manifest-path crates/j-law-uniffi/Cargo.toml
             --out dist
           target: ${{ matrix.target }}
       - uses: actions/upload-artifact@v4
@@ -54,7 +57,7 @@ jobs:
           name: wheels-macos-${{ matrix.target }}
           path: dist
 
-  # --- Windows wheels ---
+  # --- j-law-uniffi Windows wheels ---
   windows:
     name: Build Windows wheels
     runs-on: windows-latest
@@ -65,7 +68,7 @@ jobs:
           command: build
           args: >-
             --release
-            --manifest-path crates/j-law-python/Cargo.toml
+            --manifest-path crates/j-law-uniffi/Cargo.toml
             --out dist
           target: x86_64
       - uses: actions/upload-artifact@v4
@@ -73,7 +76,7 @@ jobs:
           name: wheels-windows-x86_64
           path: dist
 
-  # --- ソース配布物 ---
+  # --- j-law-uniffi ソース配布物 ---
   sdist:
     name: Build source distribution
     runs-on: ubuntu-latest
@@ -83,17 +86,35 @@ jobs:
         with:
           command: sdist
           args: >-
-            --manifest-path crates/j-law-python/Cargo.toml
+            --manifest-path crates/j-law-uniffi/Cargo.toml
             --out dist
       - uses: actions/upload-artifact@v4
         with:
           name: sdist
           path: dist
 
+  # --- j-law-python 純 Python wheel ---
+  python-wrapper:
+    name: Build j-law-python pure Python wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Build pure Python wheel
+        run: |
+          pip install build
+          python -m build crates/j-law-python/ --outdir dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels-python-wrapper
+          path: dist
+
   # --- PyPI へ公開 ---
   publish:
     name: Publish to PyPI
-    needs: [linux, macos, windows, sdist]
+    needs: [linux, macos, windows, sdist, python-wrapper]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -104,3 +125,4 @@ jobs:
           merge-multiple: true
           path: dist
       - uses: pypa/gh-action-pypi-publish@release/v1
+
