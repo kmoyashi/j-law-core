@@ -12,3 +12,5 @@ license = { text = "MIT" }
 [tool.maturin]
 # uniffi モードで Python バインディングを自動生成する
 bindings = "uniffi"
+# ハイフンを含むクレート名はモジュール名に使えないため明示的に指定
+module-name = "j_law_uniffi"
