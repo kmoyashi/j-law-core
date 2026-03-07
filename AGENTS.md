@@ -62,7 +62,7 @@ let fee = IntermediateAmount::from_exact(price)
     .apply_rate(&Rate { numer: 5, denom: 100 }, RoundingStrategy::Floor);
 ```
 
-確認コマンド: `cargo clippy --all-targets --all-features -- -D warnings`
+確認コマンド: `make clippy`（または `make ci` で一括確認）
 
 ### ルール2: `panic!` / `unwrap()` / `expect()` 使用禁止（コア層）
 
@@ -71,7 +71,7 @@ let fee = IntermediateAmount::from_exact(price)
 
 Registry層（`crates/j-law-registry/src/`）の起動時バリデーションのみ `panic!` を許容します。
 
-確認コマンド: `cargo clippy --all-targets --all-features -- -D warnings`
+確認コマンド: `make clippy`（または `make ci` で一括確認）
 
 ### ルール3: Registry JSONの数値は整数のみ
 
@@ -98,7 +98,7 @@ pub fn calculate_brokerage_fee(...) -> Result<CalculationResult, JLawError> {
 
 ### ルール5: TDD（テストファースト）
 
-実装前にテストを書くこと。`cargo test` がグリーンになることが各タスクの完了基準です。
+実装前にテストを書くこと。`make ci` がグリーンになることが各タスクの完了基準です。
 テストを削除・`#[ignore]` で誤魔化してはいけません。
 
 ---
@@ -456,26 +456,24 @@ Docker コンテナ（Linux）では `linux` フラグが使用されます。
 
 ## タスク完了時のセルフレビュー
 
-各タスクの実装が終わったら、コードを提出する前に以下を実行して確認してください。
+各タスクの実装が終わったら、コードを提出する前に **必ず `make ci` を実行**して確認してください。
 
 ```sh
-# 1. Rust テストが全グリーンか
-cargo test --all
-
-# 2. clippy チェック（f64/f32/panic!/unwrap/expect の禁止ルール含む）
-cargo clippy --all-targets --all-features -- -D warnings
-
-# 3. フォーマットチェック
-cargo fmt --all -- --check
-
-# 4. Registry JSONの数値チェック（小数点禁止）
-grep -rn '[0-9]\.[0-9]' crates/j-law-registry/data/ && echo "NG: 小数点あり" || echo "OK"
-
-# 5. 全言語テスト（Docker）
-docker compose up test-all --build
+# CIチェック一式（フォーマット・リント・テスト）を一括実行
+make ci
 ```
 
-すべてOKになってから完了を報告してください。
+`make ci` が通ったら、追加で以下も確認してください。
+
+```sh
+# Registry JSONの数値チェック（小数点禁止）
+grep -rn '[0-9]\.[0-9]' crates/j-law-registry/data/ && echo "NG: 小数点あり" || echo "OK"
+
+# 全言語テスト（Docker、binding変更時のみ）
+make docker-test
+```
+
+**`make ci` がグリーンになってから完了を報告してください。**
 
 ---
 

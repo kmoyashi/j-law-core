@@ -32,26 +32,33 @@ J-Law-Core へのコントリビューションを歓迎します。
 ### ビルドとテスト
 
 ```bash
-# フォーマット
-cargo fmt --all
+# コードを自動フォーマット
+make fmt
 
-# リント
-cargo clippy --all-targets --all-features -- -D warnings
+# フォーマット・リント・テストを一括実行
+make ci
+```
 
-# ビルド・テスト
-cargo build --all-features
-cargo test --all-features
+個別に実行する場合:
+
+```bash
+make fmt-check   # フォーマットチェック
+make clippy      # Clippy リント
+make test        # Rust テスト
 ```
 
 ### プッシュ前チェック
 
-以下の3つが全て通ることを確認してからプッシュしてください。
+**プッシュ前に必ず `make ci` を実行し、全チェックが通ることを確認してください。**
 
 ```bash
-cargo fmt --all -- --check
-cargo clippy --all-targets --all-features -- -D warnings
-cargo test --all-features
+make ci
 ```
+
+`make ci` は以下を順番に実行します:
+1. `cargo fmt --all -- --check` — フォーマットチェック
+2. `cargo clippy --workspace -- -D warnings` — Clippy リント
+3. `cargo test --workspace` — Rust テスト
 
 ---
 

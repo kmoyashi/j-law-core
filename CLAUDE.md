@@ -8,23 +8,29 @@
 
 アーキテクチャ・コーディング規約・コミットルールは [CONTRIBUTING.md](./CONTRIBUTING.md) を参照すること。
 
-### フォーマット・リント・ビルド
+### フォーマット・リント・テスト
 
 ```bash
-# フォーマット
-cargo fmt --all
+# コードを自動フォーマット
+make fmt
 
-# リント
-cargo clippy --all-targets --all-features -- -D warnings
+# フォーマット・リント・テストを一括実行（プッシュ前に必ず実行）
+make ci
+```
 
-# ビルド・テスト
-cargo build --all-features
-cargo test --all-features
+個別に実行する場合:
+
+```bash
+make fmt-check   # フォーマットチェック
+make clippy      # Clippy リント
+make test        # Rust テスト
+make docker-test # 全言語バインディングテスト（Docker）
 ```
 
 ### CIチェック
 
-プッシュ前に `.github/workflows/ci.yml` の全チェックが通ることを確認。
+**コードを変更したら必ず `make ci` を実行してからプッシュすること。**
+`make ci` は `.github/workflows/ci.yml` の lint + test-rust ジョブと同等のチェックを行う。
 
 ## 問題解決の姿勢
 
