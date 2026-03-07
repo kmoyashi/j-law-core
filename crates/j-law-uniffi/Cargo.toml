@@ -10,7 +10,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 [dependencies]
 j-law-core = { path = "../j-law-core" }
 j-law-registry = { path = "../j-law-registry" }
-uniffi = "0.31"
+uniffi = { version = "0.31", features = ["cli"] }
 thiserror = "1"
 
 [lints.clippy]
