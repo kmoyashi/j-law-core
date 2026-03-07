@@ -3,7 +3,7 @@
   "description": "宅地建物取引業法第46条に基づく媒介報酬の上限額計算パラメータ",
   "history": [
     {
-      "effective_from": "1976-10-01",
+      "effective_from": "1970-12-01",
       "effective_until": "2017-12-31",
       "status": "superseded",
       "citation": {
@@ -12,7 +12,7 @@
         "article": 46,
         "paragraph": 1,
         "item": null,
-        "notice_date": "1976-09-01",
+        "notice_date": "1970-10-23",
         "ministry": "建設省"
       },
       "params": {
