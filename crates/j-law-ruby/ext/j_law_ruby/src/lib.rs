@@ -1,436 +1,314 @@
+use std::os::raw::{c_char, c_int, c_long};
+
 use j_law_uniffi::{
     calc_brokerage_fee as uniffi_calc_brokerage_fee,
     calc_consumption_tax as uniffi_calc_consumption_tax, calc_income_tax as uniffi_calc_income_tax,
-    calc_stamp_tax as uniffi_calc_stamp_tax, UniBrokerageFeeResult, UniConsumptionTaxResult,
-    UniError, UniIncomeTaxResult, UniStampTaxResult,
+    calc_stamp_tax as uniffi_calc_stamp_tax,
 };
+use rb_sys::*;
 
-use magnus::value::ReprValue;
-use magnus::{function, method, Error, Module, RArray, Ruby, Symbol, Value};
+// ── ヘルパー ──────────────────────────────────────────────────────────────────
 
-fn into_runtime_error(e: UniError) -> Error {
-    Error::new(magnus::exception::runtime_error(), e.to_string())
+/// `name` をキーとする Ruby Symbol を生成する。
+macro_rules! sym {
+    ($name:literal) => {
+        rb_id2sym(rb_intern(concat!($name, "\0").as_ptr() as *const c_char))
+    };
 }
 
-/// Ruby の Date / DateTime オブジェクトから (year, month, day) を取得する。
-///
-/// Date / DateTime 以外のオブジェクトを渡した場合は TypeError を送出する。
-fn extract_date(date: Value) -> Result<(u16, u8, u8), Error> {
-    // SAFETY: classname() は Magnus の ReprValue トレイトが提供する。
-    // Ruby の GIL 保持下でのみ呼ばれるため安全。
-    let class_name = unsafe { date.classname() };
-    if class_name != "Date" && class_name != "DateTime" {
-        return Err(Error::new(
-            magnus::exception::type_error(),
-            format!(
-                "date には Date または DateTime を指定してください (got {})",
-                class_name
-            ),
-        ));
-    }
-    let year: i32 = date.funcall("year", ())?;
-    let month: i32 = date.funcall("month", ())?;
-    let day: i32 = date.funcall("day", ())?;
-    Ok((year as u16, month as u8, day as u8))
+/// Rust `&str` から Ruby String を生成する。
+unsafe fn ruby_str(s: &str) -> VALUE {
+    rb_str_new(s.as_ptr() as *const c_char, s.len() as c_long)
 }
 
-// ─── 消費税 Ruby公開型 ──────────────────────────────────────────────────────────
-
-/// 消費税の計算結果。
+/// `u64` を Ruby Integer に変換する。
 ///
-/// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
-/// Cargo.toml で disallowed_methods = "allow" を設定している
-#[magnus::wrap(
-    class = "JLawRuby::ConsumptionTax::ConsumptionTaxResult",
-    free_immediately,
-    frozen_shareable
-)]
-pub struct RbConsumptionTaxResult(UniConsumptionTaxResult);
-
-impl RbConsumptionTaxResult {
-    fn tax_amount(&self) -> u64 {
-        self.0.tax_amount
-    }
-
-    fn amount_with_tax(&self) -> u64 {
-        self.0.amount_with_tax
-    }
-
-    fn amount_without_tax(&self) -> u64 {
-        self.0.amount_without_tax
-    }
-
-    fn applied_rate_numer(&self) -> u64 {
-        self.0.applied_rate_numer
-    }
-
-    fn applied_rate_denom(&self) -> u64 {
-        self.0.applied_rate_denom
-    }
-
-    fn is_reduced_rate(&self) -> bool {
-        self.0.is_reduced_rate
-    }
-
-    fn inspect(&self) -> String {
-        format!(
-            "#<JLawRuby::ConsumptionTax::ConsumptionTaxResult tax_amount={} amount_with_tax={} amount_without_tax={} applied_rate={}/{} is_reduced_rate={}>",
-            self.0.tax_amount,
-            self.0.amount_with_tax,
-            self.0.amount_without_tax,
-            self.0.applied_rate_numer,
-            self.0.applied_rate_denom,
-            self.0.is_reduced_rate,
-        )
-    }
+/// 実用的な税額・価格は isize::MAX を超えないため、キャストは安全。
+unsafe fn ruby_u64(n: u64) -> VALUE {
+    rb_int2inum(n as isize)
 }
 
-// ─── 消費税 Ruby公開関数 ────────────────────────────────────────────────────────
-
-/// 消費税法第29条に基づく消費税額を計算する。
+/// `bool` を Ruby Integer（0 or 1）に変換する。
 ///
-/// @param amount [Integer] 課税標準額（税抜き・円）
-/// @param date [Date] 基準日
-/// @param is_reduced_rate [true, false] 軽減税率フラグ
-/// @return [JLawRuby::ConsumptionTax::ConsumptionTaxResult]
-/// @raise [TypeError] date が Date / DateTime 以外の場合
-/// @raise [RuntimeError] 計算エラーが発生した場合
-fn calc_consumption_tax(
-    amount: u64,
-    date: Value,
-    is_reduced_rate: bool,
-) -> Result<RbConsumptionTaxResult, Error> {
-    let (year, month, day) = extract_date(date)?;
-    let result = uniffi_calc_consumption_tax(amount, year, month, day, is_reduced_rate)
-        .map_err(into_runtime_error)?;
-    Ok(RbConsumptionTaxResult(result))
+/// Ruby 側では整数として受け取り、`== 1` で boolean に変換する。
+unsafe fn ruby_bool_int(b: bool) -> VALUE {
+    rb_int2inum(if b { 1 } else { 0 })
 }
 
-// ─── 媒介報酬 Ruby公開型 ────────────────────────────────────────────────────────
+/// `argv[idx]` から Ruby Integer を `u64` として取り出す。
+unsafe fn arg_u64(argv: *const VALUE, idx: usize) -> u64 {
+    rb_num2long(*argv.add(idx)) as u64
+}
 
-/// 媒介報酬の計算結果。
+/// `argv[idx]` から Ruby Integer を `u64` として取り出す（年月日など小さい値用）。
+unsafe fn arg_ulong(argv: *const VALUE, idx: usize) -> u64 {
+    rb_num2long(*argv.add(idx)) as u64
+}
+
+/// `argv[idx]` から 0/1 整数を bool として取り出す。
+unsafe fn arg_bool(argv: *const VALUE, idx: usize) -> bool {
+    rb_num2long(*argv.add(idx)) != 0
+}
+
+/// RuntimeError を発生させる。
 ///
-/// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
-/// Cargo.toml で disallowed_methods = "allow" を設定している
-#[magnus::wrap(
-    class = "JLawRuby::RealEstate::BrokerageFeeResult",
-    free_immediately,
-    frozen_shareable
-)]
-pub struct RbBrokerageFeeResult(UniBrokerageFeeResult);
+/// `rb_exc_raise` は NORETURN（`-> !`）のため、この関数も発散する。
+unsafe fn raise_runtime(msg: &str) -> ! {
+    let rb_msg = ruby_str(msg);
+    // rb_str_new が msg の内容を Ruby ヒープにコピー済み
+    let exc = rb_exc_new_str(rb_eRuntimeError, rb_msg);
+    rb_exc_raise(exc)
+}
 
-impl RbBrokerageFeeResult {
-    fn total_without_tax(&self) -> u64 {
-        self.0.total_without_tax
+/// ArgError を発生させる。
+unsafe fn raise_arg_error(msg: &str) -> ! {
+    let rb_msg = ruby_str(msg);
+    let exc = rb_exc_new_str(rb_eArgError, rb_msg);
+    rb_exc_raise(exc)
+}
+
+// ── 消費税計算 ────────────────────────────────────────────────────────────────
+
+/// JLawRubyNative.calc_consumption_tax(amount, year, month, day, is_reduced_rate_int) -> Hash
+///
+/// is_reduced_rate_int: 0 or 1
+unsafe extern "C" fn calc_consumption_tax_native(
+    argc: c_int,
+    argv: *const VALUE,
+    _recv: VALUE,
+) -> VALUE {
+    if argc != 5 {
+        raise_arg_error("wrong number of arguments");
     }
 
-    fn total_with_tax(&self) -> u64 {
-        self.0.total_with_tax
-    }
+    let amount = arg_u64(argv, 0);
+    let year = arg_ulong(argv, 1) as u16;
+    let month = arg_ulong(argv, 2) as u8;
+    let day = arg_ulong(argv, 3) as u8;
+    let is_reduced_rate = arg_bool(argv, 4);
 
-    fn tax_amount(&self) -> u64 {
-        self.0.tax_amount
-    }
-
-    fn low_cost_special_applied(&self) -> bool {
-        self.0.low_cost_special_applied
-    }
-
-    /// 各ティアの内訳を Hash の Array で返す。
-    fn breakdown(&self) -> Result<RArray, Error> {
-        // SAFETY: Magnus が #[magnus::wrap] で wrap したオブジェクトのメソッドは
-        // Ruby の GIL 保持下で呼ばれるため、Ruby ランタイムは必ず初期化済みである。
-        let ruby = unsafe { Ruby::get_unchecked() };
-        let arr = ruby.ary_new();
-        for step in &self.0.breakdown {
-            let hash = ruby.hash_new();
-            hash.aset(Symbol::new("label"), step.label.as_str())?;
-            hash.aset(Symbol::new("base_amount"), step.base_amount)?;
-            hash.aset(Symbol::new("rate_numer"), step.rate_numer)?;
-            hash.aset(Symbol::new("rate_denom"), step.rate_denom)?;
-            hash.aset(Symbol::new("result"), step.result)?;
-            arr.push(hash)?;
+    match uniffi_calc_consumption_tax(amount, year, month, day, is_reduced_rate) {
+        Ok(r) => {
+            let hash = rb_hash_new();
+            rb_hash_aset(hash, sym!("tax_amount"), ruby_u64(r.tax_amount));
+            rb_hash_aset(hash, sym!("amount_with_tax"), ruby_u64(r.amount_with_tax));
+            rb_hash_aset(
+                hash,
+                sym!("amount_without_tax"),
+                ruby_u64(r.amount_without_tax),
+            );
+            rb_hash_aset(
+                hash,
+                sym!("applied_rate_numer"),
+                ruby_u64(r.applied_rate_numer),
+            );
+            rb_hash_aset(
+                hash,
+                sym!("applied_rate_denom"),
+                ruby_u64(r.applied_rate_denom),
+            );
+            rb_hash_aset(
+                hash,
+                sym!("is_reduced_rate"),
+                ruby_bool_int(r.is_reduced_rate),
+            );
+            hash
         }
-        Ok(arr)
-    }
-
-    fn inspect(&self) -> String {
-        format!(
-            "#<JLawRuby::RealEstate::BrokerageFeeResult total_without_tax={} total_with_tax={} tax_amount={} low_cost_special_applied={}>",
-            self.0.total_without_tax,
-            self.0.total_with_tax,
-            self.0.tax_amount,
-            self.0.low_cost_special_applied,
-        )
+        Err(e) => raise_runtime(&e.to_string()),
     }
 }
 
-// ─── 媒介報酬 Ruby公開関数 ──────────────────────────────────────────────────────
+// ── 媒介報酬計算 ──────────────────────────────────────────────────────────────
 
-/// 宅建業法第46条に基づく媒介報酬を計算する。
-///
-/// @param price [Integer] 売買価格（円）
-/// @param date [Date] 基準日
-/// @param is_low_cost_vacant_house [true, false] 低廉な空き家特例フラグ
-/// @param is_seller [true, false] 売主側フラグ
-/// @return [JLawRuby::RealEstate::BrokerageFeeResult]
-/// @raise [TypeError] date が Date / DateTime 以外の場合
-/// @raise [RuntimeError] 計算エラーが発生した場合
-fn calc_brokerage_fee(
-    price: u64,
-    date: Value,
-    is_low_cost_vacant_house: bool,
-    is_seller: bool,
-) -> Result<RbBrokerageFeeResult, Error> {
-    let (year, month, day) = extract_date(date)?;
-    let result =
-        uniffi_calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house, is_seller)
-            .map_err(into_runtime_error)?;
-    Ok(RbBrokerageFeeResult(result))
-}
-
-// ─── 所得税 Ruby公開型 ──────────────────────────────────────────────────────────
-
-/// 所得税の計算結果。
-///
-/// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
-/// Cargo.toml で disallowed_methods = "allow" を設定している
-#[magnus::wrap(
-    class = "JLawRuby::IncomeTax::IncomeTaxResult",
-    free_immediately,
-    frozen_shareable
-)]
-pub struct RbIncomeTaxResult(UniIncomeTaxResult);
-
-impl RbIncomeTaxResult {
-    fn base_tax(&self) -> u64 {
-        self.0.base_tax
+/// JLawRubyNative.calc_brokerage_fee(price, year, month, day, is_low_cost_int, is_seller_int) -> Hash
+unsafe extern "C" fn calc_brokerage_fee_native(
+    argc: c_int,
+    argv: *const VALUE,
+    _recv: VALUE,
+) -> VALUE {
+    if argc != 6 {
+        raise_arg_error("wrong number of arguments");
     }
 
-    fn reconstruction_tax(&self) -> u64 {
-        self.0.reconstruction_tax
-    }
+    let price = arg_u64(argv, 0);
+    let year = arg_ulong(argv, 1) as u16;
+    let month = arg_ulong(argv, 2) as u8;
+    let day = arg_ulong(argv, 3) as u8;
+    let is_low_cost_vacant_house = arg_bool(argv, 4);
+    let is_seller = arg_bool(argv, 5);
 
-    fn total_tax(&self) -> u64 {
-        self.0.total_tax
-    }
+    match uniffi_calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house, is_seller) {
+        Ok(r) => {
+            let hash = rb_hash_new();
+            rb_hash_aset(
+                hash,
+                sym!("total_without_tax"),
+                ruby_u64(r.total_without_tax),
+            );
+            rb_hash_aset(hash, sym!("total_with_tax"), ruby_u64(r.total_with_tax));
+            rb_hash_aset(hash, sym!("tax_amount"), ruby_u64(r.tax_amount));
+            rb_hash_aset(
+                hash,
+                sym!("low_cost_special_applied"),
+                ruby_bool_int(r.low_cost_special_applied),
+            );
 
-    fn reconstruction_tax_applied(&self) -> bool {
-        self.0.reconstruction_tax_applied
-    }
-
-    /// 計算内訳を Hash の Array で返す。
-    fn breakdown(&self) -> Result<RArray, Error> {
-        let ruby = unsafe { Ruby::get_unchecked() };
-        let arr = ruby.ary_new();
-        for step in &self.0.breakdown {
-            let hash = ruby.hash_new();
-            hash.aset(Symbol::new("label"), step.label.as_str())?;
-            hash.aset(Symbol::new("taxable_income"), step.taxable_income)?;
-            hash.aset(Symbol::new("rate_numer"), step.rate_numer)?;
-            hash.aset(Symbol::new("rate_denom"), step.rate_denom)?;
-            hash.aset(Symbol::new("deduction"), step.deduction)?;
-            hash.aset(Symbol::new("result"), step.result)?;
-            arr.push(hash)?;
+            let breakdown_ary = rb_ary_new();
+            for step in r.breakdown.iter() {
+                let h = rb_hash_new();
+                rb_hash_aset(h, sym!("label"), ruby_str(&step.label));
+                rb_hash_aset(h, sym!("base_amount"), ruby_u64(step.base_amount));
+                rb_hash_aset(h, sym!("rate_numer"), ruby_u64(step.rate_numer));
+                rb_hash_aset(h, sym!("rate_denom"), ruby_u64(step.rate_denom));
+                rb_hash_aset(h, sym!("result"), ruby_u64(step.result));
+                rb_ary_push(breakdown_ary, h);
+            }
+            rb_hash_aset(hash, sym!("breakdown"), breakdown_ary);
+            hash
         }
-        Ok(arr)
-    }
-
-    fn inspect(&self) -> String {
-        format!(
-            "#<JLawRuby::IncomeTax::IncomeTaxResult base_tax={} reconstruction_tax={} total_tax={} reconstruction_tax_applied={}>",
-            self.0.base_tax,
-            self.0.reconstruction_tax,
-            self.0.total_tax,
-            self.0.reconstruction_tax_applied,
-        )
+        Err(e) => raise_runtime(&e.to_string()),
     }
 }
 
-// ─── 所得税 Ruby公開関数 ────────────────────────────────────────────────────────
+// ── 所得税計算 ────────────────────────────────────────────────────────────────
 
-/// 所得税法第89条に基づく所得税額を計算する。
-///
-/// @param taxable_income [Integer] 課税所得金額（円）
-/// @param date [Date] 基準日
-/// @param apply_reconstruction_tax [true, false] 復興特別所得税を適用するか
-/// @return [JLawRuby::IncomeTax::IncomeTaxResult]
-/// @raise [TypeError] date が Date / DateTime 以外の場合
-/// @raise [RuntimeError] 計算エラーが発生した場合
-fn calc_income_tax(
-    taxable_income: u64,
-    date: Value,
-    apply_reconstruction_tax: bool,
-) -> Result<RbIncomeTaxResult, Error> {
-    let (year, month, day) = extract_date(date)?;
-    let result = uniffi_calc_income_tax(taxable_income, year, month, day, apply_reconstruction_tax)
-        .map_err(into_runtime_error)?;
-    Ok(RbIncomeTaxResult(result))
-}
-
-// ─── 印紙税 Ruby公開型 ──────────────────────────────────────────────────────────
-
-/// 印紙税の計算結果。
-///
-/// NOTE: magnus::wrap マクロは展開時に内部で unwrap() を使用するため、
-/// Cargo.toml で disallowed_methods = "allow" を設定している
-#[magnus::wrap(
-    class = "JLawRuby::StampTax::StampTaxResult",
-    free_immediately,
-    frozen_shareable
-)]
-pub struct RbStampTaxResult(UniStampTaxResult);
-
-impl RbStampTaxResult {
-    fn tax_amount(&self) -> u64 {
-        self.0.tax_amount
+/// JLawRubyNative.calc_income_tax(taxable_income, year, month, day, apply_reconstruction_int) -> Hash
+unsafe extern "C" fn calc_income_tax_native(
+    argc: c_int,
+    argv: *const VALUE,
+    _recv: VALUE,
+) -> VALUE {
+    if argc != 5 {
+        raise_arg_error("wrong number of arguments");
     }
 
-    fn bracket_label(&self) -> String {
-        self.0.bracket_label.clone()
-    }
+    let taxable_income = arg_u64(argv, 0);
+    let year = arg_ulong(argv, 1) as u16;
+    let month = arg_ulong(argv, 2) as u8;
+    let day = arg_ulong(argv, 3) as u8;
+    let apply_reconstruction_tax = arg_bool(argv, 4);
 
-    fn reduced_rate_applied(&self) -> bool {
-        self.0.reduced_rate_applied
-    }
+    match uniffi_calc_income_tax(taxable_income, year, month, day, apply_reconstruction_tax) {
+        Ok(r) => {
+            let hash = rb_hash_new();
+            rb_hash_aset(hash, sym!("base_tax"), ruby_u64(r.base_tax));
+            rb_hash_aset(
+                hash,
+                sym!("reconstruction_tax"),
+                ruby_u64(r.reconstruction_tax),
+            );
+            rb_hash_aset(hash, sym!("total_tax"), ruby_u64(r.total_tax));
+            rb_hash_aset(
+                hash,
+                sym!("reconstruction_tax_applied"),
+                ruby_bool_int(r.reconstruction_tax_applied),
+            );
 
-    fn inspect(&self) -> String {
-        format!(
-            "#<JLawRuby::StampTax::StampTaxResult tax_amount={} bracket_label={:?} reduced_rate_applied={}>",
-            self.0.tax_amount,
-            self.0.bracket_label,
-            self.0.reduced_rate_applied,
-        )
+            let breakdown_ary = rb_ary_new();
+            for step in r.breakdown.iter() {
+                let h = rb_hash_new();
+                rb_hash_aset(h, sym!("label"), ruby_str(&step.label));
+                rb_hash_aset(h, sym!("taxable_income"), ruby_u64(step.taxable_income));
+                rb_hash_aset(h, sym!("rate_numer"), ruby_u64(step.rate_numer));
+                rb_hash_aset(h, sym!("rate_denom"), ruby_u64(step.rate_denom));
+                rb_hash_aset(h, sym!("deduction"), ruby_u64(step.deduction));
+                rb_hash_aset(h, sym!("result"), ruby_u64(step.result));
+                rb_ary_push(breakdown_ary, h);
+            }
+            rb_hash_aset(hash, sym!("breakdown"), breakdown_ary);
+            hash
+        }
+        Err(e) => raise_runtime(&e.to_string()),
     }
 }
 
-// ─── 印紙税 Ruby公開関数 ────────────────────────────────────────────────────────
+// ── 印紙税計算 ────────────────────────────────────────────────────────────────
 
-/// 印紙税法 別表第一に基づく印紙税額を計算する。
-///
-/// @param contract_amount [Integer] 契約金額（円）
-/// @param date [Date] 契約書作成日
-/// @param is_reduced_rate_applicable [true, false] 軽減税率適用フラグ
-/// @return [JLawRuby::StampTax::StampTaxResult]
-/// @raise [TypeError] date が Date / DateTime 以外の場合
-/// @raise [RuntimeError] 計算エラーが発生した場合
-fn calc_stamp_tax(
-    contract_amount: u64,
-    date: Value,
-    is_reduced_rate_applicable: bool,
-) -> Result<RbStampTaxResult, Error> {
-    let (year, month, day) = extract_date(date)?;
-    let result = uniffi_calc_stamp_tax(
+/// JLawRubyNative.calc_stamp_tax(contract_amount, year, month, day, is_reduced_rate_applicable_int) -> Hash
+unsafe extern "C" fn calc_stamp_tax_native(argc: c_int, argv: *const VALUE, _recv: VALUE) -> VALUE {
+    if argc != 5 {
+        raise_arg_error("wrong number of arguments");
+    }
+
+    let contract_amount = arg_u64(argv, 0);
+    let year = arg_ulong(argv, 1) as u16;
+    let month = arg_ulong(argv, 2) as u8;
+    let day = arg_ulong(argv, 3) as u8;
+    let is_reduced_rate_applicable = arg_bool(argv, 4);
+
+    match uniffi_calc_stamp_tax(
         contract_amount,
         year,
         month,
         day,
         is_reduced_rate_applicable,
-    )
-    .map_err(into_runtime_error)?;
-    Ok(RbStampTaxResult(result))
+    ) {
+        Ok(r) => {
+            let hash = rb_hash_new();
+            rb_hash_aset(hash, sym!("tax_amount"), ruby_u64(r.tax_amount));
+            rb_hash_aset(hash, sym!("bracket_label"), ruby_str(&r.bracket_label));
+            rb_hash_aset(
+                hash,
+                sym!("reduced_rate_applied"),
+                ruby_bool_int(r.reduced_rate_applied),
+            );
+            hash
+        }
+        Err(e) => raise_runtime(&e.to_string()),
+    }
 }
 
-// ─── モジュール定義 ────────────────────────────────────────────────────────────
+// ── モジュール初期化 ──────────────────────────────────────────────────────────
 
-#[magnus::init]
-fn init(ruby: &Ruby) -> Result<(), Error> {
-    let j_law_core = ruby.define_module("JLawRuby")?;
+/// Ruby ネイティブ拡張の初期化エントリポイント。
+///
+/// `JLawRubyNative` モジュールを定義し、各計算関数をモジュール関数として登録する。
+/// Ruby 側の薄いラッパー（JLawRuby モジュール）がこれらを呼び出す。
+///
+/// # Safety
+///
+/// Ruby ランタイムが拡張をロードする際に呼び出す。
+/// Ruby の GIL 保持下でのみ呼ばれるため安全。
+#[no_mangle]
+pub unsafe extern "C" fn Init_j_law_ruby() {
+    let module = rb_define_module(c"JLawRubyNative".as_ptr());
 
-    // ─── 消費税 ───────────────────────────────────────────────────────────────
-    let consumption_tax = j_law_core.define_module("ConsumptionTax")?;
+    // argc = -1: Ruby が (int argc, VALUE *argv, VALUE self) でコールバックする形式。
+    // rb_define_module_function の func 型 (fn() -> VALUE) とは実際には異なるが、
+    // Ruby C API の ANYARGS 規約に従い transmute で変換する。
+    type Callback = unsafe extern "C" fn(c_int, *const VALUE, VALUE) -> VALUE;
+    type RbFunc = unsafe extern "C" fn() -> VALUE;
 
-    let consumption_tax_result_class =
-        consumption_tax.define_class("ConsumptionTaxResult", ruby.class_object())?;
-    consumption_tax_result_class
-        .define_method("tax_amount", method!(RbConsumptionTaxResult::tax_amount, 0))?;
-    consumption_tax_result_class.define_method(
-        "amount_with_tax",
-        method!(RbConsumptionTaxResult::amount_with_tax, 0),
-    )?;
-    consumption_tax_result_class.define_method(
-        "amount_without_tax",
-        method!(RbConsumptionTaxResult::amount_without_tax, 0),
-    )?;
-    consumption_tax_result_class.define_method(
-        "applied_rate_numer",
-        method!(RbConsumptionTaxResult::applied_rate_numer, 0),
-    )?;
-    consumption_tax_result_class.define_method(
-        "applied_rate_denom",
-        method!(RbConsumptionTaxResult::applied_rate_denom, 0),
-    )?;
-    consumption_tax_result_class.define_method(
-        "is_reduced_rate?",
-        method!(RbConsumptionTaxResult::is_reduced_rate, 0),
-    )?;
-    consumption_tax_result_class
-        .define_method("inspect", method!(RbConsumptionTaxResult::inspect, 0))?;
-    consumption_tax_result_class
-        .define_method("to_s", method!(RbConsumptionTaxResult::inspect, 0))?;
-
-    consumption_tax
-        .define_module_function("calc_consumption_tax", function!(calc_consumption_tax, 3))?;
-
-    // ─── 不動産 ───────────────────────────────────────────────────────────────
-    let real_estate = j_law_core.define_module("RealEstate")?;
-
-    let result_class = real_estate.define_class("BrokerageFeeResult", ruby.class_object())?;
-    result_class.define_method(
-        "total_without_tax",
-        method!(RbBrokerageFeeResult::total_without_tax, 0),
-    )?;
-    result_class.define_method(
-        "total_with_tax",
-        method!(RbBrokerageFeeResult::total_with_tax, 0),
-    )?;
-    result_class.define_method("tax_amount", method!(RbBrokerageFeeResult::tax_amount, 0))?;
-    result_class.define_method(
-        "low_cost_special_applied?",
-        method!(RbBrokerageFeeResult::low_cost_special_applied, 0),
-    )?;
-    result_class.define_method("breakdown", method!(RbBrokerageFeeResult::breakdown, 0))?;
-    result_class.define_method("inspect", method!(RbBrokerageFeeResult::inspect, 0))?;
-    result_class.define_method("to_s", method!(RbBrokerageFeeResult::inspect, 0))?;
-
-    real_estate.define_module_function("calc_brokerage_fee", function!(calc_brokerage_fee, 4))?;
-
-    // ─── 所得税 ───────────────────────────────────────────────────────────────
-    let income_tax = j_law_core.define_module("IncomeTax")?;
-
-    let income_tax_result_class =
-        income_tax.define_class("IncomeTaxResult", ruby.class_object())?;
-    income_tax_result_class.define_method("base_tax", method!(RbIncomeTaxResult::base_tax, 0))?;
-    income_tax_result_class.define_method(
-        "reconstruction_tax",
-        method!(RbIncomeTaxResult::reconstruction_tax, 0),
-    )?;
-    income_tax_result_class.define_method("total_tax", method!(RbIncomeTaxResult::total_tax, 0))?;
-    income_tax_result_class.define_method(
-        "reconstruction_tax_applied?",
-        method!(RbIncomeTaxResult::reconstruction_tax_applied, 0),
-    )?;
-    income_tax_result_class.define_method("breakdown", method!(RbIncomeTaxResult::breakdown, 0))?;
-    income_tax_result_class.define_method("inspect", method!(RbIncomeTaxResult::inspect, 0))?;
-    income_tax_result_class.define_method("to_s", method!(RbIncomeTaxResult::inspect, 0))?;
-
-    income_tax.define_module_function("calc_income_tax", function!(calc_income_tax, 3))?;
-
-    // ─── 印紙税 ───────────────────────────────────────────────────────────────
-    let stamp_tax = j_law_core.define_module("StampTax")?;
-
-    let stamp_tax_result_class = stamp_tax.define_class("StampTaxResult", ruby.class_object())?;
-    stamp_tax_result_class.define_method("tax_amount", method!(RbStampTaxResult::tax_amount, 0))?;
-    stamp_tax_result_class
-        .define_method("bracket_label", method!(RbStampTaxResult::bracket_label, 0))?;
-    stamp_tax_result_class.define_method(
-        "reduced_rate_applied?",
-        method!(RbStampTaxResult::reduced_rate_applied, 0),
-    )?;
-    stamp_tax_result_class.define_method("inspect", method!(RbStampTaxResult::inspect, 0))?;
-    stamp_tax_result_class.define_method("to_s", method!(RbStampTaxResult::inspect, 0))?;
-
-    stamp_tax.define_module_function("calc_stamp_tax", function!(calc_stamp_tax, 3))?;
-
-    Ok(())
+    rb_define_module_function(
+        module,
+        c"calc_consumption_tax".as_ptr(),
+        Some(std::mem::transmute::<Callback, RbFunc>(
+            calc_consumption_tax_native,
+        )),
+        -1,
+    );
+    rb_define_module_function(
+        module,
+        c"calc_brokerage_fee".as_ptr(),
+        Some(std::mem::transmute::<Callback, RbFunc>(
+            calc_brokerage_fee_native,
+        )),
+        -1,
+    );
+    rb_define_module_function(
+        module,
+        c"calc_income_tax".as_ptr(),
+        Some(std::mem::transmute::<Callback, RbFunc>(
+            calc_income_tax_native,
+        )),
+        -1,
+    );
+    rb_define_module_function(
+        module,
+        c"calc_stamp_tax".as_ptr(),
+        Some(std::mem::transmute::<Callback, RbFunc>(
+            calc_stamp_tax_native,
+        )),
+        -1,
+    );
 }

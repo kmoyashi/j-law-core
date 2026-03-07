@@ -5,9 +5,8 @@ edition = "2021"
 license = "MIT"
 
 [lints.clippy]
-# Rubyバインディング層では、magnusマクロ展開時のunwrap()使用が必要
+# rb-sys の raw unsafe API を直接呼び出すバインディング層のため例外扱い
 disallowed_methods = "allow"
-# uniffi::setup_scaffolding! 由来のシンボルを含むため
 disallowed_macros = "allow"
 disallowed_types = "allow"
 
@@ -16,5 +15,5 @@ name = "j_law_ruby"
 crate-type = ["cdylib"]
 
 [dependencies]
-magnus = { version = "0.7" }
+rb-sys = { version = "0.9" }
 j-law-uniffi = { path = "../../../j-law-uniffi" }
