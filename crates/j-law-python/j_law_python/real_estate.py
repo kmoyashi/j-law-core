@@ -1,15 +1,14 @@
-"""宅地建物取引業法第46条に基づく媒介報酬計算（Python ラッパー）。
-
-UniFFI バインディング（j_law_uniffi）をラップし、
-datetime.date を受け取るインターフェースを提供する。
-"""
+"""宅地建物取引業法第46条に基づく媒介報酬計算（Python ラッパー）。"""
 
 from __future__ import annotations
 
 import datetime
 from typing import List
 
-import j_law_uniffi
+from ._cgo import BreakdownStepRecord
+from ._cgo import BrokerageFeeRecord
+from ._cgo import CgoError
+from ._cgo import calc_brokerage_fee as _calc_brokerage_fee
 
 
 class BreakdownStep:
@@ -23,7 +22,7 @@ class BreakdownStep:
         result (int): ティア計算結果（円・端数切捨て済み）
     """
 
-    def __init__(self, r: j_law_uniffi.UniBreakdownStep) -> None:
+    def __init__(self, r: BreakdownStepRecord) -> None:
         self.label: str = r.label
         self.base_amount: int = r.base_amount
         self.rate_numer: int = r.rate_numer
@@ -51,7 +50,7 @@ class BrokerageFeeResult:
         breakdown (list[BreakdownStep]): 各ティアの計算内訳
     """
 
-    def __init__(self, r: j_law_uniffi.UniBrokerageFeeResult) -> None:
+    def __init__(self, r: BrokerageFeeRecord) -> None:
         self.total_without_tax: int = r.total_without_tax
         self.total_with_tax: int = r.total_with_tax
         self.tax_amount: int = r.tax_amount
@@ -100,14 +99,14 @@ def calc_brokerage_fee(
             f"date には datetime.date を指定してください (got {type(date).__name__})"
         )
     try:
-        r = j_law_uniffi.calc_brokerage_fee(
-            price=price,
-            year=date.year,
-            month=date.month,
-            day=date.day,
-            is_low_cost_vacant_house=is_low_cost_vacant_house,
-            is_seller=is_seller,
+        r = _calc_brokerage_fee(
+            price,
+            date.year,
+            date.month,
+            date.day,
+            is_low_cost_vacant_house,
+            is_seller,
         )
-    except j_law_uniffi.UniError as e:
+    except CgoError as e:
         raise ValueError(str(e)) from e
     return BrokerageFeeResult(r)

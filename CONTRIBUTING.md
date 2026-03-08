@@ -79,9 +79,9 @@ crates/
 │           ├── real_estate/    不動産（宅建業法 第46条）
 │           └── stamp_tax/      印紙税（印紙税法 別表第一）
 ├── j-law-registry/     法令パラメータ管理（JSON → Rust 型のローダ）
-├── j-law-python/       Python バインディング（PyO3）
+├── j-law-python/       Python バインディング（ctypes + C ABI）
 ├── j-law-wasm/         WASM バインディング（wasm-bindgen）
-├── j-law-ruby/         Ruby バインディング（Magnus）
+├── j-law-ruby/         Ruby バインディング（ffi + C ABI）
 ├── j-law-cgo/          C FFI（Go 向け staticlib）
 └── j-law-go/           Go バインディング（CGo、非 workspace メンバー）
 ```

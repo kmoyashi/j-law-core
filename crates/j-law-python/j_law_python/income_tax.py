@@ -1,15 +1,14 @@
-"""所得税法第89条に基づく所得税計算（Python ラッパー）。
-
-UniFFI バインディング（j_law_uniffi）をラップし、
-datetime.date を受け取るインターフェースを提供する。
-"""
+"""所得税法第89条に基づく所得税計算（Python ラッパー）。"""
 
 from __future__ import annotations
 
 import datetime
 from typing import List
 
-import j_law_uniffi
+from ._cgo import CgoError
+from ._cgo import IncomeTaxRecord
+from ._cgo import IncomeTaxStepRecord
+from ._cgo import calc_income_tax as _calc_income_tax
 
 
 class IncomeTaxStep:
@@ -24,7 +23,7 @@ class IncomeTaxStep:
         result (int): 算出税額（円）
     """
 
-    def __init__(self, r: j_law_uniffi.UniIncomeTaxStep) -> None:
+    def __init__(self, r: IncomeTaxStepRecord) -> None:
         self.label: str = r.label
         self.taxable_income: int = r.taxable_income
         self.rate_numer: int = r.rate_numer
@@ -54,7 +53,7 @@ class IncomeTaxResult:
         breakdown (list[IncomeTaxStep]): 計算内訳
     """
 
-    def __init__(self, r: j_law_uniffi.UniIncomeTaxResult) -> None:
+    def __init__(self, r: IncomeTaxRecord) -> None:
         self.base_tax: int = r.base_tax
         self.reconstruction_tax: int = r.reconstruction_tax
         self.total_tax: int = r.total_tax
@@ -98,13 +97,13 @@ def calc_income_tax(
             f"date には datetime.date を指定してください (got {type(date).__name__})"
         )
     try:
-        r = j_law_uniffi.calc_income_tax(
-            taxable_income=taxable_income,
-            year=date.year,
-            month=date.month,
-            day=date.day,
-            apply_reconstruction_tax=apply_reconstruction_tax,
+        r = _calc_income_tax(
+            taxable_income,
+            date.year,
+            date.month,
+            date.day,
+            apply_reconstruction_tax,
         )
-    except j_law_uniffi.UniError as e:
+    except CgoError as e:
         raise ValueError(str(e)) from e
     return IncomeTaxResult(r)

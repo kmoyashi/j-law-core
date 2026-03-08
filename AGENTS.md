@@ -16,12 +16,13 @@
 |---|---|---|
 | `j-law-core` | 共通基盤（型・エラー・計算ロジック） | `thiserror = "1"` |
 | `j-law-registry` | 法令パラメータ管理（JSON） | `j-law-core`, `serde/serde_json = "1"` |
-| `j-law-python` | Python バインディング | `pyo3 = "0.21"` |
 | `j-law-wasm` | WASM/JS バインディング | `wasm-bindgen = "0.2"`, `js-sys = "0.3"` |
-| `j-law-ruby/ext/j_law_core` | Ruby バインディング | `magnus = "0.7"` |
+| `j-law-ruby` | Ruby バインディング | `ffi`, `j-law-cgo` |
 | `j-law-cgo` | C FFI（Go 向け staticlib） | `j-law-core`, `j-law-registry` |
 
-- **非 workspace メンバー**（Go）: `crates/j-law-go/`（`go.mod` で管理、CGo 経由で `j-law-cgo` にリンク）
+- **非 workspace メンバー**:
+  - `crates/j-law-python/`（`setuptools` で管理、`ctypes` 経由で `j-law-cgo` にリンク）
+  - `crates/j-law-go/`（`go.mod` で管理、CGo 経由で `j-law-cgo` にリンク）
 
 ### 実装済みドメイン
 
@@ -199,9 +200,9 @@ crates/j-law-core/tests/<domain_name>/
 
 | 言語 | ファイル | 方式 |
 |---|---|---|
-| Python | `crates/j-law-python/src/lib.rs` | PyO3 `#[pyfunction]` + サブモジュール登録（`sys.modules` 登録必須） |
+| Python | `crates/j-law-python/j_law_python/*.py` + `setup.py` | `ctypes` で `j-law-cgo` をラップ |
 | WASM/JS | `crates/j-law-wasm/src/lib.rs` | `#[wasm_bindgen]` 関数 |
-| Ruby | `crates/j-law-ruby/ext/j_law_core/src/lib.rs` | Magnus `define_method` |
+| Ruby | `crates/j-law-ruby/lib/j_law_ruby/cgo.rb` | `ffi` で `j-law-cgo` をラップ |
 | C/Go | `crates/j-law-cgo/src/lib.rs` + `j_law_cgo.h` + `crates/j-law-go/j_law_core.go` | `extern "C"` FFI |
 
 テストフィクスチャは `tests/fixtures/<domain_name>.json` に共通 JSON を作成し、全言語のテストで読み込むこと。
@@ -295,7 +296,7 @@ tests/fixtures/
 | サービス | 内容 |
 |---|---|
 | `test-rust` | `cargo test -p j-law-core -p j-law-registry` |
-| `test-python` | `maturin build` → `pytest` |
+| `test-python` | `pip install crates/j-law-python/` → `pytest` |
 | `test-wasm` | `wasm-pack build` → `node --test` |
 | `test-ruby` | `bundle exec rake compile` → `rake test` |
 | `test-go` | `cargo build -p j-law-cgo` → `go test` |
@@ -406,15 +407,16 @@ crates/j-law-core/tests/
     └── edge_cases.rs
 ```
 
-### PyO3 サブモジュール登録
+### Python C ABI の共有ライブラリ解決
 
-PyO3 の `add_submodule` だけでは `from j_law_core.real_estate import ...` が動作しません。`sys.modules` への明示的な登録が必要です:
+Python バインディングは `j-law-cgo` の共有ライブラリを以下の順で探索します:
 
-```rust
-py.import_bound("sys")?
-    .getattr("modules")?
-    .set_item("j_law_core.real_estate", &m)?;
-```
+1. `JLAW_PYTHON_CGO_LIB`
+2. パッケージ同梱の `j_law_python/native/`
+3. リポジトリの `target/release/`
+4. リポジトリの `target/debug/`
+
+ローカル開発で `pytest crates/j-law-python/tests/ -v` を直接実行する場合、共有ライブラリが未ビルドならテスト起動時に `cargo build -p j-law-cgo` が自動実行されます。
 
 ### Go CGo リンクフラグ
 

@@ -1,128 +1,72 @@
 name: Publish Python (PyPI)
 
-# GitHub Releases が公開されたときに PyPI へ公開する。
-# Trusted Publishers (OIDC) を使用するため、PyPI 側で GitHub Actions の設定が必要。
-# Settings > Environments > pypi に環境を作成し、PyPI の Trusted Publisher を登録すること。
-#
-# j-law-python は純 Python パッケージ（setuptools ビルド）。
-# 先に j-law-uniffi を maturin でビルドして PyPI に公開することが前提。
-
 on:
   release:
     types: [published]
 
 jobs:
-  # --- j-law-uniffi Linux wheels (manylinux) ---
-  linux:
-    name: Build Linux wheels (${{ matrix.target }})
-    runs-on: ubuntu-latest
+  build-wheels:
+    name: Build wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        target: [x86_64, aarch64]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
-      - uses: PyO3/maturin-action@v1
+      - if: matrix.os == 'ubuntu-latest'
+        uses: docker/setup-qemu-action@v3
+      - uses: actions/setup-python@v5
         with:
-          command: build
-          args: >-
-            --release
-            --manifest-path crates/j-law-uniffi/Cargo.toml
-            --out dist
-          manylinux: auto
-          target: ${{ matrix.target }}
+          python-version: "3.11"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Build wheels with cibuildwheel
+        uses: pypa/cibuildwheel@v2
+        env:
+          CIBW_BUILD_FRONTEND: build
+          CIBW_BUILD: "cp38-* cp39-* cp310-* cp311-* cp312-*"
+          CIBW_ARCHS_LINUX: "x86_64 aarch64"
+          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ARCHS_WINDOWS: "AMD64"
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.8"
+          CIBW_TEST_SKIP: "*"
+          CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && $HOME/.cargo/bin/rustup default stable"
+          CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH"
+        with:
+          package-dir: crates/j-law-python
+          output-dir: dist
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-linux-${{ matrix.target }}
+          name: wheels-${{ matrix.os }}
           path: dist
 
-  # --- j-law-uniffi macOS wheels ---
-  macos:
-    name: Build macOS wheels (${{ matrix.target }})
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        target: [x86_64, aarch64]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: >-
-            --release
-            --manifest-path crates/j-law-uniffi/Cargo.toml
-            --out dist
-          target: ${{ matrix.target }}
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheels-macos-${{ matrix.target }}
-          path: dist
-
-  # --- j-law-uniffi Windows wheels ---
-  windows:
-    name: Build Windows wheels
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: PyO3/maturin-action@v1
-        with:
-          command: build
-          args: >-
-            --release
-            --manifest-path crates/j-law-uniffi/Cargo.toml
-            --out dist
-          target: x86_64
-      - uses: actions/upload-artifact@v4
-        with:
-          name: wheels-windows-x86_64
-          path: dist
-
-  # --- j-law-uniffi ソース配布物 ---
   sdist:
     name: Build source distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: PyO3/maturin-action@v1
-        with:
-          command: sdist
-          args: >-
-            --manifest-path crates/j-law-uniffi/Cargo.toml
-            --out dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: sdist
-          path: dist
-
-  # --- j-law-python 純 Python wheel ---
-  python-wrapper:
-    name: Build j-law-python pure Python wheel
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Build pure Python wheel
+      - name: Build source distribution
         run: |
           pip install build
-          python -m build crates/j-law-python/ --outdir dist
+          python -m build crates/j-law-python --sdist --outdir dist
       - uses: actions/upload-artifact@v4
         with:
-          name: wheels-python-wrapper
+          name: sdist
           path: dist
 
-  # --- PyPI へ公開 ---
   publish:
     name: Publish to PyPI
-    needs: [linux, macos, windows, sdist, python-wrapper]
+    needs: [build-wheels, sdist]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      id-token: write  # Trusted Publishers (OIDC) に必要
+      id-token: write
     steps:
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
           path: dist
       - uses: pypa/gh-action-pypi-publish@release/v1
-

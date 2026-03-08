@@ -129,14 +129,13 @@ cargo test --all
 
 ## Python
 
-PyO3 を使った Python バインディングです。
+`j-law-cgo` の C ABI を `ctypes` で呼び出す Python バインディングです。
 
 ### インストール
 
 ```bash
 # ソースからビルド（要 Rust toolchain）
-pip install maturin
-maturin develop -m crates/j-law-python/Cargo.toml
+pip install ./crates/j-law-python
 ```
 
 ### 使用例
@@ -349,7 +348,7 @@ function calcBrokerageFee(
 
 ## Ruby
 
-Magnus を使った Ruby バインディングです。
+`ffi` から `j-law-cgo` の C ABI を呼び出す Ruby バインディングです。
 
 ### インストール
 
@@ -716,7 +715,7 @@ int j_law_calc_brokerage_fee(
 
 |                    | Rust                   | Python                | JS/TS           | Ruby           | Go                | C                 |
 | ------------------ | ---------------------- | --------------------- | --------------- | -------------- | ----------------- | ----------------- |
-| バインディング方式 | ネイティブ             | PyO3                  | wasm-bindgen    | Magnus         | CGo               | FFI               |
+| バインディング方式 | ネイティブ             | ctypes + C ABI        | wasm-bindgen    | ffi + C ABI    | CGo               | FFI               |
 | 金額型             | `u64`                  | `int`                 | `u32`           | `Integer`      | `uint64`          | `uint64_t`        |
 | エラー型           | `JLawError`            | `ValueError`          | throw (string)  | `RuntimeError` | `error`           | 戻り値 + バッファ |
 | 内訳の形式         | `Vec<CalculationStep>` | `list[BreakdownStep]` | `Array<Object>` | `Array<Hash>`  | `[]BreakdownStep` | 固定長配列        |
