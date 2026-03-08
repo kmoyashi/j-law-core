@@ -3,7 +3,7 @@ members = [
     "crates/j-law-core",
     "crates/j-law-registry",
     "crates/j-law-wasm",
-    "crates/j-law-cgo",
+    "crates/j-law-c-ffi",
 ]
 resolver = "2"
 

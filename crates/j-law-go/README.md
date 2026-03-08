@@ -2,7 +2,7 @@
 
 日本の法令に基づく各種計算を提供する Go バインディング。
 
-Rust コアライブラリ（j-law-core）を CGo 経由で静的リンクしています。
+`j-law-c-ffi` が提供する C ABI を CGo 経由で利用しています。
 浮動小数点演算を一切使用せず、整数演算で端数処理の再現性を保証します。
 
 > [!WARNING]
@@ -15,7 +15,7 @@ Rust コアライブラリ（j-law-core）を CGo 経由で静的リンクして
 > [!NOTE]
 > **CGo 静的リンクについて**
 >
-> このパッケージは `j-law-cgo`（Rust staticlib）に静的リンクしています。
+> このパッケージは `j-law-c-ffi` の C ABI を CGo 経由で利用します。
 > `go get` / `go test` の前に必ず `make build-rust` を実行してください。
 
 ## インストール
@@ -28,7 +28,7 @@ go get github.com/kmoyashi/j-law-go
 
 ```sh
 cd crates/j-law-go
-make build-rust   # target/debug/libj_law_cgo.a を生成
+make build-rust   # target/debug/libj_law_c_ffi.a を生成
 ```
 
 ## 使い方

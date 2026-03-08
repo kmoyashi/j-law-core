@@ -2,7 +2,7 @@
 
 日本の法令に基づく各種計算を提供する Python バインディングです。
 
-内部では `j-law-cgo` の C ABI を `ctypes` 経由で呼び出し、Rust コアの整数演算ロジックを Python から利用します。
+内部では `j-law-c-ffi` の C ABI を `ctypes` 経由で呼び出し、Rust コアの整数演算ロジックを Python から利用します。
 
 > [!WARNING]
 > **アルファ版・AI生成コードに関する注意事項**
@@ -25,13 +25,13 @@ pip install j-law-python
 pip install ./crates/j-law-python
 ```
 
-ローカル checkout を直接 import する場合は、先に `j-law-cgo` をビルドしてください。
+ローカル checkout を直接 import する場合は、先に `j-law-c-ffi` をビルドしてください。
 
 ```sh
-cargo build -p j-law-cgo
+cargo build -p j-law-c-ffi
 ```
 
-共有ライブラリの探索先を明示したい場合は `JLAW_PYTHON_CGO_LIB` を指定できます。
+共有ライブラリの探索先を明示したい場合は `JLAW_PYTHON_C_FFI_LIB` を指定できます。
 
 ## 使い方
 

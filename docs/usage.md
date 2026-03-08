@@ -129,7 +129,7 @@ cargo test --all
 
 ## Python
 
-`j-law-cgo` の C ABI を `ctypes` で呼び出す Python バインディングです。
+`j-law-c-ffi` の C ABI を `ctypes` で呼び出す Python バインディングです。
 
 ### インストール
 
@@ -348,7 +348,7 @@ function calcBrokerageFee(
 
 ## Ruby
 
-`ffi` から `j-law-cgo` の C ABI を呼び出す Ruby バインディングです。
+`ffi` から `j-law-c-ffi` の C ABI を呼び出す Ruby バインディングです。
 
 ### インストール
 
@@ -450,7 +450,7 @@ JLawRuby::RealEstate.calc_brokerage_fee(
 
 ## Go
 
-CGo を経由して Rust の静的ライブラリ（`libj_law_cgo.a`）にリンクします。
+CGo を経由して Rust の静的ライブラリ（`libj_law_c_ffi.a`）にリンクします。
 
 ### セットアップ
 
@@ -574,19 +574,19 @@ func CalcBrokerageFee(
 
 ## C / C++
 
-`j-law-cgo` クレートが C FFI を提供します。Go 以外の C 互換言語からも利用可能です。
+`j-law-c-ffi` クレートが C ABI を提供します。C 互換言語から利用可能です。
 
 ### ヘッダファイル
 
 ```c
-#include "j_law_cgo.h"
+#include "j_law_c_ffi.h"
 ```
 
 ### 使用例（C）
 
 ```c
 #include <stdio.h>
-#include "j_law_cgo.h"
+#include "j_law_c_ffi.h"
 
 int main(void) {
     JLawBrokerageFeeResult result;
@@ -628,20 +628,20 @@ int main(void) {
 
 ```bash
 # 静的ライブラリのビルド
-cargo build -p j-law-cgo
+cargo build -p j-law-c-ffi
 
 # C プログラムとリンク（macOS）
 cc -o example example.c \
-    -I crates/j-law-cgo \
+    -I crates/j-law-c-ffi \
     -L target/debug \
-    -lj_law_cgo \
+    -lj_law_c_ffi \
     -framework Security -framework CoreFoundation
 
 # C プログラムとリンク（Linux）
 cc -o example example.c \
-    -I crates/j-law-cgo \
+    -I crates/j-law-c-ffi \
     -L target/debug \
-    -lj_law_cgo \
+    -lj_law_c_ffi \
     -ldl -lpthread -lm
 ```
 

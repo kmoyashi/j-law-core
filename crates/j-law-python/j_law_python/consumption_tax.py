@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import datetime
 
-from ._cgo import CgoError
-from ._cgo import ConsumptionTaxRecord
-from ._cgo import calc_consumption_tax as _calc_consumption_tax
+from ._c_ffi import CFFIError
+from ._c_ffi import ConsumptionTaxRecord
+from ._c_ffi import calc_consumption_tax as _calc_consumption_tax
 
 
 class ConsumptionTaxResult:
@@ -76,6 +76,6 @@ def calc_consumption_tax(
             date.day,
             is_reduced_rate,
         )
-    except CgoError as e:
+    except CFFIError as e:
         raise ValueError(str(e)) from e
     return ConsumptionTaxResult(r)

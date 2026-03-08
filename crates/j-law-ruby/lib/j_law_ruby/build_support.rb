@@ -13,11 +13,11 @@ module JLawRuby
     def shared_library_filename
       case RbConfig::CONFIG["host_os"]
       when /mswin|mingw|cygwin/
-        "j_law_cgo.dll"
+        "j_law_c_ffi.dll"
       when /darwin/
-        "libj_law_cgo.dylib"
+        "libj_law_c_ffi.dylib"
       else
-        "libj_law_cgo.so"
+        "libj_law_c_ffi.so"
       end
     end
 
@@ -61,7 +61,7 @@ module JLawRuby
 
     def shared_library_candidates(gem_root)
       candidates = []
-      env_path = ENV["JLAW_RUBY_CGO_LIB"]
+      env_path = ENV["JLAW_RUBY_C_FFI_LIB"]
       candidates << env_path unless env_path.nil? || env_path.empty?
       candidates << packaged_shared_library_path(gem_root)
 

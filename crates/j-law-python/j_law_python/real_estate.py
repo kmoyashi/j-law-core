@@ -5,10 +5,10 @@ from __future__ import annotations
 import datetime
 from typing import List
 
-from ._cgo import BreakdownStepRecord
-from ._cgo import BrokerageFeeRecord
-from ._cgo import CgoError
-from ._cgo import calc_brokerage_fee as _calc_brokerage_fee
+from ._c_ffi import BreakdownStepRecord
+from ._c_ffi import BrokerageFeeRecord
+from ._c_ffi import CFFIError
+from ._c_ffi import calc_brokerage_fee as _calc_brokerage_fee
 
 
 class BreakdownStep:
@@ -107,6 +107,6 @@ def calc_brokerage_fee(
             is_low_cost_vacant_house,
             is_seller,
         )
-    except CgoError as e:
+    except CFFIError as e:
         raise ValueError(str(e)) from e
     return BrokerageFeeResult(r)

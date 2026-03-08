@@ -11,7 +11,7 @@ module JLawRuby
       members = [
           "crates/j-law-core",
           "crates/j-law-registry",
-          "crates/j-law-cgo",
+          "crates/j-law-c-ffi",
       ]
       resolver = "2"
 
@@ -22,7 +22,7 @@ module JLawRuby
     TOML
 
     COPY_MAP = {
-      "crates/j-law-cgo" => %w[Cargo.toml src j_law_cgo.h],
+      "crates/j-law-c-ffi" => %w[Cargo.toml src j_law_c_ffi.h],
       "crates/j-law-core" => %w[Cargo.toml src],
       "crates/j-law-registry" => %w[Cargo.toml src data],
     }.freeze

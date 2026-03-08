@@ -5,10 +5,10 @@ from __future__ import annotations
 import datetime
 from typing import List
 
-from ._cgo import CgoError
-from ._cgo import IncomeTaxRecord
-from ._cgo import IncomeTaxStepRecord
-from ._cgo import calc_income_tax as _calc_income_tax
+from ._c_ffi import CFFIError
+from ._c_ffi import IncomeTaxRecord
+from ._c_ffi import IncomeTaxStepRecord
+from ._c_ffi import calc_income_tax as _calc_income_tax
 
 
 class IncomeTaxStep:
@@ -104,6 +104,6 @@ def calc_income_tax(
             date.day,
             apply_reconstruction_tax,
         )
-    except CgoError as e:
+    except CFFIError as e:
         raise ValueError(str(e)) from e
     return IncomeTaxResult(r)
