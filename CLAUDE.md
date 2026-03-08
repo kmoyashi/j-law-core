@@ -29,8 +29,23 @@ make docker-test # 全言語バインディングテスト（Docker）
 
 ### CIチェック
 
-**コードを変更したら必ず `make ci` を実行してからプッシュすること。**
-`make ci` は `.github/workflows/ci.yml` の lint + test-rust ジョブと同等のチェックを行う。
+**コードを変更したら必ず以下を実行してからプッシュすること：**
+
+```bash
+# 1. Rust コードのフォーマット・リント・テスト
+make ci
+
+# 2. 全言語バインディングテスト（Docker必須）
+make docker-test
+```
+
+- `make ci` は `.github/workflows/ci.yml` の lint + test-rust ジョブと同等のチェックを行う
+- `make docker-test` は Python/Ruby/Go/WASM/C のバインディング全体をテストする
+- Docker が起動していない場合は自動起動される
+
+**Docker セットアップ（初回のみ）：**
+- この環境では Docker デーモンをバックグラウンドで起動する必要があります
+- セッション開始時に自動起動設定があるため、通常は手動操作不要です
 
 ## 問題解決の姿勢
 
