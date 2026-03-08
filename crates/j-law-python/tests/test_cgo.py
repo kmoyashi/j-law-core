@@ -115,6 +115,40 @@ def test_error_buffer_is_raised_as_value_error():
         )
 
 
+@pytest.mark.parametrize(
+    ("call", "args", "field_name"),
+    [
+        (_cgo.calc_brokerage_fee, (-1, 2024, 8, 1, False, False), "price"),
+        (_cgo.calc_income_tax, (-1, 2024, 1, 1, True), "taxable_income"),
+        (_cgo.calc_consumption_tax, (-1, 2024, 1, 1, False), "amount"),
+        (_cgo.calc_stamp_tax, (-1, 2024, 8, 1, False), "contract_amount"),
+    ],
+)
+def test_negative_unsigned_inputs_are_rejected(call, args, field_name):
+    with pytest.raises(_cgo.CgoError, match=field_name):
+        call(*args)
+
+
+def test_out_of_range_unsigned_input_is_rejected_before_ctypes_cast():
+    with pytest.raises(_cgo.CgoError, match="price"):
+        _cgo.calc_brokerage_fee(
+            _cgo.U64_MAX + 1,
+            2024,
+            8,
+            1,
+            False,
+            False,
+        )
+
+
+def test_public_api_rejects_negative_price_as_value_error():
+    with pytest.raises(ValueError, match="price"):
+        real_estate.calc_brokerage_fee(
+            -1,
+            datetime.date(2024, 8, 1),
+        )
+
+
 def test_loaded_library_path_exists():
     assert Path(_cgo.library_path()).is_file()
 

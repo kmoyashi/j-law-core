@@ -11,6 +11,7 @@ ABI_VERSION = build_support.ABI_VERSION
 MAX_TIERS = 8
 LABEL_LEN = 64
 ERROR_BUF_LEN = 256
+U64_MAX = (1 << 64) - 1
 
 
 class CgoError(RuntimeError):
@@ -141,6 +142,12 @@ def _bool_to_c_int(value: bool) -> int:
     return 1 if value else 0
 
 
+def _validate_u64(value: int, field_name: str) -> int:
+    if value < 0 or value > U64_MAX:
+        raise CgoError(f"{field_name} must be between 0 and {U64_MAX}")
+    return value
+
+
 def _read_error(buffer: ctypes.Array[ctypes.c_char]) -> str:
     message = buffer.value.decode("utf-8")
     if message:
@@ -263,10 +270,11 @@ def calc_brokerage_fee(
     is_low_cost_vacant_house: bool,
     is_seller: bool,
 ) -> BrokerageFeeRecord:
+    checked_price = _validate_u64(price, "price")
     result = _BrokerageFeeResultStruct()
     error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
     status = _LIB.j_law_calc_brokerage_fee(
-        ctypes.c_uint64(price),
+        ctypes.c_uint64(checked_price),
         ctypes.c_uint16(year),
         ctypes.c_uint8(month),
         ctypes.c_uint8(day),
@@ -295,10 +303,11 @@ def calc_income_tax(
     day: int,
     apply_reconstruction_tax: bool,
 ) -> IncomeTaxRecord:
+    checked_taxable_income = _validate_u64(taxable_income, "taxable_income")
     result = _IncomeTaxResultStruct()
     error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
     status = _LIB.j_law_calc_income_tax(
-        ctypes.c_uint64(taxable_income),
+        ctypes.c_uint64(checked_taxable_income),
         ctypes.c_uint16(year),
         ctypes.c_uint8(month),
         ctypes.c_uint8(day),
@@ -329,10 +338,11 @@ def calc_consumption_tax(
     day: int,
     is_reduced_rate: bool,
 ) -> ConsumptionTaxRecord:
+    checked_amount = _validate_u64(amount, "amount")
     result = _ConsumptionTaxResultStruct()
     error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
     status = _LIB.j_law_calc_consumption_tax(
-        ctypes.c_uint64(amount),
+        ctypes.c_uint64(checked_amount),
         ctypes.c_uint16(year),
         ctypes.c_uint8(month),
         ctypes.c_uint8(day),
@@ -361,10 +371,11 @@ def calc_stamp_tax(
     day: int,
     is_reduced_rate_applicable: bool,
 ) -> StampTaxRecord:
+    checked_contract_amount = _validate_u64(contract_amount, "contract_amount")
     result = _StampTaxResultStruct()
     error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
     status = _LIB.j_law_calc_stamp_tax(
-        ctypes.c_uint64(contract_amount),
+        ctypes.c_uint64(checked_contract_amount),
         ctypes.c_uint16(year),
         ctypes.c_uint8(month),
         ctypes.c_uint8(day),
