@@ -20,12 +20,7 @@ CMD ["cargo", "test", "-p", "j-law-core", "-p", "j-law-registry"]
 FROM base-rust AS test-python
 RUN apt-get update && apt-get install -y python3 python3-pip python3-venv \
     && rm -rf /var/lib/apt/lists/*
-RUN pip3 install --break-system-packages maturin pytest
-# UniFFI アダプター層をビルドして Python ホイールとしてインストール
-RUN maturin build -m crates/j-law-uniffi/Cargo.toml \
-    && pip3 install --break-system-packages target/wheels/*.whl
-# j-law-python（純 Python 薄いラッパー）をインストール
-RUN pip3 install --break-system-packages crates/j-law-python/
+RUN pip3 install --break-system-packages pytest crates/j-law-python/
 CMD ["pytest", "crates/j-law-python/tests/", "-v"]
 
 # ---- WASM/JS テスト ----

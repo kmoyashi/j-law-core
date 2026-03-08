@@ -4,7 +4,6 @@ members = [
     "crates/j-law-registry",
     "crates/j-law-wasm",
     "crates/j-law-cgo",
-    "crates/j-law-uniffi",
 ]
 resolver = "2"
 

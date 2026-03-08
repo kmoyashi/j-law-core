@@ -1,14 +1,12 @@
-"""印紙税法別表第一に基づく印紙税額計算（Python ラッパー）。
-
-UniFFI バインディング（j_law_uniffi）をラップし、
-datetime.date を受け取るインターフェースを提供する。
-"""
+"""印紙税法別表第一に基づく印紙税額計算（Python ラッパー）。"""
 
 from __future__ import annotations
 
 import datetime
 
-import j_law_uniffi
+from ._cgo import CgoError
+from ._cgo import StampTaxRecord
+from ._cgo import calc_stamp_tax as _calc_stamp_tax
 
 
 class StampTaxResult:
@@ -20,7 +18,7 @@ class StampTaxResult:
         reduced_rate_applied (bool): 軽減税率が適用されたか
     """
 
-    def __init__(self, r: j_law_uniffi.UniStampTaxResult) -> None:
+    def __init__(self, r: StampTaxRecord) -> None:
         self.tax_amount: int = r.tax_amount
         self.bracket_label: str = r.bracket_label
         self.reduced_rate_applied: bool = r.reduced_rate_applied
@@ -63,13 +61,13 @@ def calc_stamp_tax(
             f"date には datetime.date を指定してください (got {type(date).__name__})"
         )
     try:
-        r = j_law_uniffi.calc_stamp_tax(
-            contract_amount=contract_amount,
-            year=date.year,
-            month=date.month,
-            day=date.day,
-            is_reduced_rate_applicable=is_reduced_rate_applicable,
+        r = _calc_stamp_tax(
+            contract_amount,
+            date.year,
+            date.month,
+            date.day,
+            is_reduced_rate_applicable,
         )
-    except j_law_uniffi.UniError as e:
+    except CgoError as e:
         raise ValueError(str(e)) from e
     return StampTaxResult(r)

@@ -1,0 +1,6 @@
+include README.md
+include pyproject.toml
+include setup.py
+recursive-include j_law_python *.py
+recursive-include tests *.py
+recursive-include vendor/rust *

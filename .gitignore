@@ -9,7 +9,7 @@
 *.rs.bk
 
 # =============================================================================
-# Python / PyO3 (crates/j-law-python)
+# Python / ctypes (crates/j-law-python)
 # =============================================================================
 
 __pycache__/
@@ -26,6 +26,9 @@ venv/
 
 # maturin / pip ビルド成果物
 wheels/
+
+# sdist 用に同期した Rust ワークスペース
+crates/j-law-python/vendor/
 
 # =============================================================================
 # WebAssembly / wasm-pack (crates/j-law-wasm)

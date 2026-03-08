@@ -1,6 +1,6 @@
 """j_law_python — 日本の法令計算ライブラリ（Python バインディング）。
 
-UniFFI で生成した j_law_uniffi モジュールをラップし、
+`j-law-cgo` の C ABI を `ctypes` でラップし、
 datetime.date を受け取るインターフェースを提供する。
 
 サブモジュール:

@@ -1,14 +1,12 @@
-"""消費税法第29条に基づく消費税額計算（Python ラッパー）。
-
-UniFFI バインディング（j_law_uniffi）をラップし、
-datetime.date を受け取るインターフェースを提供する。
-"""
+"""消費税法第29条に基づく消費税額計算（Python ラッパー）。"""
 
 from __future__ import annotations
 
 import datetime
 
-import j_law_uniffi
+from ._cgo import CgoError
+from ._cgo import ConsumptionTaxRecord
+from ._cgo import calc_consumption_tax as _calc_consumption_tax
 
 
 class ConsumptionTaxResult:
@@ -23,7 +21,7 @@ class ConsumptionTaxResult:
         is_reduced_rate (bool): 軽減税率が適用されたか
     """
 
-    def __init__(self, r: j_law_uniffi.UniConsumptionTaxResult) -> None:
+    def __init__(self, r: ConsumptionTaxRecord) -> None:
         self.tax_amount: int = r.tax_amount
         self.amount_with_tax: int = r.amount_with_tax
         self.amount_without_tax: int = r.amount_without_tax
@@ -71,13 +69,13 @@ def calc_consumption_tax(
             f"date には datetime.date を指定してください (got {type(date).__name__})"
         )
     try:
-        r = j_law_uniffi.calc_consumption_tax(
-            amount=amount,
-            year=date.year,
-            month=date.month,
-            day=date.day,
-            is_reduced_rate=is_reduced_rate,
+        r = _calc_consumption_tax(
+            amount,
+            date.year,
+            date.month,
+            date.day,
+            is_reduced_rate,
         )
-    except j_law_uniffi.UniError as e:
+    except CgoError as e:
         raise ValueError(str(e)) from e
     return ConsumptionTaxResult(r)

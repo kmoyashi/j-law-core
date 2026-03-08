@@ -155,9 +155,9 @@ j-law-core/
 │   │   └── data/
 │   │       ├── real_estate/      # 宅建業法告示パラメータ
 │   │       └── income_tax/       # 所得税法パラメータ
-│   ├── j-law-python/             # Python バインディング（PyO3）
+│   ├── j-law-python/             # Python バインディング（ctypes + C ABI）
 │   ├── j-law-wasm/               # WASM/JavaScript バインディング（wasm-bindgen）
-│   ├── j-law-ruby/               # Ruby バインディング（Magnus）
+│   ├── j-law-ruby/               # Ruby バインディング（ffi + C ABI）
 │   ├── j-law-cgo/                # C FFI（Go 向け staticlib）
 │   └── j-law-go/                 # Go バインディング（CGo）
 ├── tests/
@@ -247,8 +247,7 @@ docker compose up test-go --build
 cargo test --all
 
 # Python
-pip install maturin pytest
-maturin develop -m crates/j-law-python/Cargo.toml
+pip install pytest
 pytest crates/j-law-python/tests/ -v
 
 # WASM/JS
