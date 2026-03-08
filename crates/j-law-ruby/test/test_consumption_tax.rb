@@ -31,7 +31,7 @@ class TestConsumptionTax < Minitest::Test
       assert_equal exp["amount_without_tax"], result.amount_without_tax, "#{tc['id']}: amount_without_tax"
       assert_equal exp["applied_rate_numer"], result.applied_rate_numer, "#{tc['id']}: applied_rate_numer"
       assert_equal exp["applied_rate_denom"], result.applied_rate_denom, "#{tc['id']}: applied_rate_denom"
-      assert_equal exp["is_reduced_rate"],   result.is_reduced_rate?,  "#{tc['id']}: is_reduced_rate"
+      assert_equal exp["is_reduced_rate"],   result.is_reduced_rate,   "#{tc['id']}: is_reduced_rate"
     end
   end
 
@@ -50,9 +50,9 @@ class TestConsumptionTax < Minitest::Test
     assert_equal 100_000, result.amount_with_tax
   end
 
-  def test_inspect
+  def test_type_name
     result = JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, Date.new(2024, 1, 1), false)
-    assert_match(/ConsumptionTaxResult/, result.inspect)
+    assert_match(/ConsumptionTaxResult/, result.class.name)
   end
 
   def test_type_error_invalid_date

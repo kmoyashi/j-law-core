@@ -1,0 +1,79 @@
+namespace j_law_uniffi {
+    /// 消費税法第29条に基づく消費税額を計算する。
+    [Throws=JLawError]
+    ConsumptionTaxResult calc_consumption_tax(u64 amount, u16 year, u8 month, u8 day, boolean is_reduced_rate);
+
+    /// 宅建業法第46条に基づく媒介報酬を計算する。
+    [Throws=JLawError]
+    BrokerageFeeResult calc_brokerage_fee(u64 price, u16 year, u8 month, u8 day, boolean is_low_cost_vacant_house, boolean is_seller);
+
+    /// 所得税法第89条に基づく所得税額を計算する。
+    [Throws=JLawError]
+    IncomeTaxResult calc_income_tax(u64 taxable_income, u16 year, u8 month, u8 day, boolean apply_reconstruction_tax);
+
+    /// 印紙税法 別表第一に基づく印紙税額を計算する。
+    [Throws=JLawError]
+    StampTaxResult calc_stamp_tax(u64 contract_amount, u16 year, u8 month, u8 day, boolean is_reduced_rate_applicable);
+};
+
+/// バインディング層のエラー型。JLawError の3層構造を UniFFI で表現可能な形式に変換する。
+[Error]
+interface JLawError {
+    RegistryError(string message);
+    InputError(string message);
+    CalculationError(string message);
+};
+
+/// 消費税の計算結果。
+dictionary ConsumptionTaxResult {
+    u64 tax_amount;
+    u64 amount_with_tax;
+    u64 amount_without_tax;
+    u64 applied_rate_numer;
+    u64 applied_rate_denom;
+    boolean is_reduced_rate;
+};
+
+/// 報酬計算の1ティア分の内訳。
+dictionary BreakdownStep {
+    string label;
+    u64 base_amount;
+    u64 rate_numer;
+    u64 rate_denom;
+    u64 result;
+};
+
+/// 媒介報酬の計算結果。
+dictionary BrokerageFeeResult {
+    u64 total_without_tax;
+    u64 total_with_tax;
+    u64 tax_amount;
+    boolean low_cost_special_applied;
+    sequence<BreakdownStep> breakdown;
+};
+
+/// 所得税速算表の1ブラケット分の内訳。
+dictionary IncomeTaxStep {
+    string label;
+    u64 taxable_income;
+    u64 rate_numer;
+    u64 rate_denom;
+    u64 deduction;
+    u64 result;
+};
+
+/// 所得税の計算結果。
+dictionary IncomeTaxResult {
+    u64 base_tax;
+    u64 reconstruction_tax;
+    u64 total_tax;
+    boolean reconstruction_tax_applied;
+    sequence<IncomeTaxStep> breakdown;
+};
+
+/// 印紙税の計算結果。
+dictionary StampTaxResult {
+    u64 tax_amount;
+    string bracket_label;
+    boolean reduced_rate_applied;
+};

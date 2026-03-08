@@ -27,7 +27,7 @@ class TestStampTax < Minitest::Test
       )
 
       assert_equal exp["tax_amount"], result.tax_amount, "#{tc['id']}: tax_amount"
-      assert_equal exp["reduced_rate_applied"], result.reduced_rate_applied?, "#{tc['id']}: reduced_rate_applied"
+      assert_equal exp["reduced_rate_applied"], result.reduced_rate_applied, "#{tc['id']}: reduced_rate_applied"
     end
   end
 
@@ -45,9 +45,9 @@ class TestStampTax < Minitest::Test
     refute_empty result.bracket_label
   end
 
-  def test_inspect
+  def test_type_name
     result = JLawRuby::StampTax.calc_stamp_tax(5_000_000, Date.new(2024, 8, 1), false)
-    assert_match(/StampTaxResult/, result.inspect)
+    assert_match(/StampTaxResult/, result.class.name)
   end
 
   def test_type_error_invalid_date

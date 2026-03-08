@@ -7,6 +7,9 @@ description = "UniFFI バインディング層（Python/Ruby 向け自動生成 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
 
+[build-dependencies]
+uniffi = { version = "0.31", features = ["build"] }
+
 [dependencies]
 j-law-core = { path = "../j-law-core" }
 j-law-registry = { path = "../j-law-registry" }

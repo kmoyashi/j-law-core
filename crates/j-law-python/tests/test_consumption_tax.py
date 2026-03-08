@@ -61,7 +61,7 @@ class TestLanguageSpecific:
 
     def test_repr(self):
         r = calc_consumption_tax(100_000, datetime.date(2024, 1, 1))
-        assert "ConsumptionTaxResult" in repr(r)
+        assert "ConsumptionTaxResult" in type(r).__name__
 
     def test_before_introduction_no_tax(self):
         """消費税導入前は税額ゼロで正常終了（エラーにならない）。"""

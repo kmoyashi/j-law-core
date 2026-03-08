@@ -34,11 +34,7 @@ class TestIncomeTaxFixtures < Minitest::Test
       assert_equal exp["base_tax"], r.base_tax, "#{c['id']}: base_tax"
       assert_equal exp["reconstruction_tax"], r.reconstruction_tax, "#{c['id']}: reconstruction_tax"
       assert_equal exp["total_tax"], r.total_tax, "#{c['id']}: total_tax"
-      if exp["reconstruction_tax_applied"]
-        assert r.reconstruction_tax_applied?, "#{c['id']}: reconstruction_tax_applied"
-      else
-        refute r.reconstruction_tax_applied?, "#{c['id']}: reconstruction_tax_applied"
-      end
+      assert_equal exp["reconstruction_tax_applied"], r.reconstruction_tax_applied, "#{c['id']}: reconstruction_tax_applied"
     end
   end
 end
@@ -56,14 +52,14 @@ class TestIncomeTaxLanguageSpecific < Minitest::Test
     r = JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2024, 1, 1), true)
     refute_empty r.breakdown
     r.breakdown.each do |step|
-      refute_empty step[:label]
-      assert_operator step[:rate_denom], :>, 0
+      refute_empty step.label
+      assert_operator step.rate_denom, :>, 0
     end
   end
 
-  def test_inspect
+  def test_type_name
     r = JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2024, 1, 1), true)
-    assert_match(/IncomeTaxResult/, r.inspect)
+    assert_match(/IncomeTaxResult/, r.class.name)
   end
 
   def test_type_error_invalid_date

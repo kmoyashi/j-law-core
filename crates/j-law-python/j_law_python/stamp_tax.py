@@ -11,34 +11,11 @@ import datetime
 import j_law_uniffi
 
 
-class StampTaxResult:
-    """印紙税の計算結果。
-
-    Attributes:
-        tax_amount (int): 印紙税額（円）
-        bracket_label (str): 適用されたブラケットの表示名
-        reduced_rate_applied (bool): 軽減税率が適用されたか
-    """
-
-    def __init__(self, r: j_law_uniffi.UniStampTaxResult) -> None:
-        self.tax_amount: int = r.tax_amount
-        self.bracket_label: str = r.bracket_label
-        self.reduced_rate_applied: bool = r.reduced_rate_applied
-
-    def __repr__(self) -> str:
-        return (
-            f"StampTaxResult("
-            f"tax_amount={self.tax_amount}, "
-            f"bracket_label={self.bracket_label!r}, "
-            f"reduced_rate_applied={self.reduced_rate_applied})"
-        )
-
-
 def calc_stamp_tax(
     contract_amount: int,
     date: datetime.date,
     is_reduced_rate_applicable: bool = False,
-) -> StampTaxResult:
+) -> j_law_uniffi.StampTaxResult:
     """印紙税法 別表第一に基づく印紙税額を計算する。
 
     # 法的根拠
@@ -52,7 +29,7 @@ def calc_stamp_tax(
             WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
 
     Returns:
-        StampTaxResult
+        j_law_uniffi.StampTaxResult
 
     Raises:
         TypeError: date が datetime.date 型でない場合
@@ -63,13 +40,12 @@ def calc_stamp_tax(
             f"date には datetime.date を指定してください (got {type(date).__name__})"
         )
     try:
-        r = j_law_uniffi.calc_stamp_tax(
+        return j_law_uniffi.calc_stamp_tax(
             contract_amount=contract_amount,
             year=date.year,
             month=date.month,
             day=date.day,
             is_reduced_rate_applicable=is_reduced_rate_applicable,
         )
-    except j_law_uniffi.UniError as e:
+    except j_law_uniffi.JLawError as e:
         raise ValueError(str(e)) from e
-    return StampTaxResult(r)

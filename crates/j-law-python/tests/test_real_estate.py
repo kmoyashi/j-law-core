@@ -67,7 +67,7 @@ class TestLanguageSpecific:
 
     def test_repr(self):
         r = calc_brokerage_fee(5_000_000, datetime.date(2024, 8, 1))
-        assert "BrokerageFeeResult" in repr(r)
+        assert "BrokerageFeeResult" in type(r).__name__
 
     def test_type_error_invalid_date(self):
         """date に datetime.date 以外を渡すと TypeError。"""

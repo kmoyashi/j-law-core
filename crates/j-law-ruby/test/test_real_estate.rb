@@ -41,14 +41,10 @@ class TestBrokerageFeeFixtures < Minitest::Test
         assert_equal exp["total_with_tax"], r.total_with_tax, "#{c['id']}: total_with_tax"
       end
       if exp.key?("low_cost_special_applied")
-        if exp["low_cost_special_applied"]
-          assert r.low_cost_special_applied?, "#{c['id']}: low_cost_special_applied"
-        else
-          refute r.low_cost_special_applied?, "#{c['id']}: low_cost_special_applied"
-        end
+        assert_equal exp["low_cost_special_applied"], r.low_cost_special_applied, "#{c['id']}: low_cost_special_applied"
       end
       if exp.key?("breakdown_results")
-        actual = r.breakdown.map { |step| step[:result] }
+        actual = r.breakdown.map { |step| step.result }
         assert_equal exp["breakdown_results"], actual, "#{c['id']}: breakdown_results"
       end
     end
@@ -69,14 +65,14 @@ class TestBrokerageFeeLanguageSpecific < Minitest::Test
   def test_breakdown_fields
     r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2024, 8, 1), false, false)
     r.breakdown.each do |step|
-      refute_empty step[:label]
-      assert_operator step[:rate_denom], :>, 0
+      refute_empty step.label
+      assert_operator step.rate_denom, :>, 0
     end
   end
 
-  def test_inspect
+  def test_type_name
     r = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2024, 8, 1), false, false)
-    assert_match(/BrokerageFeeResult/, r.inspect)
+    assert_match(/BrokerageFeeResult/, r.class.name)
   end
 
   def test_type_error_invalid_date

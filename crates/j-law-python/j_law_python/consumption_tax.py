@@ -11,42 +11,11 @@ import datetime
 import j_law_uniffi
 
 
-class ConsumptionTaxResult:
-    """消費税の計算結果。
-
-    Attributes:
-        tax_amount (int): 消費税額（円）
-        amount_with_tax (int): 税込金額（円）
-        amount_without_tax (int): 税抜金額（円）
-        applied_rate_numer (int): 適用税率の分子
-        applied_rate_denom (int): 適用税率の分母
-        is_reduced_rate (bool): 軽減税率が適用されたか
-    """
-
-    def __init__(self, r: j_law_uniffi.UniConsumptionTaxResult) -> None:
-        self.tax_amount: int = r.tax_amount
-        self.amount_with_tax: int = r.amount_with_tax
-        self.amount_without_tax: int = r.amount_without_tax
-        self.applied_rate_numer: int = r.applied_rate_numer
-        self.applied_rate_denom: int = r.applied_rate_denom
-        self.is_reduced_rate: bool = r.is_reduced_rate
-
-    def __repr__(self) -> str:
-        return (
-            f"ConsumptionTaxResult("
-            f"tax_amount={self.tax_amount}, "
-            f"amount_with_tax={self.amount_with_tax}, "
-            f"amount_without_tax={self.amount_without_tax}, "
-            f"applied_rate={self.applied_rate_numer}/{self.applied_rate_denom}, "
-            f"is_reduced_rate={self.is_reduced_rate})"
-        )
-
-
 def calc_consumption_tax(
     amount: int,
     date: datetime.date,
     is_reduced_rate: bool = False,
-) -> ConsumptionTaxResult:
+) -> j_law_uniffi.ConsumptionTaxResult:
     """消費税法第29条に基づく消費税額を計算する。
 
     # 法的根拠
@@ -60,7 +29,7 @@ def calc_consumption_tax(
             WARNING: 対象が軽減税率の適用要件を満たすかの事実認定は呼び出し元の責任。
 
     Returns:
-        ConsumptionTaxResult
+        j_law_uniffi.ConsumptionTaxResult
 
     Raises:
         TypeError: date が datetime.date 型でない場合
@@ -71,13 +40,12 @@ def calc_consumption_tax(
             f"date には datetime.date を指定してください (got {type(date).__name__})"
         )
     try:
-        r = j_law_uniffi.calc_consumption_tax(
+        return j_law_uniffi.calc_consumption_tax(
             amount=amount,
             year=date.year,
             month=date.month,
             day=date.day,
             is_reduced_rate=is_reduced_rate,
         )
-    except j_law_uniffi.UniError as e:
+    except j_law_uniffi.JLawError as e:
         raise ValueError(str(e)) from e
-    return ConsumptionTaxResult(r)

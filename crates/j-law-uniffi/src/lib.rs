@@ -20,24 +20,24 @@ use j_law_core::domains::stamp_tax::{
     context::{StampTaxContext, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
-use j_law_core::error::JLawError;
+use j_law_core::error::JLawError as JLawCoreError;
 use j_law_core::LegalDate;
 use j_law_registry::{
     load_brokerage_fee_params, load_consumption_tax_params, load_income_tax_params,
     load_stamp_tax_params,
 };
 
-uniffi::setup_scaffolding!();
+uniffi::include_scaffolding!("j_law_uniffi");
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  エラー型
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// UniFFI バインディング層のエラー型。
+/// バインディング層のエラー型。
 ///
-/// `JLawError` の3層構造を UniFFI で表現可能な形式に変換する。
-#[derive(Debug, thiserror::Error, uniffi::Error)]
-pub enum UniError {
+/// `JLawCoreError` の3層構造を UniFFI で表現可能な形式に変換する。
+#[derive(Debug, thiserror::Error)]
+pub enum JLawError {
     /// 法令パラメータ（Registry JSON）の不整合。
     #[error("{message}")]
     RegistryError { message: String },
@@ -51,16 +51,16 @@ pub enum UniError {
     CalculationError { message: String },
 }
 
-impl From<JLawError> for UniError {
-    fn from(e: JLawError) -> Self {
+impl From<JLawCoreError> for JLawError {
+    fn from(e: JLawCoreError) -> Self {
         match e {
-            JLawError::Registry(inner) => UniError::RegistryError {
+            JLawCoreError::Registry(inner) => JLawError::RegistryError {
                 message: inner.to_string(),
             },
-            JLawError::Input(inner) => UniError::InputError {
+            JLawCoreError::Input(inner) => JLawError::InputError {
                 message: inner.to_string(),
             },
-            JLawError::Calculation(inner) => UniError::CalculationError {
+            JLawCoreError::Calculation(inner) => JLawError::CalculationError {
                 message: inner.to_string(),
             },
         }
@@ -71,9 +71,9 @@ impl From<JLawError> for UniError {
 //  消費税
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// 消費税の計算結果（UniFFI Record）。
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct UniConsumptionTaxResult {
+/// 消費税の計算結果。
+#[derive(Debug, Clone)]
+pub struct ConsumptionTaxResult {
     /// 消費税額（円）。
     pub tax_amount: u64,
     /// 税込金額（円）。
@@ -98,14 +98,13 @@ pub struct UniConsumptionTaxResult {
 /// 1. 軽減税率フラグに基づき適用税率を選択する
 /// 2. 課税標準額 × 税率（切り捨て）で消費税額を算出する
 /// 3. 課税標準額 + 消費税額で税込金額を算出する
-#[uniffi::export]
 pub fn calc_consumption_tax(
     amount: u64,
     year: u16,
     month: u8,
     day: u8,
     is_reduced_rate: bool,
-) -> Result<UniConsumptionTaxResult, UniError> {
+) -> Result<ConsumptionTaxResult, JLawError> {
     let date = LegalDate::new(year, month, day);
     let params = load_consumption_tax_params(date)?;
 
@@ -123,7 +122,7 @@ pub fn calc_consumption_tax(
 
     let result = calculate_consumption_tax(&ctx, &params)?;
 
-    Ok(UniConsumptionTaxResult {
+    Ok(ConsumptionTaxResult {
         tax_amount: result.tax_amount.as_yen(),
         amount_with_tax: result.amount_with_tax.as_yen(),
         amount_without_tax: result.amount_without_tax.as_yen(),
@@ -137,9 +136,9 @@ pub fn calc_consumption_tax(
 //  不動産（宅建業法）
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// 報酬計算の1ティア分の内訳（UniFFI Record）。
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct UniBreakdownStep {
+/// 報酬計算の1ティア分の内訳。
+#[derive(Debug, Clone)]
+pub struct BreakdownStep {
     /// ティアの表示名（法令上の区分名称）。
     pub label: String,
     /// ティア対象金額（円）。
@@ -152,9 +151,9 @@ pub struct UniBreakdownStep {
     pub result: u64,
 }
 
-/// 媒介報酬の計算結果（UniFFI Record）。
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct UniBrokerageFeeResult {
+/// 媒介報酬の計算結果。
+#[derive(Debug, Clone)]
+pub struct BrokerageFeeResult {
     /// 税抜合計額（円）。
     pub total_without_tax: u64,
     /// 税込合計額（円）。
@@ -164,7 +163,7 @@ pub struct UniBrokerageFeeResult {
     /// 低廉な空き家特例が適用されたか。
     pub low_cost_special_applied: bool,
     /// 各ティアの計算内訳。
-    pub breakdown: Vec<UniBreakdownStep>,
+    pub breakdown: Vec<BreakdownStep>,
 }
 
 /// 宅建業法第46条に基づく媒介報酬を計算する。
@@ -178,7 +177,6 @@ pub struct UniBrokerageFeeResult {
 /// 2. 各ティアの結果を合算して税抜き合計を得る
 /// 3. 低廉な空き家特例が適用される場合、通常計算が保証額を下回るなら保証額まで引き上げる
 /// 4. 消費税ドメインに処理を委譲して税額・税込額を得る
-#[uniffi::export]
 pub fn calc_brokerage_fee(
     price: u64,
     year: u16,
@@ -186,7 +184,7 @@ pub fn calc_brokerage_fee(
     day: u8,
     is_low_cost_vacant_house: bool,
     is_seller: bool,
-) -> Result<UniBrokerageFeeResult, UniError> {
+) -> Result<BrokerageFeeResult, JLawError> {
     let date = LegalDate::new(year, month, day);
     let params = load_brokerage_fee_params(date)?;
 
@@ -210,7 +208,7 @@ pub fn calc_brokerage_fee(
     let breakdown = result
         .breakdown
         .iter()
-        .map(|step| UniBreakdownStep {
+        .map(|step| BreakdownStep {
             label: step.label.clone(),
             base_amount: step.base_amount,
             rate_numer: step.rate_numer,
@@ -219,7 +217,7 @@ pub fn calc_brokerage_fee(
         })
         .collect();
 
-    Ok(UniBrokerageFeeResult {
+    Ok(BrokerageFeeResult {
         total_without_tax: result.total_without_tax.as_yen(),
         total_with_tax: result.total_with_tax.as_yen(),
         tax_amount: result.tax_amount.as_yen(),
@@ -232,9 +230,9 @@ pub fn calc_brokerage_fee(
 //  所得税
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// 所得税速算表の1ブラケット分の内訳（UniFFI Record）。
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct UniIncomeTaxStep {
+/// 所得税速算表の1ブラケット分の内訳。
+#[derive(Debug, Clone)]
+pub struct IncomeTaxStep {
     /// ブラケットの表示名。
     pub label: String,
     /// 課税所得金額（円）。
@@ -249,9 +247,9 @@ pub struct UniIncomeTaxStep {
     pub result: u64,
 }
 
-/// 所得税の計算結果（UniFFI Record）。
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct UniIncomeTaxResult {
+/// 所得税の計算結果。
+#[derive(Debug, Clone)]
+pub struct IncomeTaxResult {
     /// 基準所得税額（円）。
     pub base_tax: u64,
     /// 復興特別所得税額（円）。
@@ -261,7 +259,7 @@ pub struct UniIncomeTaxResult {
     /// 復興特別所得税が適用されたか。
     pub reconstruction_tax_applied: bool,
     /// 計算内訳。
-    pub breakdown: Vec<UniIncomeTaxStep>,
+    pub breakdown: Vec<IncomeTaxStep>,
 }
 
 /// 所得税法第89条に基づく所得税額を計算する。
@@ -274,14 +272,13 @@ pub struct UniIncomeTaxResult {
 /// 1. 課税所得金額を速算表に適用して基準税額を算出する
 /// 2. 復興特別所得税フラグが指定された場合、基準税額 × 2.1% で復興税を算出する
 /// 3. 基準税額 + 復興税の合計を100円未満切り捨てして申告納税額を算出する
-#[uniffi::export]
 pub fn calc_income_tax(
     taxable_income: u64,
     year: u16,
     month: u8,
     day: u8,
     apply_reconstruction_tax: bool,
-) -> Result<UniIncomeTaxResult, UniError> {
+) -> Result<IncomeTaxResult, JLawError> {
     let date = LegalDate::new(year, month, day);
     let params = load_income_tax_params(date)?;
 
@@ -302,7 +299,7 @@ pub fn calc_income_tax(
     let breakdown = result
         .breakdown
         .iter()
-        .map(|step| UniIncomeTaxStep {
+        .map(|step| IncomeTaxStep {
             label: step.label.clone(),
             taxable_income: step.taxable_income,
             rate_numer: step.rate_numer,
@@ -312,7 +309,7 @@ pub fn calc_income_tax(
         })
         .collect();
 
-    Ok(UniIncomeTaxResult {
+    Ok(IncomeTaxResult {
         base_tax: result.base_tax.as_yen(),
         reconstruction_tax: result.reconstruction_tax.as_yen(),
         total_tax: result.total_tax.as_yen(),
@@ -325,9 +322,9 @@ pub fn calc_income_tax(
 //  印紙税
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// 印紙税の計算結果（UniFFI Record）。
-#[derive(Debug, Clone, uniffi::Record)]
-pub struct UniStampTaxResult {
+/// 印紙税の計算結果。
+#[derive(Debug, Clone)]
+pub struct StampTaxResult {
     /// 印紙税額（円）。
     pub tax_amount: u64,
     /// 適用されたブラケットの表示名。
@@ -346,14 +343,13 @@ pub struct UniStampTaxResult {
 /// 1. 契約金額に対応するブラケットを選択する
 /// 2. 軽減税率フラグと適用期間に基づき軽減措置の適否を判定する
 /// 3. 適用税額を返す
-#[uniffi::export]
 pub fn calc_stamp_tax(
     contract_amount: u64,
     year: u16,
     month: u8,
     day: u8,
     is_reduced_rate_applicable: bool,
-) -> Result<UniStampTaxResult, UniError> {
+) -> Result<StampTaxResult, JLawError> {
     let date = LegalDate::new(year, month, day);
     let params = load_stamp_tax_params(date)?;
 
@@ -371,7 +367,7 @@ pub fn calc_stamp_tax(
 
     let result = calculate_stamp_tax(&ctx, &params)?;
 
-    Ok(UniStampTaxResult {
+    Ok(StampTaxResult {
         tax_amount: result.tax_amount.as_yen(),
         bracket_label: result.bracket_label,
         reduced_rate_applied: result.reduced_rate_applied,
