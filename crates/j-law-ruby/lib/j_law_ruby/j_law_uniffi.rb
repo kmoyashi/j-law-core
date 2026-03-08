@@ -14,6 +14,7 @@
 # helpers directly inline like we're doing here.
 
 require 'ffi'
+require 'rbconfig'
 
 
 module JLawUniffi
@@ -816,7 +817,7 @@ module UniFFILib
   extend FFI::Library
 
   
-  ffi_lib File.expand_path("j_law_ruby", __dir__)
+  ffi_lib File.expand_path("j_law_ruby.#{RbConfig::CONFIG['DLEXT']}", __dir__)
   
 
   attach_function :uniffi_j_law_uniffi_fn_func_calc_brokerage_fee,
