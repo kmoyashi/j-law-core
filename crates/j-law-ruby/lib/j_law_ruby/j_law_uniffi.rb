@@ -702,41 +702,41 @@ CALL_ERROR = 1
 CALL_PANIC = 2
 
 
-module UniError
-  class RegistryError < StandardError
+class UniError < StandardError
+  class RegistryError < UniError
     def initialize(message)
         @message = message
         super()
       end
 
     attr_reader :message
-    
+
 
     def to_s
      "#{self.class.name}(message=#{@message.inspect})"
     end
   end
-  class InputError < StandardError
+  class InputError < UniError
     def initialize(message)
         @message = message
         super()
       end
 
     attr_reader :message
-    
+
 
     def to_s
      "#{self.class.name}(message=#{@message.inspect})"
     end
   end
-  class CalculationError < StandardError
+  class CalculationError < UniError
     def initialize(message)
         @message = message
         super()
       end
 
     attr_reader :message
-    
+
 
     def to_s
      "#{self.class.name}(message=#{@message.inspect})"
