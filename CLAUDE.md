@@ -14,8 +14,8 @@
 # コードを自動フォーマット
 make fmt
 
-# フォーマット・リント・Rustテスト・全言語バインディングテストを一括実行（プッシュ前に必ず実行）
-# 実行時間: 5-10分程度
+# フォーマット・リント・テストを実行（プッシュ前に必ず実行）
+# 実行時間: 3-5分程度
 make ci
 ```
 
@@ -25,7 +25,8 @@ make ci
 make fmt-check   # フォーマットチェック
 make clippy      # Clippy リント
 make test        # Rust テスト
-make docker-test # 全言語バインディングテスト（Docker）
+make test-python # Python バインディングテスト（ローカル）
+make docker-test # 全言語バインディングテスト（Docker経由）
 ```
 
 ### CIチェック
@@ -37,13 +38,22 @@ make docker-test # 全言語バインディングテスト（Docker）
 1. **fmt-check** - コードフォーマットチェック
 2. **clippy** - Rust リント
 3. **test** - Rust テスト
-4. **docker-test** - Python/Ruby/Go/WASM/C 全言語バインディングテスト
+4. **test-python** - Python バインディングテスト（ホスト上で実行）
 
-これは `.github/workflows/ci.yml` の **全ジョブ**に相当します。
+**所要時間:** 3-5分程度
 
-**所要時間:**
-- 初回実行: 10-15分（Docker イメージビルド含む）
-- 2回目以降: 5-10分（キャッシュ利用）
+### 全言語バインディングテスト
+
+Ruby/Go/WASM などの他言語テストは **GitHub Actions で実行** されます：
+
+```bash
+# GitHub Actions と同等の全テストを実行（オプション）
+make docker-test
+```
+
+- 環境: Docker 経由で全言語ビルド・テスト実行
+- ローカルマシン・GitHub Actions の両方で実行可能
+- 実行時間: 10-15分（初回）/ 5-10分（以降）
 
 **Docker について：**
 - Docker デーモンは セッション開始時に自動起動されます
