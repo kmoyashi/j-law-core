@@ -39,7 +39,7 @@ CMD ["node", "--test", "crates/j-law-wasm/tests/real_estate.test.mjs", "crates/j
 
 # ---- Ruby テスト ----
 FROM base-rust AS test-ruby
-RUN apt-get update && apt-get install -y ruby ruby-dev libclang-dev \
+RUN apt-get update && apt-get install -y ruby ruby-dev \
     && rm -rf /var/lib/apt/lists/*
 RUN gem install bundler
 WORKDIR /app/crates/j-law-ruby

@@ -1,11 +1,32 @@
 # frozen_string_literal: true
 
-require "rake/extensiontask"
 require "rake/testtask"
-require "rb_sys/extensiontask"
+require_relative "rake_support/vendor_rust"
 
-RbSys::ExtensionTask.new("j_law_ruby", Gem::Specification.load("j_law_ruby.gemspec")) do |ext|
-  ext.lib_dir = "lib/j_law_ruby"
+task :vendor_rust do
+  JLawRuby::VendorRust.prepare!(File.expand_path(__dir__))
+end
+
+task compile: :vendor_rust do
+  Dir.chdir("ext/j_law_ruby") do
+    ruby "extconf.rb"
+    sh "make"
+  end
+end
+
+task build: :vendor_rust do
+  sh "gem build j_law_ruby.gemspec"
+end
+
+task :clean do
+  rm_rf "vendor/rust"
+  rm_rf "lib/j_law_ruby/native"
+
+  next unless File.exist?("ext/j_law_ruby/Makefile")
+
+  Dir.chdir("ext/j_law_ruby") do
+    sh "make clean"
+  end
 end
 
 Rake::TestTask.new(:test) do |t|
