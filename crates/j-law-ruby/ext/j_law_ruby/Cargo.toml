@@ -4,17 +4,9 @@ version = "0.0.1"
 edition = "2021"
 license = "MIT"
 
-[lints.clippy]
-# Rubyバインディング層では、magnusマクロ展開時のunwrap()使用が必要
-disallowed_methods = "allow"
-# uniffi::setup_scaffolding! 由来のシンボルを含むため
-disallowed_macros = "allow"
-disallowed_types = "allow"
-
 [lib]
 name = "j_law_ruby"
 crate-type = ["cdylib"]
 
 [dependencies]
-magnus = { version = "0.7" }
 j-law-uniffi = { path = "../../../j-law-uniffi" }
