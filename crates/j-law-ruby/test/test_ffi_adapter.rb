@@ -3,9 +3,9 @@
 require "minitest/autorun"
 require "j_law_ruby"
 
-class TestCgoAdapter < Minitest::Test
+class TestFfiAdapter < Minitest::Test
   def test_abi_version_matches
-    assert_equal 1, JLawRuby::Internal::Cgo.abi_version
+    assert_equal 1, JLawRuby::Internal::Ffi.abi_version
   end
 
   def test_compiled_library_is_loaded_from_gem_path
@@ -14,20 +14,20 @@ class TestCgoAdapter < Minitest::Test
       __dir__
     )
 
-    assert_equal expected_path, JLawRuby::Internal::Cgo.library_path
+    assert_equal expected_path, JLawRuby::Internal::Ffi.library_path
   end
 
   def test_fixed_length_strings_are_restored
-    brokerage = JLawRuby::Internal::Cgo.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
+    brokerage = JLawRuby::Internal::Ffi.calc_brokerage_fee(5_000_000, 2024, 8, 1, false, false)
     assert_equal %w[tier1 tier2 tier3], brokerage.breakdown.map(&:label)
 
-    stamp = JLawRuby::Internal::Cgo.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
+    stamp = JLawRuby::Internal::Ffi.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
     refute_empty stamp.bracket_label
   end
 
   def test_error_path_raises_runtime_error
     error = assert_raises(RuntimeError) do
-      JLawRuby::Internal::Cgo.calc_consumption_tax(100_000, 2016, 1, 1, true)
+      JLawRuby::Internal::Ffi.calc_consumption_tax(100_000, 2016, 1, 1, true)
     end
 
     refute_empty error.message

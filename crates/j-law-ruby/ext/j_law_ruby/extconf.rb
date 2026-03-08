@@ -7,13 +7,15 @@ require_relative "../../lib/j_law_ruby/build_support"
 gem_root = File.expand_path("../..", __dir__)
 manifest_path = JLawRuby::BuildSupport.manifest_path(gem_root)
 
-abort "Cargo workspace for j-law-cgo was not found." if manifest_path.nil?
+abort "Cargo workspace for j-law-ffi was not found." if manifest_path.nil?
 
 profile = JLawRuby::BuildSupport.cargo_profile
-cargo_command = ["cargo", "build", "-p", "j-law-cgo", "--manifest-path", manifest_path]
+cargo_command = ["cargo", "build", "-p", "j-law-ffi", "--manifest-path", manifest_path]
+cargo_target = JLawRuby::BuildSupport.cargo_target
+cargo_command += ["--target", cargo_target] unless cargo_target.nil?
 cargo_command << "--release" if profile == "release"
 
-puts "Building j-law-cgo (#{profile}) via #{manifest_path}"
+puts "Building j-law-ffi (#{profile}, target=#{cargo_target || "default"}) via #{manifest_path}"
 abort "cargo build failed" unless system(*cargo_command)
 
 built_library = JLawRuby::BuildSupport.built_shared_library_path(manifest_path, profile)

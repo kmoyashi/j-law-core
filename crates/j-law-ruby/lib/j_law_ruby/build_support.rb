@@ -10,14 +10,30 @@ module JLawRuby
       ENV.fetch("JLAW_RUBY_CARGO_PROFILE", "release")
     end
 
+    def cargo_target
+      host_os = RbConfig::CONFIG["host_os"]
+      host_cpu = RbConfig::CONFIG["host_cpu"]
+
+      case host_os
+      when /darwin/
+        return "x86_64-apple-darwin" if host_cpu == "x86_64"
+        return "aarch64-apple-darwin" if %w[aarch64 arm64].include?(host_cpu)
+      when /linux/
+        return "x86_64-unknown-linux-gnu" if host_cpu == "x86_64"
+        return "aarch64-unknown-linux-gnu" if %w[aarch64 arm64].include?(host_cpu)
+      end
+
+      nil
+    end
+
     def shared_library_filename
       case RbConfig::CONFIG["host_os"]
       when /mswin|mingw|cygwin/
-        "j_law_cgo.dll"
+        "j_law_ffi.dll"
       when /darwin/
-        "libj_law_cgo.dylib"
+        "libj_law_ffi.dylib"
       else
-        "libj_law_cgo.so"
+        "libj_law_ffi.so"
       end
     end
 
@@ -55,19 +71,25 @@ module JLawRuby
       nil
     end
 
-    def built_shared_library_path(manifest_path, profile)
-      File.join(File.dirname(manifest_path), "target", profile, shared_library_filename)
+    def built_shared_library_path(manifest_path, profile, target = cargo_target)
+      target_components = ["target"]
+      target_components << target unless target.nil? || target.empty?
+      target_components << profile
+
+      File.join(File.dirname(manifest_path), *target_components, shared_library_filename)
     end
 
     def shared_library_candidates(gem_root)
       candidates = []
-      env_path = ENV["JLAW_RUBY_CGO_LIB"]
+      env_path = ENV["JLAW_RUBY_FFI_LIB"]
       candidates << env_path unless env_path.nil? || env_path.empty?
       candidates << packaged_shared_library_path(gem_root)
 
       [vendored_manifest_path(gem_root), repo_manifest_path(gem_root)].each do |manifest|
         next unless File.file?(manifest)
 
+        candidates << built_shared_library_path(manifest, "release", nil)
+        candidates << built_shared_library_path(manifest, "debug", nil)
         candidates << built_shared_library_path(manifest, "release")
         candidates << built_shared_library_path(manifest, "debug")
       end

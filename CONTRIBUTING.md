@@ -82,7 +82,7 @@ crates/
 ├── j-law-python/       Python バインディング（PyO3）
 ├── j-law-wasm/         WASM バインディング（wasm-bindgen）
 ├── j-law-ruby/         Ruby バインディング（Magnus）
-├── j-law-cgo/          C FFI（Go 向け staticlib）
+├── j-law-ffi/          C FFI（汎用 staticlib / cdylib）
 └── j-law-go/           Go バインディング（CGo、非 workspace メンバー）
 ```
 
@@ -366,7 +366,7 @@ j-law-core  ←（依存）←  j-law-registry
 
 ## unsafe コードのルール
 
-- unsafe は **CGo バインディング（`j-law-cgo`）の FFI 境界のみ** に限定する
+- unsafe は **C FFI クレート（`j-law-ffi`）の FFI 境界のみ** に限定する
 - unsafe 関数には `# Safety` セクションで前提条件（ポインタの非 null、バッファ長等）を文書化する
 - コアライブラリ (`j-law-core`) に unsafe を追加しない
 

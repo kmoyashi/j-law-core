@@ -258,7 +258,12 @@ import { calcBrokerageFee } from "j-law-wasm";
 
 // 基本的な計算（売買価格 500万円、2024年8月1日）
 // Date.UTC() を使うとタイムゾーンに依存しない
-const result = calcBrokerageFee(5_000_000, new Date(Date.UTC(2024, 7, 1)), false, false);
+const result = calcBrokerageFee(
+  5_000_000,
+  new Date(Date.UTC(2024, 7, 1)),
+  false,
+  false,
+);
 
 console.log(result.totalWithoutTax); // 210000
 console.log(result.totalWithTax); // 231000
@@ -272,13 +277,23 @@ for (const step of result.breakdown()) {
 }
 
 // 低廉な空き家特例の適用（2024年7月〜・800万円以下・売主買主双方）
-const result2 = calcBrokerageFee(8_000_000, new Date(Date.UTC(2024, 7, 1)), true, false);
+const result2 = calcBrokerageFee(
+  8_000_000,
+  new Date(Date.UTC(2024, 7, 1)),
+  true,
+  false,
+);
 
 console.log(result2.lowCostSpecialApplied); // true
 console.log(result2.totalWithTax); // 363000
 
 // 低廉な空き家特例の適用（2018年1月〜2024年6月・400万円以下・売主のみ）
-const result3 = calcBrokerageFee(4_000_000, new Date(Date.UTC(2022, 3, 1)), true, true);
+const result3 = calcBrokerageFee(
+  4_000_000,
+  new Date(Date.UTC(2022, 3, 1)),
+  true,
+  true,
+);
 
 console.log(result3.lowCostSpecialApplied); // true
 console.log(result3.totalWithTax); // 198000
@@ -316,7 +331,12 @@ breakdown.forEach((step) => {
 
 ```javascript
 try {
-  const result = calcBrokerageFee(5_000_000, new Date(Date.UTC(2017, 11, 31)), false, false);
+  const result = calcBrokerageFee(
+    5_000_000,
+    new Date(Date.UTC(2017, 11, 31)),
+    false,
+    false,
+  );
 } catch (e) {
   console.error(`計算エラー: ${e}`); // 文字列として throw される
 }
@@ -451,7 +471,7 @@ JLawRuby::RealEstate.calc_brokerage_fee(
 
 ## Go
 
-CGo を経由して Rust の静的ライブラリ（`libj_law_cgo.a`）にリンクします。
+Go を経由して Rust の静的ライブラリ（`libj_law_ffi.a`）にリンクします。
 
 ### セットアップ
 
@@ -575,19 +595,19 @@ func CalcBrokerageFee(
 
 ## C / C++
 
-`j-law-cgo` クレートが C FFI を提供します。Go 以外の C 互換言語からも利用可能です。
+`j-law-ffi` クレートが C FFI を提供します。Go 以外の C 互換言語からも利用可能です。
 
 ### ヘッダファイル
 
 ```c
-#include "j_law_cgo.h"
+#include "j_law_ffi.h"
 ```
 
 ### 使用例（C）
 
 ```c
 #include <stdio.h>
-#include "j_law_cgo.h"
+#include "j_law_ffi.h"
 
 int main(void) {
     JLawBrokerageFeeResult result;
@@ -629,20 +649,20 @@ int main(void) {
 
 ```bash
 # 静的ライブラリのビルド
-cargo build -p j-law-cgo
+cargo build -p j-law-ffi
 
 # C プログラムとリンク（macOS）
 cc -o example example.c \
-    -I crates/j-law-cgo \
+    -I crates/j-law-ffi \
     -L target/debug \
-    -lj_law_cgo \
+    -lj_law_ffi \
     -framework Security -framework CoreFoundation
 
 # C プログラムとリンク（Linux）
 cc -o example example.c \
-    -I crates/j-law-cgo \
+    -I crates/j-law-ffi \
     -L target/debug \
-    -lj_law_cgo \
+    -lj_law_ffi \
     -ldl -lpthread -lm
 ```
 
@@ -677,11 +697,11 @@ int j_law_calc_brokerage_fee(
 
 ### 対応法令
 
-| 施行日     | 内容                                              | status     |
-| ---------- | ------------------------------------------------- | ---------- |
-| 2018-01-01 | 低廉な空き家特例の追加（400万円以下・売主のみ）   | superseded |
-| 2019-10-01 | 消費税10%対応                                     | superseded |
-| 2024-07-01 | 低廉な空き家特例の拡充（800万円以下・売主買主双方）| active     |
+| 施行日     | 内容                                                | status     |
+| ---------- | --------------------------------------------------- | ---------- |
+| 2018-01-01 | 低廉な空き家特例の追加（400万円以下・売主のみ）     | superseded |
+| 2019-10-01 | 消費税10%対応                                       | superseded |
+| 2024-07-01 | 低廉な空き家特例の拡充（800万円以下・売主買主双方） | active     |
 
 ### 3段階ティア計算
 
@@ -698,15 +718,15 @@ int j_law_calc_brokerage_fee(
 
 ### 計算例
 
-| 売買価格     | 税抜合計 | 消費税 | 税込合計 | 備考                                   |
-| ------------ | -------- | ------ | -------- | -------------------------------------- |
-| 1,000,000円  | 50,000   | 5,000  | 55,000   |                                        |
-| 2,000,000円  | 100,000  | 10,000 | 110,000  |                                        |
-| 3,000,000円  | 140,000  | 14,000 | 154,000  |                                        |
-| 5,000,000円  | 210,000  | 21,000 | 231,000  |                                        |
-| 10,000,000円 | 360,000  | 36,000 | 396,000  |                                        |
+| 売買価格     | 税抜合計 | 消費税 | 税込合計 | 備考                                     |
+| ------------ | -------- | ------ | -------- | ---------------------------------------- |
+| 1,000,000円  | 50,000   | 5,000  | 55,000   |                                          |
+| 2,000,000円  | 100,000  | 10,000 | 110,000  |                                          |
+| 3,000,000円  | 140,000  | 14,000 | 154,000  |                                          |
+| 5,000,000円  | 210,000  | 21,000 | 231,000  |                                          |
+| 10,000,000円 | 360,000  | 36,000 | 396,000  |                                          |
 | 4,000,000円  | 180,000  | 18,000 | 198,000  | 2018〜2024低廉な空き家特例（売主）適用時 |
-| 8,000,000円  | 330,000  | 33,000 | 363,000  | 2024〜低廉な空き家特例適用時            |
+| 8,000,000円  | 330,000  | 33,000 | 363,000  | 2024〜低廉な空き家特例適用時             |
 
 ### 注意事項
 

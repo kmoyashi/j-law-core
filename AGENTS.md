@@ -19,9 +19,9 @@
 | `j-law-python` | Python バインディング | `pyo3 = "0.21"` |
 | `j-law-wasm` | WASM/JS バインディング | `wasm-bindgen = "0.2"`, `js-sys = "0.3"` |
 | `j-law-ruby/ext/j_law_core` | Ruby バインディング | `magnus = "0.7"` |
-| `j-law-cgo` | C FFI（Go 向け staticlib） | `j-law-core`, `j-law-registry` |
+| `j-law-ffi` | C FFI（汎用 staticlib / cdylib） | `j-law-core`, `j-law-registry` |
 
-- **非 workspace メンバー**（Go）: `crates/j-law-go/`（`go.mod` で管理、CGo 経由で `j-law-cgo` にリンク）
+- **非 workspace メンバー**（Go）: `crates/j-law-go/`（`go.mod` で管理、CGo 経由で `j-law-ffi` にリンク）
 
 ### 実装済みドメイン
 
@@ -202,7 +202,7 @@ crates/j-law-core/tests/<domain_name>/
 | Python | `crates/j-law-python/src/lib.rs` | PyO3 `#[pyfunction]` + サブモジュール登録（`sys.modules` 登録必須） |
 | WASM/JS | `crates/j-law-wasm/src/lib.rs` | `#[wasm_bindgen]` 関数 |
 | Ruby | `crates/j-law-ruby/ext/j_law_core/src/lib.rs` | Magnus `define_method` |
-| C/Go | `crates/j-law-cgo/src/lib.rs` + `j_law_cgo.h` + `crates/j-law-go/j_law_core.go` | `extern "C"` FFI |
+| C/Go | `crates/j-law-ffi/src/lib.rs` + `j_law_ffi.h` + `crates/j-law-go/j_law_core.go` | `extern "C"` FFI |
 
 テストフィクスチャは `tests/fixtures/<domain_name>.json` に共通 JSON を作成し、全言語のテストで読み込むこと。
 
@@ -298,7 +298,7 @@ tests/fixtures/
 | `test-python` | `maturin build` → `pytest` |
 | `test-wasm` | `wasm-pack build` → `node --test` |
 | `test-ruby` | `bundle exec rake compile` → `rake test` |
-| `test-go` | `cargo build -p j-law-cgo` → `go test` |
+| `test-go` | `cargo build -p j-law-ffi` → `go test` |
 | `test-all` | 上記5つの完了を待って成功判定 |
 
 ### 実行コマンド

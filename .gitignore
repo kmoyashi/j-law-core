@@ -55,6 +55,10 @@ crates/j-law-ruby/*.gem
 
 # Bundler
 crates/j-law-ruby/.bundle/
+crates/j-law-ruby/vendor/bundle/
+
+# Ruby dependency lockfile is generated locally for validation in this repo
+crates/j-law-ruby/Gemfile.lock
 
 # =============================================================================
 # Claude Code

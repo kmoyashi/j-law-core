@@ -38,7 +38,7 @@ pub const J_LAW_LABEL_LEN: usize = 64;
 pub const J_LAW_ERROR_BUF_LEN: usize = 256;
 
 /// Go / Ruby 向け C ABI の互換バージョン。
-pub const J_LAW_CGO_ABI_VERSION: u32 = 1;
+pub const J_LAW_FFI_ABI_VERSION: u32 = 1;
 
 // ─── C 互換型定義 ──────────────────────────────────────────────────────────────
 
@@ -101,13 +101,13 @@ unsafe fn write_error_msg(msg: &str, buf: *mut c_char, buf_len: c_int) {
 
 // ─── C FFI 公開関数 ────────────────────────────────────────────────────────────
 
-/// j-law-cgo の ABI バージョンを返す。
+/// j-law-ffi の ABI バージョンを返す。
 ///
 /// # 法的根拠
 /// なし（FFI 互換確認用）
 #[no_mangle]
-pub extern "C" fn j_law_cgo_abi_version() -> u32 {
-    J_LAW_CGO_ABI_VERSION
+pub extern "C" fn j_law_ffi_abi_version() -> u32 {
+    J_LAW_FFI_ABI_VERSION
 }
 
 /// 宅建業法第46条に基づく媒介報酬を計算する。
@@ -556,7 +556,7 @@ mod tests {
 
     #[test]
     fn abi_version_matches_constant() {
-        assert_eq!(j_law_cgo_abi_version(), J_LAW_CGO_ABI_VERSION);
+        assert_eq!(j_law_ffi_abi_version(), J_LAW_FFI_ABI_VERSION);
     }
 
     #[test]

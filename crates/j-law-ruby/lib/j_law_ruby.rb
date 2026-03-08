@@ -2,11 +2,11 @@
 
 require "date"
 require_relative "j_law_ruby/build_support"
-require_relative "j_law_ruby/cgo"
+require_relative "j_law_ruby/ffi"
 
 # 日本の法令に基づく各種計算を提供するモジュール。
 #
-# `j-law-cgo` の C ABI を ffi gem 経由でラップし、
+# `j-law-ffi` の C ABI を ffi gem 経由でラップし、
 # Ruby Date オブジェクトを受け取るインターフェースを提供する。
 module JLawRuby
   # ── 消費税 ──────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      r = Internal::Cgo.calc_consumption_tax(amount, date.year, date.month, date.day, is_reduced_rate)
+      r = Internal::Ffi.calc_consumption_tax(amount, date.year, date.month, date.day, is_reduced_rate)
       ConsumptionTaxResult.new(r)
     end
   end
@@ -116,7 +116,7 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      r = Internal::Cgo.calc_brokerage_fee(
+      r = Internal::Ffi.calc_brokerage_fee(
         price, date.year, date.month, date.day,
         is_low_cost_vacant_house, is_seller
       )
@@ -178,7 +178,7 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      r = Internal::Cgo.calc_income_tax(
+      r = Internal::Ffi.calc_income_tax(
         taxable_income, date.year, date.month, date.day,
         apply_reconstruction_tax
       )
@@ -228,7 +228,7 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      r = Internal::Cgo.calc_stamp_tax(
+      r = Internal::Ffi.calc_stamp_tax(
         contract_amount, date.year, date.month, date.day,
         is_reduced_rate_applicable
       )

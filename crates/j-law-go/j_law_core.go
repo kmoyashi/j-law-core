@@ -1,6 +1,6 @@
 // Package jlawcore は、日本の法令に基づく各種計算を提供する。
 //
-// j-law-cgo（Rust staticlib）を CGo 経由で静的リンクしている。
+// j-law-ffi（Rust staticlib）を CGo 経由で静的リンクしている。
 // 使用前に `make build-rust` を実行して静的ライブラリをビルドすること。
 //
 // 使用例:
@@ -20,10 +20,10 @@
 //	fmt.Println(taxResult.TotalTax) // 584500
 package jlawcore
 
-// #cgo CFLAGS: -I${SRCDIR}/../j-law-cgo
-// #cgo darwin LDFLAGS: ${SRCDIR}/../../target/debug/libj_law_cgo.a -framework Security -framework CoreFoundation
-// #cgo linux  LDFLAGS: ${SRCDIR}/../../target/debug/libj_law_cgo.a -ldl -lpthread -lm
-// #include "j_law_cgo.h"
+// #cgo CFLAGS: -I${SRCDIR}/../j-law-ffi
+// #cgo darwin LDFLAGS: ${SRCDIR}/../../target/debug/libj_law_ffi.a -framework Security -framework CoreFoundation
+// #cgo linux  LDFLAGS: ${SRCDIR}/../../target/debug/libj_law_ffi.a -ldl -lpthread -lm
+// #include "j_law_ffi.h"
 // #include <stdlib.h>
 import "C"
 import (

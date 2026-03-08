@@ -279,19 +279,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
-name = "j-law-cgo"
-version = "0.0.1"
-dependencies = [
- "j-law-core",
- "j-law-registry",
-]
-
-[[package]]
 name = "j-law-core"
 version = "0.0.1"
 dependencies = [
  "j-law-registry",
  "thiserror 1.0.69",
+]
+
+[[package]]
+name = "j-law-ffi"
+version = "0.0.1"
+dependencies = [
+ "j-law-core",
+ "j-law-registry",
 ]
 
 [[package]]

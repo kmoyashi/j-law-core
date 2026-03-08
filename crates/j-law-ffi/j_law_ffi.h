@@ -1,5 +1,5 @@
-#ifndef J_LAW_CGO_H
-#define J_LAW_CGO_H
+#ifndef J_LAW_FFI_H
+#define J_LAW_FFI_H
 
 #include <stdint.h>
 
@@ -18,8 +18,8 @@ extern "C" {
 /** エラーバッファの推奨バイト長。 */
 #define J_LAW_ERROR_BUF_LEN 256
 
-/** j-law-cgo の ABI 互換バージョン。 */
-#define J_LAW_CGO_ABI_VERSION 1
+/** j-law-ffi の ABI 互換バージョン。 */
+#define J_LAW_FFI_ABI_VERSION 1
 
 /* ─── 構造体 ─────────────────────────────────────────────────────────────── */
 
@@ -58,12 +58,12 @@ typedef struct {
 /* ─── 関数 ───────────────────────────────────────────────────────────────── */
 
 /**
- * j-law-cgo の ABI バージョンを返す。
+ * j-law-ffi の ABI バージョンを返す。
  *
  * Ruby / Go バインディングはロード時にこの値を確認し、
  * 期待する C ABI と一致するかを検証する。
  */
-uint32_t j_law_cgo_abi_version(void);
+uint32_t j_law_ffi_abi_version(void);
 
 /**
  * 宅建業法第46条に基づく媒介報酬を計算する。
@@ -257,4 +257,4 @@ int j_law_calc_stamp_tax(
 }
 #endif
 
-#endif /* J_LAW_CGO_H */
+#endif /* J_LAW_FFI_H */

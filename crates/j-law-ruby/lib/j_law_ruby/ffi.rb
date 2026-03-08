@@ -5,7 +5,7 @@ require_relative "build_support"
 
 module JLawRuby
   module Internal
-    module Cgo
+    module Ffi
       extend FFI::Library
 
       ABI_VERSION = 1
@@ -43,7 +43,7 @@ module JLawRuby
 
       unless LIBRARY_PATH
         raise LoadError,
-              "j-law-cgo shared library was not found. Run `bundle exec rake compile` first."
+              "j-law-ffi shared library was not found. Run `bundle exec rake compile` first."
       end
 
       ffi_lib LIBRARY_PATH
@@ -100,7 +100,7 @@ module JLawRuby
                :reduced_rate_applied, :int
       end
 
-      attach_function :j_law_cgo_abi_version, [], :uint32
+      attach_function :j_law_ffi_abi_version, [], :uint32
       attach_function :j_law_calc_brokerage_fee,
                       [:uint64, :uint16, :uint8, :uint8, :int, :int,
                        BrokerageFeeStruct.by_ref, :pointer, :int],
@@ -118,10 +118,10 @@ module JLawRuby
                        StampTaxStruct.by_ref, :pointer, :int],
                       :int
 
-      actual_abi_version = j_law_cgo_abi_version
+      actual_abi_version = j_law_ffi_abi_version
       if actual_abi_version != ABI_VERSION
         raise LoadError,
-              "j-law-cgo ABI version mismatch: expected #{ABI_VERSION}, got #{actual_abi_version}"
+              "j-law-ffi ABI version mismatch: expected #{ABI_VERSION}, got #{actual_abi_version}"
       end
 
       module_function
@@ -131,7 +131,7 @@ module JLawRuby
       end
 
       def abi_version
-        j_law_cgo_abi_version
+        j_law_ffi_abi_version
       end
 
       def calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house, is_seller)
@@ -266,7 +266,7 @@ module JLawRuby
         return if status.zero?
 
         message = error_buf.read_string
-        message = "j-law-cgo call failed with status #{status}" if message.empty?
+        message = "j-law-ffi call failed with status #{status}" if message.empty?
         raise RuntimeError, message
       end
 

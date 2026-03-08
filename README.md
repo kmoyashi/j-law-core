@@ -158,7 +158,7 @@ j-law-core/
 │   ├── j-law-python/             # Python バインディング（PyO3）
 │   ├── j-law-wasm/               # WASM/JavaScript バインディング（wasm-bindgen）
 │   ├── j-law-ruby/               # Ruby バインディング（Magnus）
-│   ├── j-law-cgo/                # C FFI（Go 向け staticlib）
+│   ├── j-law-ffi/                # C FFI（汎用 staticlib / cdylib）
 │   └── j-law-go/                 # Go バインディング（CGo）
 ├── tests/
 │   └── fixtures/                 # 全言語共通テストフィクスチャ（JSON）

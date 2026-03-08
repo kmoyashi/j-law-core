@@ -15,7 +15,7 @@ Rust コアライブラリ（j-law-core）を CGo 経由で静的リンクして
 > [!NOTE]
 > **CGo 静的リンクについて**
 >
-> このパッケージは `j-law-cgo`（Rust staticlib）に静的リンクしています。
+> このパッケージは `j-law-ffi`（Rust staticlib）に静的リンクしています。
 > `go get` / `go test` の前に必ず `make build-rust` を実行してください。
 
 ## インストール
@@ -28,7 +28,7 @@ go get github.com/kmoyashi/j-law-go
 
 ```sh
 cd crates/j-law-go
-make build-rust   # target/debug/libj_law_cgo.a を生成
+make build-rust   # target/debug/libj_law_ffi.a を生成
 ```
 
 ## 使い方
