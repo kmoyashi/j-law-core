@@ -41,9 +41,17 @@ crates/j-law-wasm/pkg/
 # rake-compiler のビルド作業ディレクトリ
 crates/j-law-ruby/tmp/
 
-# コンパイル済みネイティブ拡張
-crates/j-law-ruby/lib/j_law_core/j_law_core.bundle
-crates/j-law-ruby/lib/j_law_core/*.so
+# C ABI 用にビルドした共有ライブラリ
+crates/j-law-ruby/lib/j_law_ruby/native/
+
+# source gem 用に同期した Rust ワークスペース
+crates/j-law-ruby/vendor/rust/
+
+# extconf が生成する Makefile
+crates/j-law-ruby/ext/j_law_ruby/Makefile
+
+# source gem ビルド成果物
+crates/j-law-ruby/*.gem
 
 # Bundler
 crates/j-law-ruby/.bundle/

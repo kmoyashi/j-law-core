@@ -37,6 +37,9 @@ pub const J_LAW_LABEL_LEN: usize = 64;
 /// エラーバッファのデフォルトバイト長。Go 側のアロケーション目安。
 pub const J_LAW_ERROR_BUF_LEN: usize = 256;
 
+/// Go / Ruby 向け C ABI の互換バージョン。
+pub const J_LAW_CGO_ABI_VERSION: u32 = 1;
+
 // ─── C 互換型定義 ──────────────────────────────────────────────────────────────
 
 /// 1 ティアの計算内訳（C 互換）。
@@ -97,6 +100,15 @@ unsafe fn write_error_msg(msg: &str, buf: *mut c_char, buf_len: c_int) {
 }
 
 // ─── C FFI 公開関数 ────────────────────────────────────────────────────────────
+
+/// j-law-cgo の ABI バージョンを返す。
+///
+/// # 法的根拠
+/// なし（FFI 互換確認用）
+#[no_mangle]
+pub extern "C" fn j_law_cgo_abi_version() -> u32 {
+    J_LAW_CGO_ABI_VERSION
+}
 
 /// 宅建業法第46条に基づく媒介報酬を計算する。
 ///
@@ -514,4 +526,250 @@ pub unsafe extern "C" fn j_law_calc_stamp_tax(
     out.reduced_rate_applied = if result.reduced_rate_applied { 1 } else { 0 };
 
     0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn fixed_buf_to_string(buf: &[c_char; J_LAW_LABEL_LEN]) -> String {
+        let mut bytes = Vec::new();
+        for &ch in buf {
+            if ch == 0 {
+                break;
+            }
+            bytes.push(ch as u8);
+        }
+        String::from_utf8_lossy(&bytes).into_owned()
+    }
+
+    fn error_buf_to_string(buf: &[c_char; J_LAW_ERROR_BUF_LEN]) -> String {
+        let mut bytes = Vec::new();
+        for &ch in buf {
+            if ch == 0 {
+                break;
+            }
+            bytes.push(ch as u8);
+        }
+        String::from_utf8_lossy(&bytes).into_owned()
+    }
+
+    #[test]
+    fn abi_version_matches_constant() {
+        assert_eq!(j_law_cgo_abi_version(), J_LAW_CGO_ABI_VERSION);
+    }
+
+    #[test]
+    fn brokerage_fee_writes_expected_c_result() {
+        let mut result = unsafe { std::mem::zeroed::<JLawBrokerageFeeResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_brokerage_fee(
+                5_000_000,
+                2024,
+                8,
+                1,
+                0,
+                0,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0);
+        assert_eq!(error_buf_to_string(&error_buf), "");
+        assert_eq!(result.total_without_tax, 210_000);
+        assert_eq!(result.tax_amount, 21_000);
+        assert_eq!(result.total_with_tax, 231_000);
+        assert_eq!(result.low_cost_special_applied, 0);
+        assert_eq!(result.breakdown_len, 3);
+        assert_eq!(fixed_buf_to_string(&result.breakdown[0].label), "tier1");
+        assert_eq!(result.breakdown[0].base_amount, 2_000_000);
+        assert_eq!(result.breakdown[0].result, 100_000);
+        assert_eq!(fixed_buf_to_string(&result.breakdown[2].label), "tier3");
+        assert_eq!(result.breakdown[2].base_amount, 1_000_000);
+        assert_eq!(result.breakdown[2].result, 30_000);
+    }
+
+    #[test]
+    fn brokerage_fee_propagates_errors() {
+        let mut result = unsafe { std::mem::zeroed::<JLawBrokerageFeeResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_brokerage_fee(
+                5_000_000,
+                1970,
+                11,
+                30,
+                0,
+                0,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 1);
+        assert!(error_buf_to_string(&error_buf).contains("1970-11-30"));
+    }
+
+    #[test]
+    fn income_tax_writes_expected_c_result() {
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_tax(
+                5_000_000,
+                2024,
+                1,
+                1,
+                1,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0);
+        assert_eq!(error_buf_to_string(&error_buf), "");
+        assert_eq!(result.base_tax, 572_500);
+        assert_eq!(result.reconstruction_tax, 12_022);
+        assert_eq!(result.total_tax, 584_500);
+        assert_eq!(result.reconstruction_tax_applied, 1);
+        assert_eq!(result.breakdown_len, 1);
+        assert_eq!(
+            fixed_buf_to_string(&result.breakdown[0].label),
+            "330万円超695万円以下"
+        );
+        assert_eq!(result.breakdown[0].taxable_income, 5_000_000);
+        assert_eq!(result.breakdown[0].deduction, 427_500);
+        assert_eq!(result.breakdown[0].result, 572_500);
+    }
+
+    #[test]
+    fn income_tax_propagates_errors() {
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_tax(
+                5_000_000,
+                2014,
+                12,
+                31,
+                1,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 1);
+        assert!(error_buf_to_string(&error_buf).contains("2014-12-31"));
+    }
+
+    #[test]
+    fn consumption_tax_writes_expected_c_result() {
+        let mut result = unsafe { std::mem::zeroed::<JLawConsumptionTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_consumption_tax(
+                100_000,
+                2024,
+                1,
+                1,
+                0,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0);
+        assert_eq!(error_buf_to_string(&error_buf), "");
+        assert_eq!(result.tax_amount, 10_000);
+        assert_eq!(result.amount_with_tax, 110_000);
+        assert_eq!(result.amount_without_tax, 100_000);
+        assert_eq!(result.applied_rate_numer, 10);
+        assert_eq!(result.applied_rate_denom, 100);
+        assert_eq!(result.is_reduced_rate, 0);
+    }
+
+    #[test]
+    fn consumption_tax_propagates_errors() {
+        let mut result = unsafe { std::mem::zeroed::<JLawConsumptionTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_consumption_tax(
+                100_000,
+                2016,
+                1,
+                1,
+                1,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 1);
+        assert!(
+            error_buf_to_string(&error_buf).contains("軽減税率"),
+            "unexpected error: {}",
+            error_buf_to_string(&error_buf)
+        );
+    }
+
+    #[test]
+    fn stamp_tax_writes_expected_c_result() {
+        let mut result = unsafe { std::mem::zeroed::<JLawStampTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_stamp_tax(
+                5_000_000,
+                2024,
+                8,
+                1,
+                1,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0);
+        assert_eq!(error_buf_to_string(&error_buf), "");
+        assert_eq!(result.tax_amount, 1_000);
+        assert_eq!(fixed_buf_to_string(&result.bracket_label), "500万円以下");
+        assert_eq!(result.reduced_rate_applied, 1);
+    }
+
+    #[test]
+    fn stamp_tax_propagates_errors() {
+        let mut result = unsafe { std::mem::zeroed::<JLawStampTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_stamp_tax(
+                5_000_000,
+                2014,
+                3,
+                31,
+                0,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 1);
+        assert!(error_buf_to_string(&error_buf).contains("2014-03-31"));
+    }
 }

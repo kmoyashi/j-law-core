@@ -1,22 +1,13 @@
 name: Publish Ruby gem (RubyGems)
 
-# GitHub Releases が公開されたときに RubyGems へ公開する。
-# 事前準備: リポジトリの Settings > Secrets に RUBYGEMS_API_KEY を登録すること。
-# RubyGems の API Key は https://rubygems.org/profile/edit で発行。
-
 on:
   release:
     types: [published]
 
 jobs:
-  # --- プラットフォームごとにネイティブ gem をビルド ---
   build-gem:
-    name: Build native gem (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, macos-latest]
+    name: Build source gem
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -38,28 +29,23 @@ jobs:
           ruby-version: '3.3'
           bundler-cache: false
 
-      - name: Install libclang (Linux のみ)
-        if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libclang-dev
-
       - name: Install dependencies
         working-directory: crates/j-law-ruby
         run: bundle install
 
-      - name: Compile native extension
+      - name: Run Ruby tests
         working-directory: crates/j-law-ruby
-        run: bundle exec rake compile
+        run: bundle exec rake test
 
       - name: Build gem
         working-directory: crates/j-law-ruby
-        run: gem build j_law_ruby.gemspec
+        run: bundle exec rake build
 
       - uses: actions/upload-artifact@v4
         with:
-          name: gem-${{ matrix.os }}
+          name: ruby-source-gem
           path: crates/j-law-ruby/*.gem
 
-  # --- RubyGems へ公開 ---
   publish:
     name: Publish to RubyGems
     needs: build-gem

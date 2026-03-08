@@ -25,12 +25,15 @@ Gem::Specification.new do |spec|
   spec.files = Dir[
     "lib/**/*.rb",
     "ext/**/*.rb",
-    "src/**/*.rs",
-    "Cargo.toml",
-    "Cargo.lock",
-  ]
+    "rake_support/**/*.rb",
+    "test/**/*.rb",
+    "vendor/rust/**/*",
+    "Gemfile",
+    "Rakefile",
+    "README.md",
+  ].select { |path| File.file?(path) }
+  spec.require_paths = ["lib"]
   spec.extensions = ["ext/j_law_ruby/extconf.rb"]
 
-  spec.add_dependency "rb_sys", "~> 0.9"
   spec.add_dependency "ffi", "~> 1.0"
 end

@@ -324,13 +324,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "j_law_ruby"
-version = "0.0.1"
-dependencies = [
- "j-law-uniffi",
-]
-
-[[package]]
 name = "js-sys"
 version = "0.3.85"
 source = "registry+https://github.com/rust-lang/crates.io-index"

@@ -5,7 +5,6 @@ members = [
     "crates/j-law-wasm",
     "crates/j-law-cgo",
     "crates/j-law-uniffi",
-    "crates/j-law-ruby/ext/j_law_ruby",
 ]
 resolver = "2"
 

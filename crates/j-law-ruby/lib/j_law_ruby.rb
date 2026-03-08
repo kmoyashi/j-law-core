@@ -1,11 +1,12 @@
 # frozen_string_literal: true
 
 require "date"
-require_relative "j_law_ruby/j_law_uniffi"
+require_relative "j_law_ruby/build_support"
+require_relative "j_law_ruby/cgo"
 
 # 日本の法令に基づく各種計算を提供するモジュール。
 #
-# UniFFI が生成した Ruby バインディング（JLawUniffi）を薄くラップし、
+# `j-law-cgo` の C ABI を ffi gem 経由でラップし、
 # Ruby Date オブジェクトを受け取るインターフェースを提供する。
 module JLawRuby
   # ── 消費税 ──────────────────────────────────────────────────────────────────
@@ -56,10 +57,8 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      r = JLawUniffi.calc_consumption_tax(amount, date.year, date.month, date.day, is_reduced_rate)
+      r = Internal::Cgo.calc_consumption_tax(amount, date.year, date.month, date.day, is_reduced_rate)
       ConsumptionTaxResult.new(r)
-    rescue JLawUniffi::UniError => e
-      raise RuntimeError, e.message
     end
   end
 
@@ -117,13 +116,11 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      r = JLawUniffi.calc_brokerage_fee(
+      r = Internal::Cgo.calc_brokerage_fee(
         price, date.year, date.month, date.day,
         is_low_cost_vacant_house, is_seller
       )
       BrokerageFeeResult.new(r)
-    rescue JLawUniffi::UniError => e
-      raise RuntimeError, e.message
     end
   end
 
@@ -181,13 +178,11 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      r = JLawUniffi.calc_income_tax(
+      r = Internal::Cgo.calc_income_tax(
         taxable_income, date.year, date.month, date.day,
         apply_reconstruction_tax
       )
       IncomeTaxResult.new(r)
-    rescue JLawUniffi::UniError => e
-      raise RuntimeError, e.message
     end
   end
 
@@ -233,13 +228,11 @@ module JLawRuby
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
 
-      r = JLawUniffi.calc_stamp_tax(
+      r = Internal::Cgo.calc_stamp_tax(
         contract_amount, date.year, date.month, date.day,
         is_reduced_rate_applicable
       )
       StampTaxResult.new(r)
-    rescue JLawUniffi::UniError => e
-      raise RuntimeError, e.message
     end
   end
 end
