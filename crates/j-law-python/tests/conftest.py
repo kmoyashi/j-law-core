@@ -11,14 +11,14 @@ from pathlib import Path
 def _shared_library_filename() -> str:
     system = platform.system()
     if system == "Windows":
-        return "j_law_cgo.dll"
+        return "j_law_c_ffi.dll"
     if system == "Darwin":
-        return "libj_law_cgo.dylib"
-    return "libj_law_cgo.so"
+        return "libj_law_c_ffi.dylib"
+    return "libj_law_c_ffi.so"
 
 
 def pytest_sessionstart(session) -> None:
-    """Build j-law-cgo once when tests run from the repo checkout."""
+    """Build j-law-c-ffi once when tests run from the repo checkout."""
     del session
 
     repo_root = Path(__file__).resolve().parents[3]

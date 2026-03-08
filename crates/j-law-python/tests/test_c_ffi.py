@@ -1,4 +1,4 @@
-"""C ABI adapter tests for the Python binding."""
+"""C FFI adapter tests for the Python binding."""
 
 from __future__ import annotations
 
@@ -10,11 +10,11 @@ import pytest
 from j_law_python import build_support
 from j_law_python import consumption_tax
 from j_law_python import real_estate
-from j_law_python import _cgo
+from j_law_python import _c_ffi
 
 
-def test_abi_version_matches():
-    assert _cgo.abi_version() == _cgo.ABI_VERSION
+def test_ffi_version_matches():
+    assert _c_ffi.ffi_version() == _c_ffi.FFI_VERSION
 
 
 def test_env_library_path_has_highest_priority(tmp_path, monkeypatch):
@@ -37,7 +37,7 @@ def test_env_library_path_has_highest_priority(tmp_path, monkeypatch):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(b"")
 
-    monkeypatch.setenv("JLAW_PYTHON_CGO_LIB", str(env_lib))
+    monkeypatch.setenv("JLAW_PYTHON_C_FFI_LIB", str(env_lib))
 
     candidates = build_support.shared_library_candidates(package_root)
 
@@ -65,13 +65,13 @@ def test_debug_library_is_last_fallback(tmp_path, monkeypatch):
     debug_lib.parent.mkdir(parents=True, exist_ok=True)
     debug_lib.write_bytes(b"")
 
-    monkeypatch.delenv("JLAW_PYTHON_CGO_LIB", raising=False)
+    monkeypatch.delenv("JLAW_PYTHON_C_FFI_LIB", raising=False)
 
     assert build_support.resolve_shared_library_path(package_root) == debug_lib
 
 
 def test_fixed_length_strings_are_restored():
-    record = _cgo.calc_brokerage_fee(
+    record = _c_ffi.calc_brokerage_fee(
         5_000_000,
         2024,
         8,
@@ -84,7 +84,7 @@ def test_fixed_length_strings_are_restored():
 
 
 def test_bool_flags_are_restored_as_bool():
-    brokerage = _cgo.calc_brokerage_fee(
+    brokerage = _c_ffi.calc_brokerage_fee(
         8_000_000,
         2024,
         8,
@@ -92,7 +92,7 @@ def test_bool_flags_are_restored_as_bool():
         True,
         False,
     )
-    tax = _cgo.calc_consumption_tax(
+    tax = _c_ffi.calc_consumption_tax(
         100_000,
         2024,
         1,
@@ -118,21 +118,21 @@ def test_error_buffer_is_raised_as_value_error():
 @pytest.mark.parametrize(
     ("call", "args", "field_name"),
     [
-        (_cgo.calc_brokerage_fee, (-1, 2024, 8, 1, False, False), "price"),
-        (_cgo.calc_income_tax, (-1, 2024, 1, 1, True), "taxable_income"),
-        (_cgo.calc_consumption_tax, (-1, 2024, 1, 1, False), "amount"),
-        (_cgo.calc_stamp_tax, (-1, 2024, 8, 1, False), "contract_amount"),
+        (_c_ffi.calc_brokerage_fee, (-1, 2024, 8, 1, False, False), "price"),
+        (_c_ffi.calc_income_tax, (-1, 2024, 1, 1, True), "taxable_income"),
+        (_c_ffi.calc_consumption_tax, (-1, 2024, 1, 1, False), "amount"),
+        (_c_ffi.calc_stamp_tax, (-1, 2024, 8, 1, False), "contract_amount"),
     ],
 )
 def test_negative_unsigned_inputs_are_rejected(call, args, field_name):
-    with pytest.raises(_cgo.CgoError, match=field_name):
+    with pytest.raises(_c_ffi.CFFIError, match=field_name):
         call(*args)
 
 
 def test_out_of_range_unsigned_input_is_rejected_before_ctypes_cast():
-    with pytest.raises(_cgo.CgoError, match="price"):
-        _cgo.calc_brokerage_fee(
-            _cgo.U64_MAX + 1,
+    with pytest.raises(_c_ffi.CFFIError, match="price"):
+        _c_ffi.calc_brokerage_fee(
+            _c_ffi.U64_MAX + 1,
             2024,
             8,
             1,
@@ -150,7 +150,7 @@ def test_public_api_rejects_negative_price_as_value_error():
 
 
 def test_loaded_library_path_exists():
-    assert Path(_cgo.library_path()).is_file()
+    assert Path(_c_ffi.library_path()).is_file()
 
 
 def test_public_api_still_uses_ctypes_backed_result():

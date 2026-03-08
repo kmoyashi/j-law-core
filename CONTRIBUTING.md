@@ -82,7 +82,7 @@ crates/
 ├── j-law-python/       Python バインディング（ctypes + C ABI）
 ├── j-law-wasm/         WASM バインディング（wasm-bindgen）
 ├── j-law-ruby/         Ruby バインディング（ffi + C ABI）
-├── j-law-cgo/          C FFI（Go 向け staticlib）
+├── j-law-c-ffi/        C ABI
 └── j-law-go/           Go バインディング（CGo、非 workspace メンバー）
 ```
 
@@ -280,7 +280,7 @@ date, _ := time.Parse("2006-01-02", tc.Input.Date)
 
 ### バインディング関数シグネチャ
 
-Rust コアと C FFI では、日付は `year: u16, month: u8, day: u8` の **3 引数** で受け取ります。
+Rust コアと C ABI では、日付は `year: u16, month: u8, day: u8` の **3 引数** で受け取ります。
 各言語バインディング（Python / WASM / Ruby / Go）では、各言語のネイティブ日付型を使用します:
 
 - **Python**: `datetime.date`
@@ -366,7 +366,7 @@ j-law-core  ←（依存）←  j-law-registry
 
 ## unsafe コードのルール
 
-- unsafe は **CGo バインディング（`j-law-cgo`）の FFI 境界のみ** に限定する
+- unsafe は **`j-law-c-ffi` の C ABI 境界のみ** に限定する
 - unsafe 関数には `# Safety` セクションで前提条件（ポインタの非 null、バッファ長等）を文書化する
 - コアライブラリ (`j-law-core`) に unsafe を追加しない
 

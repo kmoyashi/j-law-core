@@ -1,4 +1,4 @@
-"""ctypes adapter for j-law-cgo."""
+"""ctypes adapter for j-law-c-ffi."""
 
 from __future__ import annotations
 
@@ -7,15 +7,15 @@ from dataclasses import dataclass
 
 from . import build_support
 
-ABI_VERSION = build_support.ABI_VERSION
+FFI_VERSION = build_support.FFI_VERSION
 MAX_TIERS = 8
 LABEL_LEN = 64
 ERROR_BUF_LEN = 256
 U64_MAX = (1 << 64) - 1
 
 
-class CgoError(RuntimeError):
-    """Raised when the C ABI returns an error."""
+class CFFIError(RuntimeError):
+    """Raised when the C FFI returns an error."""
 
 
 class _BreakdownStepStruct(ctypes.Structure):
@@ -144,7 +144,7 @@ def _bool_to_c_int(value: bool) -> int:
 
 def _validate_u64(value: int, field_name: str) -> int:
     if value < 0 or value > U64_MAX:
-        raise CgoError(f"{field_name} must be between 0 and {U64_MAX}")
+        raise CFFIError(f"{field_name} must be between 0 and {U64_MAX}")
     return value
 
 
@@ -152,7 +152,7 @@ def _read_error(buffer: ctypes.Array[ctypes.c_char]) -> str:
     message = buffer.value.decode("utf-8")
     if message:
         return message
-    return "j-law-cgo returned an unknown error"
+    return "j-law-c-ffi returned an unknown error"
 
 
 def _read_breakdown(
@@ -193,13 +193,13 @@ def _read_income_tax_breakdown(
 LIBRARY_PATH = build_support.resolve_shared_library_path()
 if LIBRARY_PATH is None:
     raise ImportError(
-        "j-law-cgo shared library was not found. "
-        "Set JLAW_PYTHON_CGO_LIB or build it with `cargo build -p j-law-cgo`."
+        "j-law-c-ffi shared library was not found. "
+        "Set JLAW_PYTHON_C_FFI_LIB or build it with `cargo build -p j-law-c-ffi`."
     )
 
 _LIB = ctypes.CDLL(str(LIBRARY_PATH))
-_LIB.j_law_cgo_abi_version.argtypes = []
-_LIB.j_law_cgo_abi_version.restype = ctypes.c_uint32
+_LIB.j_law_c_ffi_version.argtypes = []
+_LIB.j_law_c_ffi_version.restype = ctypes.c_uint32
 _LIB.j_law_calc_brokerage_fee.argtypes = [
     ctypes.c_uint64,
     ctypes.c_uint16,
@@ -246,16 +246,16 @@ _LIB.j_law_calc_stamp_tax.argtypes = [
 ]
 _LIB.j_law_calc_stamp_tax.restype = ctypes.c_int
 
-_ACTUAL_ABI_VERSION = _LIB.j_law_cgo_abi_version()
-if _ACTUAL_ABI_VERSION != ABI_VERSION:
+_ACTUAL_FFI_VERSION = _LIB.j_law_c_ffi_version()
+if _ACTUAL_FFI_VERSION != FFI_VERSION:
     raise ImportError(
-        "j-law-cgo ABI version mismatch: "
-        f"expected {ABI_VERSION}, got {_ACTUAL_ABI_VERSION}"
+        "j-law-c-ffi FFI version mismatch: "
+        f"expected {FFI_VERSION}, got {_ACTUAL_FFI_VERSION}"
     )
 
 
-def abi_version() -> int:
-    return int(_ACTUAL_ABI_VERSION)
+def ffi_version() -> int:
+    return int(_ACTUAL_FFI_VERSION)
 
 
 def library_path() -> str:
@@ -285,7 +285,7 @@ def calc_brokerage_fee(
         ERROR_BUF_LEN,
     )
     if status != 0:
-        raise CgoError(_read_error(error_buffer))
+        raise CFFIError(_read_error(error_buffer))
 
     return BrokerageFeeRecord(
         total_without_tax=int(result.total_without_tax),
@@ -317,7 +317,7 @@ def calc_income_tax(
         ERROR_BUF_LEN,
     )
     if status != 0:
-        raise CgoError(_read_error(error_buffer))
+        raise CFFIError(_read_error(error_buffer))
 
     return IncomeTaxRecord(
         base_tax=int(result.base_tax),
@@ -352,7 +352,7 @@ def calc_consumption_tax(
         ERROR_BUF_LEN,
     )
     if status != 0:
-        raise CgoError(_read_error(error_buffer))
+        raise CFFIError(_read_error(error_buffer))
 
     return ConsumptionTaxRecord(
         tax_amount=int(result.tax_amount),
@@ -385,7 +385,7 @@ def calc_stamp_tax(
         ERROR_BUF_LEN,
     )
     if status != 0:
-        raise CgoError(_read_error(error_buffer))
+        raise CFFIError(_read_error(error_buffer))
 
     return StampTaxRecord(
         tax_amount=int(result.tax_amount),

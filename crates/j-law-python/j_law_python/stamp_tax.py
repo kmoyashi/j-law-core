@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import datetime
 
-from ._cgo import CgoError
-from ._cgo import StampTaxRecord
-from ._cgo import calc_stamp_tax as _calc_stamp_tax
+from ._c_ffi import CFFIError
+from ._c_ffi import StampTaxRecord
+from ._c_ffi import calc_stamp_tax as _calc_stamp_tax
 
 
 class StampTaxResult:
@@ -68,6 +68,6 @@ def calc_stamp_tax(
             date.day,
             is_reduced_rate_applicable,
         )
-    except CgoError as e:
+    except CFFIError as e:
         raise ValueError(str(e)) from e
     return StampTaxResult(r)

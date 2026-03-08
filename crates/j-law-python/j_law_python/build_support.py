@@ -1,4 +1,4 @@
-"""Build and runtime helpers for the Python C ABI binding."""
+"""Build and runtime helpers for the Python C FFI binding."""
 
 from __future__ import annotations
 
@@ -8,15 +8,15 @@ import shutil
 import subprocess
 from pathlib import Path
 
-ABI_VERSION = 1
-ENV_LIBRARY_PATH = "JLAW_PYTHON_CGO_LIB"
+FFI_VERSION = 1
+ENV_LIBRARY_PATH = "JLAW_PYTHON_C_FFI_LIB"
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 
 WORKSPACE_TOML = """[workspace]
 members = [
     "crates/j-law-core",
     "crates/j-law-registry",
-    "crates/j-law-cgo",
+    "crates/j-law-c-ffi",
 ]
 resolver = "2"
 
@@ -27,7 +27,7 @@ disallowed_macros = "warn"
 """
 
 COPY_MAP = {
-    "crates/j-law-cgo": ("Cargo.toml", "src", "j_law_cgo.h"),
+    "crates/j-law-c-ffi": ("Cargo.toml", "src", "j_law_c_ffi.h"),
     "crates/j-law-core": ("Cargo.toml", "src"),
     "crates/j-law-registry": ("Cargo.toml", "src", "data"),
 }
@@ -36,10 +36,10 @@ COPY_MAP = {
 def shared_library_filename() -> str:
     system = platform.system()
     if system == "Windows":
-        return "j_law_cgo.dll"
+        return "j_law_c_ffi.dll"
     if system == "Darwin":
-        return "libj_law_cgo.dylib"
-    return "libj_law_cgo.so"
+        return "libj_law_c_ffi.dylib"
+    return "libj_law_c_ffi.so"
 
 
 def packaged_shared_library_path(package_root: Path = PACKAGE_ROOT) -> Path:
@@ -173,13 +173,13 @@ def build_shared_library(
 ) -> Path:
     manifest = manifest_path(package_root)
     if manifest is None:
-        raise RuntimeError("Cargo workspace for j-law-cgo was not found.")
+        raise RuntimeError("Cargo workspace for j-law-c-ffi was not found.")
 
     command = [
         "cargo",
         "build",
         "-p",
-        "j-law-cgo",
+        "j-law-c-ffi",
         "--manifest-path",
         str(manifest),
     ]

@@ -1,5 +1,5 @@
 [package]
-name = "j-law-cgo"
+name = "j-law-c-ffi"
 version = "0.0.1"
 edition = "2021"
 license = "MIT"
@@ -8,9 +8,9 @@ license = "MIT"
 workspace = true
 
 [lib]
-name = "j_law_cgo"
-# staticlib: Go の CGo 静的リンク用 (.a)
-# cdylib:    動的リンク用 (.so / .dylib) ── 将来の用途に備えて残す
+name = "j_law_c_ffi"
+# staticlib: C 互換言語から静的リンクできる配布物 (.a)
+# cdylib:    動的リンク用 (.so / .dylib)
 crate-type = ["staticlib", "cdylib"]
 
 [dependencies]
