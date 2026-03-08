@@ -28,11 +28,12 @@ test:
 audit:
 	cargo audit
 
-## CIチェック一式: フォーマット・リント・テストを順番に実行する
+## CIチェック一式: フォーマット・リント・テスト・全言語バインディングテストを順番に実行する
 ##
 ## プッシュ前に必ずこのコマンドを実行すること。
-## .github/workflows/ci.yml の lint + test-rust ジョブに相当する。
-ci: fmt-check clippy test
+## .github/workflows/ci.yml の全ジョブに相当する。
+## 実行時間: 5-10分程度（docker-test で時間がかかります）
+ci: fmt-check clippy test docker-test
 
 ## 全言語バインディングテストを Docker で実行する（CI の test-bindings ジョブに相当）
 docker-test:
