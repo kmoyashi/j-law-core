@@ -2,8 +2,10 @@ use std::collections::HashSet;
 
 use crate::domains::income_tax::context::{IncomeTaxContext, IncomeTaxFlag};
 use crate::domains::income_tax::params::IncomeTaxParams;
+use crate::domains::income_tax::policy::IncomeTaxPolicy;
 use crate::error::{CalculationError, JLawError};
 use crate::types::amount::{FinalAmount, IntermediateAmount};
+use crate::types::date::LegalDate;
 use crate::types::rate::{MultiplyOrder, Rate};
 
 /// 所得税の計算ステップ（内訳明細用）。
@@ -65,8 +67,24 @@ pub fn calculate_income_tax(
     ctx: &IncomeTaxContext,
     params: &IncomeTaxParams,
 ) -> Result<IncomeTaxResult, JLawError> {
-    let income = ctx.taxable_income;
-    let tax_rounding = ctx.policy.tax_rounding();
+    calculate_income_tax_inner(
+        ctx.taxable_income,
+        ctx.target_date,
+        &ctx.flags,
+        ctx.policy.as_ref(),
+        params,
+    )
+}
+
+pub(crate) fn calculate_income_tax_inner(
+    taxable_income: u64,
+    target_date: LegalDate,
+    flags: &HashSet<IncomeTaxFlag>,
+    policy: &dyn IncomeTaxPolicy,
+    params: &IncomeTaxParams,
+) -> Result<IncomeTaxResult, JLawError> {
+    let income = taxable_income;
+    let tax_rounding = policy.tax_rounding();
 
     // --- 課税所得金額が0の場合 ---
     if income == 0 {
@@ -75,7 +93,7 @@ pub fn calculate_income_tax(
             reconstruction_tax: FinalAmount::new(0),
             total_tax: FinalAmount::new(0),
             breakdown: vec![],
-            applied_flags: ctx.flags.clone(),
+            applied_flags: flags.clone(),
             reconstruction_tax_applied: false,
         });
     }
@@ -131,10 +149,8 @@ pub fn calculate_income_tax(
     }];
 
     // --- 復興特別所得税 ---
-    let target_year = ctx.target_date.year;
-    let apply_reconstruction = ctx
-        .policy
-        .should_apply_reconstruction_tax(target_year, &ctx.flags);
+    let target_year = target_date.year;
+    let apply_reconstruction = policy.should_apply_reconstruction_tax(target_year, flags);
 
     let reconstruction_tax_yen = if apply_reconstruction {
         if let Some(rt_params) = &params.reconstruction_tax {
@@ -142,7 +158,7 @@ pub fn calculate_income_tax(
                 numer: rt_params.rate_numer,
                 denom: rt_params.rate_denom,
             };
-            let rt_rounding = ctx.policy.reconstruction_tax_rounding();
+            let rt_rounding = policy.reconstruction_tax_rounding();
             rt_rate
                 .apply(
                     &IntermediateAmount::from_exact(base_tax_yen),
@@ -177,7 +193,7 @@ pub fn calculate_income_tax(
         reconstruction_tax,
         total_tax,
         breakdown,
-        applied_flags: ctx.flags.clone(),
+        applied_flags: flags.clone(),
         reconstruction_tax_applied: apply_reconstruction,
     })
 }
