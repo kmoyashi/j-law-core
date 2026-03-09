@@ -289,7 +289,7 @@ func TestBrokerageFee_BreakdownFields(t *testing.T) {
 }
 
 func TestIncomeTax_ErrorDateOutOfRange(t *testing.T) {
-	_, err := jlawcore.CalcIncomeTax(5_000_000, time.Date(2014, time.December, 31, 0, 0, 0, 0, time.UTC), true)
+	_, err := jlawcore.CalcIncomeTax(5_000_000, time.Date(1988, time.December, 31, 0, 0, 0, 0, time.UTC), true)
 	if err == nil {
 		t.Fatal("expected error for date out of range, got nil")
 	}

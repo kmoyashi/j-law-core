@@ -48,7 +48,7 @@ end
 class TestIncomeTaxLanguageSpecific < Minitest::Test
   def test_error_date_out_of_range
     assert_raises(RuntimeError) do
-      JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2014, 12, 31), true)
+      JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(1988, 12, 31), true)
     end
   end
 

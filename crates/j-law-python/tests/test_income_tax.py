@@ -48,7 +48,7 @@ class TestLanguageSpecific:
 
     def test_error_date_out_of_range(self):
         with pytest.raises(ValueError):
-            calc_income_tax(5_000_000, datetime.date(2014, 12, 31))
+            calc_income_tax(5_000_000, datetime.date(1988, 12, 31))
 
     def test_breakdown_fields(self):
         r = calc_income_tax(5_000_000, datetime.date(2024, 1, 1))
