@@ -286,6 +286,21 @@
       }
     },
     {
+      "id": "hist_2007_5m_no_recon_flag_true",
+      "description": "【2007〜2012年】課税所得 5,000,000円（apply_reconstruction_tax=trueでもparamsにrecon_taxなし→不適用）",
+      "input": {
+        "taxable_income": 5000000,
+        "date": "2010-01-01",
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 572500,
+        "reconstruction_tax": 0,
+        "total_tax": 572500,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
       "id": "hist_2007_5m_with_recon",
       "description": "【2007〜2014年・2013年分】課税所得 5,000,000円（2007ブラケット+復興特別所得税）",
       "input": {

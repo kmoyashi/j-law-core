@@ -155,6 +155,66 @@
     },
     {
       "effective_from": "2007-01-01",
+      "effective_until": "2012-12-31",
+      "status": "superseded",
+      "citation": {
+        "law_id": "shotoku-89",
+        "law_name": "所得税法",
+        "article": 89,
+        "paragraph": 1,
+        "amendment": "平成18年3月31日法律第10号",
+        "ministry": "財務省"
+      },
+      "params": {
+        "brackets": [
+          {
+            "label": "195万円以下",
+            "income_from": 0,
+            "income_to_inclusive": 1950000,
+            "rate": { "numer": 5, "denom": 100 },
+            "deduction": 0
+          },
+          {
+            "label": "195万円超330万円以下",
+            "income_from": 1950001,
+            "income_to_inclusive": 3300000,
+            "rate": { "numer": 10, "denom": 100 },
+            "deduction": 97500
+          },
+          {
+            "label": "330万円超695万円以下",
+            "income_from": 3300001,
+            "income_to_inclusive": 6950000,
+            "rate": { "numer": 20, "denom": 100 },
+            "deduction": 427500
+          },
+          {
+            "label": "695万円超900万円以下",
+            "income_from": 6950001,
+            "income_to_inclusive": 9000000,
+            "rate": { "numer": 23, "denom": 100 },
+            "deduction": 636000
+          },
+          {
+            "label": "900万円超1800万円以下",
+            "income_from": 9000001,
+            "income_to_inclusive": 18000000,
+            "rate": { "numer": 33, "denom": 100 },
+            "deduction": 1536000
+          },
+          {
+            "label": "1800万円超",
+            "income_from": 18000001,
+            "income_to_inclusive": null,
+            "rate": { "numer": 40, "denom": 100 },
+            "deduction": 2796000
+          }
+        ],
+        "reconstruction_tax": null
+      }
+    },
+    {
+      "effective_from": "2013-01-01",
       "effective_until": "2014-12-31",
       "status": "superseded",
       "citation": {

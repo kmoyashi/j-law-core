@@ -113,9 +113,31 @@ mod tests {
     }
 
     #[test]
+    fn load_2007_params_no_reconstruction_tax() {
+        // 復興特別所得税は2013年開始。2007〜2012年は None であること
+        let params = load_income_tax_params(LegalDate::new(2010, 1, 1)).unwrap();
+        assert!(params.reconstruction_tax.is_none());
+    }
+
+    #[test]
+    fn boundary_2012_12_31_no_reconstruction_tax() {
+        let params = load_income_tax_params(LegalDate::new(2012, 12, 31)).unwrap();
+        assert_eq!(params.brackets.len(), 6);
+        assert!(params.reconstruction_tax.is_none());
+    }
+
+    #[test]
+    fn boundary_2013_01_01_has_reconstruction_tax() {
+        let params = load_income_tax_params(LegalDate::new(2013, 1, 1)).unwrap();
+        assert_eq!(params.brackets.len(), 6);
+        assert!(params.reconstruction_tax.is_some());
+    }
+
+    #[test]
     fn boundary_2014_12_31() {
         let params = load_income_tax_params(LegalDate::new(2014, 12, 31)).unwrap();
         assert_eq!(params.brackets.len(), 6);
+        assert!(params.reconstruction_tax.is_some());
     }
 
     #[test]
