@@ -8,9 +8,11 @@
 
 use j_law_core::domains::income_tax::deduction::{
     calculate_income_deductions, BasicDeductionBracket, BasicDeductionParams,
-    ExpenseDeductionInput, ExpenseDeductionParams, IncomeDeductionContext, IncomeDeductionInput,
-    IncomeDeductionKind, IncomeDeductionParams, PersonalDeductionInput, PersonalDeductionParams,
-    SocialInsuranceDeductionParams,
+    DependentDeductionInput, DependentDeductionParams, ExpenseDeductionInput,
+    ExpenseDeductionParams, IncomeDeductionContext, IncomeDeductionInput, IncomeDeductionKind,
+    IncomeDeductionParams, PersonalDeductionInput, PersonalDeductionParams,
+    SocialInsuranceDeductionParams, SpouseDeductionInput, SpouseDeductionParams,
+    SpouseIncomeBracket,
 };
 use j_law_core::LegalDate;
 
@@ -45,6 +47,45 @@ fn deduction_params_2024() -> IncomeDeductionParams {
                     },
                 ],
             },
+            spouse: SpouseDeductionParams {
+                qualifying_spouse_income_max: 480_000,
+                taxpayer_income_brackets: vec![
+                    SpouseIncomeBracket {
+                        label: "900万円以下".into(),
+                        taxpayer_income_from: 0,
+                        taxpayer_income_to_inclusive: Some(9_000_000),
+                        deduction_amount: 380_000,
+                        elderly_deduction_amount: 480_000,
+                    },
+                    SpouseIncomeBracket {
+                        label: "900万円超950万円以下".into(),
+                        taxpayer_income_from: 9_000_001,
+                        taxpayer_income_to_inclusive: Some(9_500_000),
+                        deduction_amount: 260_000,
+                        elderly_deduction_amount: 320_000,
+                    },
+                    SpouseIncomeBracket {
+                        label: "950万円超1000万円以下".into(),
+                        taxpayer_income_from: 9_500_001,
+                        taxpayer_income_to_inclusive: Some(10_000_000),
+                        deduction_amount: 130_000,
+                        elderly_deduction_amount: 160_000,
+                    },
+                    SpouseIncomeBracket {
+                        label: "1000万円超".into(),
+                        taxpayer_income_from: 10_000_001,
+                        taxpayer_income_to_inclusive: None,
+                        deduction_amount: 0,
+                        elderly_deduction_amount: 0,
+                    },
+                ],
+            },
+            dependent: DependentDeductionParams {
+                general_deduction_amount: 380_000,
+                specific_deduction_amount: 630_000,
+                elderly_cohabiting_deduction_amount: 580_000,
+                elderly_other_deduction_amount: 480_000,
+            },
         },
         expense: ExpenseDeductionParams {
             social_insurance: SocialInsuranceDeductionParams,
@@ -52,12 +93,17 @@ fn deduction_params_2024() -> IncomeDeductionParams {
     }
 }
 
-fn ctx(total_income_amount: u64, social_insurance_premium_paid: u64) -> IncomeDeductionContext {
+fn ctx(
+    total_income_amount: u64,
+    social_insurance_premium_paid: u64,
+    spouse: Option<SpouseDeductionInput>,
+    dependent: DependentDeductionInput,
+) -> IncomeDeductionContext {
     IncomeDeductionContext {
         total_income_amount,
         target_date: LegalDate::new(2024, 1, 1),
         deductions: IncomeDeductionInput {
-            personal: PersonalDeductionInput {},
+            personal: PersonalDeductionInput { spouse, dependent },
             expense: ExpenseDeductionInput {
                 social_insurance_premium_paid,
             },
@@ -67,23 +113,30 @@ fn ctx(total_income_amount: u64, social_insurance_premium_paid: u64) -> IncomeDe
 
 #[test]
 fn basic_and_social_insurance_deductions_are_aggregated() {
-    let result =
-        calculate_income_deductions(&ctx(5_480_900, 480_900), &deduction_params_2024()).unwrap();
+    let result = calculate_income_deductions(
+        &ctx(5_480_900, 480_900, None, DependentDeductionInput::default()),
+        &deduction_params_2024(),
+    )
+    .unwrap();
 
     assert_eq!(result.total_income_amount.as_yen(), 5_480_900);
     assert_eq!(result.total_deductions.as_yen(), 960_900);
     assert_eq!(result.taxable_income_before_truncation.as_yen(), 4_520_000);
     assert_eq!(result.taxable_income.as_yen(), 4_520_000);
-    assert_eq!(result.breakdown.len(), 2);
+    assert_eq!(result.breakdown.len(), 4);
     assert_eq!(result.breakdown[0].kind, IncomeDeductionKind::Basic);
     assert_eq!(result.breakdown[0].label, "基礎控除");
     assert_eq!(result.breakdown[0].amount.as_yen(), 480_000);
+    assert_eq!(result.breakdown[1].kind, IncomeDeductionKind::Spouse);
+    assert_eq!(result.breakdown[1].amount.as_yen(), 0);
+    assert_eq!(result.breakdown[2].kind, IncomeDeductionKind::Dependent);
+    assert_eq!(result.breakdown[2].amount.as_yen(), 0);
     assert_eq!(
-        result.breakdown[1].kind,
+        result.breakdown[3].kind,
         IncomeDeductionKind::SocialInsurance
     );
-    assert_eq!(result.breakdown[1].label, "社会保険料控除");
-    assert_eq!(result.breakdown[1].amount.as_yen(), 480_900);
+    assert_eq!(result.breakdown[3].label, "社会保険料控除");
+    assert_eq!(result.breakdown[3].amount.as_yen(), 480_900);
 }
 
 #[test]
@@ -96,11 +149,42 @@ fn basic_deduction_uses_2024_income_thresholds() {
     ];
 
     for (income, expected_basic_deduction) in cases {
-        let result =
-            calculate_income_deductions(&ctx(income, 0), &deduction_params_2024()).unwrap();
+        let result = calculate_income_deductions(
+            &ctx(income, 0, None, DependentDeductionInput::default()),
+            &deduction_params_2024(),
+        )
+        .unwrap();
         assert_eq!(
             result.breakdown[0].amount.as_yen(),
             expected_basic_deduction
         );
     }
+}
+
+#[test]
+fn spouse_and_dependent_deductions_are_calculated() {
+    let result = calculate_income_deductions(
+        &ctx(
+            8_000_000,
+            200_000,
+            Some(SpouseDeductionInput {
+                spouse_total_income_amount: 480_000,
+                is_same_household: true,
+                is_elderly: true,
+            }),
+            DependentDeductionInput {
+                general_count: 1,
+                specific_count: 1,
+                elderly_cohabiting_count: 1,
+                elderly_other_count: 1,
+            },
+        ),
+        &deduction_params_2024(),
+    )
+    .unwrap();
+
+    assert_eq!(result.breakdown[1].amount.as_yen(), 480_000);
+    assert_eq!(result.breakdown[2].amount.as_yen(), 2_070_000);
+    assert_eq!(result.total_deductions.as_yen(), 3_230_000);
+    assert_eq!(result.taxable_income.as_yen(), 4_770_000);
 }

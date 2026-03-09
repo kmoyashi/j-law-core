@@ -7,10 +7,12 @@ pub mod types;
 
 pub use calculator::calculate_income_deductions;
 pub use context::{
-    ExpenseDeductionInput, IncomeDeductionContext, IncomeDeductionInput, PersonalDeductionInput,
+    DependentDeductionInput, ExpenseDeductionInput, IncomeDeductionContext, IncomeDeductionInput,
+    PersonalDeductionInput, SpouseDeductionInput,
 };
 pub use params::{
-    BasicDeductionBracket, BasicDeductionParams, ExpenseDeductionParams, IncomeDeductionParams,
-    PersonalDeductionParams, SocialInsuranceDeductionParams,
+    BasicDeductionBracket, BasicDeductionParams, DependentDeductionParams, ExpenseDeductionParams,
+    IncomeDeductionParams, PersonalDeductionParams, SocialInsuranceDeductionParams,
+    SpouseDeductionParams, SpouseIncomeBracket,
 };
 pub use types::{IncomeDeductionKind, IncomeDeductionLine, IncomeDeductionResult};

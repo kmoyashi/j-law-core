@@ -20,7 +20,8 @@ pub(crate) fn calculate_expense_deductions(
 mod tests {
     use super::*;
     use crate::domains::income_tax::deduction::context::{
-        ExpenseDeductionInput, IncomeDeductionInput, PersonalDeductionInput,
+        DependentDeductionInput, ExpenseDeductionInput, IncomeDeductionInput,
+        PersonalDeductionInput,
     };
     use crate::domains::income_tax::deduction::params::SocialInsuranceDeductionParams;
     use crate::types::date::LegalDate;
@@ -36,7 +37,10 @@ mod tests {
             total_income_amount: 5_000_000,
             target_date: LegalDate::new(2024, 1, 1),
             deductions: IncomeDeductionInput {
-                personal: PersonalDeductionInput {},
+                personal: PersonalDeductionInput {
+                    spouse: None,
+                    dependent: DependentDeductionInput::default(),
+                },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid,
                 },

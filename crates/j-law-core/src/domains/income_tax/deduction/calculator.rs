@@ -51,11 +51,13 @@ fn truncate_below_1000(amount: u64) -> u64 {
 mod tests {
     use super::*;
     use crate::domains::income_tax::deduction::context::{
-        ExpenseDeductionInput, IncomeDeductionInput, PersonalDeductionInput,
+        DependentDeductionInput, ExpenseDeductionInput, IncomeDeductionInput,
+        PersonalDeductionInput,
     };
     use crate::domains::income_tax::deduction::params::{
-        BasicDeductionBracket, BasicDeductionParams, ExpenseDeductionParams,
-        PersonalDeductionParams, SocialInsuranceDeductionParams,
+        BasicDeductionBracket, BasicDeductionParams, DependentDeductionParams,
+        ExpenseDeductionParams, PersonalDeductionParams, SocialInsuranceDeductionParams,
+        SpouseDeductionParams,
     };
     use crate::types::date::LegalDate;
 
@@ -70,6 +72,16 @@ mod tests {
                         deduction_amount: 480_000,
                     }],
                 },
+                spouse: SpouseDeductionParams {
+                    qualifying_spouse_income_max: 480_000,
+                    taxpayer_income_brackets: vec![],
+                },
+                dependent: DependentDeductionParams {
+                    general_deduction_amount: 380_000,
+                    specific_deduction_amount: 630_000,
+                    elderly_cohabiting_deduction_amount: 580_000,
+                    elderly_other_deduction_amount: 480_000,
+                },
             },
             expense: ExpenseDeductionParams {
                 social_insurance: SocialInsuranceDeductionParams,
@@ -82,7 +94,10 @@ mod tests {
             total_income_amount,
             target_date: LegalDate::new(2024, 1, 1),
             deductions: IncomeDeductionInput {
-                personal: PersonalDeductionInput {},
+                personal: PersonalDeductionInput {
+                    spouse: None,
+                    dependent: DependentDeductionInput::default(),
+                },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid,
                 },
