@@ -658,7 +658,7 @@ mod tests {
         let status = unsafe {
             j_law_calc_income_tax(
                 5_000_000,
-                2014,
+                1988,
                 12,
                 31,
                 1,
@@ -669,7 +669,7 @@ mod tests {
         };
 
         assert_eq!(status, 1);
-        assert!(error_buf_to_string(&error_buf).contains("2014-12-31"));
+        assert!(error_buf_to_string(&error_buf).contains("1988-12-31"));
     }
 
     #[test]

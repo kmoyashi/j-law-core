@@ -149,6 +149,171 @@
         "total_tax": 99500,
         "reconstruction_tax_applied": true
       }
+    },
+    {
+      "id": "hist_1989_5m",
+      "description": "【1989〜1994年】課税所得 5,000,000円（税率20%・控除300,000円・復興税なし）",
+      "input": {
+        "taxable_income": 5000000,
+        "date": "1990-01-01",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 700000,
+        "reconstruction_tax": 0,
+        "total_tax": 700000,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_1989_10m",
+      "description": "【1989〜1994年】課税所得 10,000,000円（税率30%・控除900,000円・復興税なし）",
+      "input": {
+        "taxable_income": 10000000,
+        "date": "1990-01-01",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 2100000,
+        "reconstruction_tax": 0,
+        "total_tax": 2100000,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_1989_boundary_3_3m",
+      "description": "【1989〜1994年】課税所得 3,300,000円（1989期間は10%上限が300万・3.3M→20%ブラケット・控除300,000）",
+      "input": {
+        "taxable_income": 3300000,
+        "date": "1994-12-31",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 360000,
+        "reconstruction_tax": 0,
+        "total_tax": 360000,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_1995_boundary_3_3m",
+      "description": "【1995〜1998年】課税所得 3,300,000円（1995改正で10%上限が330万に拡大・3.3M→10%ブラケット上限）",
+      "input": {
+        "taxable_income": 3300000,
+        "date": "1995-01-01",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 330000,
+        "reconstruction_tax": 0,
+        "total_tax": 330000,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_1995_5m",
+      "description": "【1995〜1998年】課税所得 5,000,000円（税率20%・控除330,000円・復興税なし）",
+      "input": {
+        "taxable_income": 5000000,
+        "date": "1997-01-01",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 670000,
+        "reconstruction_tax": 0,
+        "total_tax": 670000,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_1995_20m",
+      "description": "【1995〜1998年】課税所得 20,000,000円（税率40%・控除3,030,000円・復興税なし）",
+      "input": {
+        "taxable_income": 20000000,
+        "date": "1997-01-01",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 4970000,
+        "reconstruction_tax": 0,
+        "total_tax": 4970000,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_1999_5m",
+      "description": "【1999〜2006年】課税所得 5,000,000円（税率20%・控除330,000円・復興税なし）",
+      "input": {
+        "taxable_income": 5000000,
+        "date": "2003-01-01",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 670000,
+        "reconstruction_tax": 0,
+        "total_tax": 670000,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_1999_20m",
+      "description": "【1999〜2006年】課税所得 20,000,000円（税率37%・控除2,490,000円・最高税率37%時代）",
+      "input": {
+        "taxable_income": 20000000,
+        "date": "2003-01-01",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 4910000,
+        "reconstruction_tax": 0,
+        "total_tax": 4910000,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_2007_5m_no_recon",
+      "description": "【2007〜2014年】課税所得 5,000,000円（税率20%・控除427,500円・復興税なし）",
+      "input": {
+        "taxable_income": 5000000,
+        "date": "2010-01-01",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 572500,
+        "reconstruction_tax": 0,
+        "total_tax": 572500,
+        "reconstruction_tax_applied": false
+      }
+    },
+    {
+      "id": "hist_2007_5m_with_recon",
+      "description": "【2007〜2014年・2013年分】課税所得 5,000,000円（2007ブラケット+復興特別所得税）",
+      "input": {
+        "taxable_income": 5000000,
+        "date": "2013-01-01",
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 572500,
+        "reconstruction_tax": 12022,
+        "total_tax": 584500,
+        "reconstruction_tax_applied": true
+      }
+    },
+    {
+      "id": "hist_2007_20m_with_recon",
+      "description": "【2007〜2014年・2013年分】課税所得 20,000,000円（税率40%・控除2,796,000円+復興税）",
+      "input": {
+        "taxable_income": 20000000,
+        "date": "2013-01-01",
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 5204000,
+        "reconstruction_tax": 109284,
+        "total_tax": 5313200,
+        "reconstruction_tax_applied": true
+      }
     }
   ]
 }
