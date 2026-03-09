@@ -47,7 +47,7 @@ describe("calcIncomeTax - フィクスチャ駆動", () => {
 
 describe("calcIncomeTax - JS固有テスト", () => {
   it("対象日が範囲外の場合にエラー", () => {
-    assert.throws(() => calcIncomeTax(5_000_000, new Date(Date.UTC(2014, 11, 31)), true));
+    assert.throws(() => calcIncomeTax(5_000_000, new Date(Date.UTC(1988, 11, 31)), true));
   });
 
   it("breakdown の各フィールドが有効", () => {
