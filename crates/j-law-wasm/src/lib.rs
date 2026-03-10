@@ -94,6 +94,10 @@ fn invalid_deduction_input(field: &str, reason: &str) -> JsValue {
     )
 }
 
+fn bigint_js_value(value: u64) -> JsValue {
+    js_sys::BigInt::from(value).into()
+}
+
 fn get_optional_u16(obj: &JsValue, keys: &[&str], default: u16) -> Result<u16, JsValue> {
     let value = get_optional_u64(obj, keys, u64::from(default))?;
     u16::try_from(value)
@@ -668,38 +672,38 @@ pub fn calc_income_tax(
 /// 所得控除の計算結果。
 #[wasm_bindgen]
 pub struct IncomeDeductionResult {
-    total_income_amount: u32,
-    total_deductions: u32,
-    taxable_income_before_truncation: u32,
-    taxable_income: u32,
+    total_income_amount: u64,
+    total_deductions: u64,
+    taxable_income_before_truncation: u64,
+    taxable_income: u64,
     breakdown_data: Vec<IncomeDeductionLineData>,
 }
 
 struct IncomeDeductionLineData {
     kind: u32,
     label: String,
-    amount: u32,
+    amount: u64,
 }
 
 #[wasm_bindgen]
 impl IncomeDeductionResult {
     #[wasm_bindgen(getter, js_name = "totalIncomeAmount")]
-    pub fn total_income_amount(&self) -> u32 {
+    pub fn total_income_amount(&self) -> u64 {
         self.total_income_amount
     }
 
     #[wasm_bindgen(getter, js_name = "totalDeductions")]
-    pub fn total_deductions(&self) -> u32 {
+    pub fn total_deductions(&self) -> u64 {
         self.total_deductions
     }
 
     #[wasm_bindgen(getter, js_name = "taxableIncomeBeforeTruncation")]
-    pub fn taxable_income_before_truncation(&self) -> u32 {
+    pub fn taxable_income_before_truncation(&self) -> u64 {
         self.taxable_income_before_truncation
     }
 
     #[wasm_bindgen(getter, js_name = "taxableIncome")]
-    pub fn taxable_income(&self) -> u32 {
+    pub fn taxable_income(&self) -> u64 {
         self.taxable_income
     }
 
@@ -721,7 +725,7 @@ impl IncomeDeductionResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("amount"),
-                    &JsValue::from_f64(line.amount as f64),
+                    &bigint_js_value(line.amount),
                 );
                 JsValue::from(obj)
             })
@@ -729,55 +733,64 @@ impl IncomeDeductionResult {
     }
 }
 
+struct IncomeTaxAssessmentStepData {
+    label: String,
+    taxable_income: u64,
+    rate_numer: u32,
+    rate_denom: u32,
+    deduction: u64,
+    result: u64,
+}
+
 /// 所得控除から所得税額までの通し計算結果。
 #[wasm_bindgen]
 pub struct IncomeTaxAssessmentResult {
-    total_income_amount: u32,
-    total_deductions: u32,
-    taxable_income_before_truncation: u32,
-    taxable_income: u32,
-    base_tax: u32,
-    reconstruction_tax: u32,
-    total_tax: u32,
+    total_income_amount: u64,
+    total_deductions: u64,
+    taxable_income_before_truncation: u64,
+    taxable_income: u64,
+    base_tax: u64,
+    reconstruction_tax: u64,
+    total_tax: u64,
     reconstruction_tax_applied: bool,
     deduction_breakdown_data: Vec<IncomeDeductionLineData>,
-    tax_breakdown_data: Vec<IncomeTaxStepData>,
+    tax_breakdown_data: Vec<IncomeTaxAssessmentStepData>,
 }
 
 #[wasm_bindgen]
 impl IncomeTaxAssessmentResult {
     #[wasm_bindgen(getter, js_name = "totalIncomeAmount")]
-    pub fn total_income_amount(&self) -> u32 {
+    pub fn total_income_amount(&self) -> u64 {
         self.total_income_amount
     }
 
     #[wasm_bindgen(getter, js_name = "totalDeductions")]
-    pub fn total_deductions(&self) -> u32 {
+    pub fn total_deductions(&self) -> u64 {
         self.total_deductions
     }
 
     #[wasm_bindgen(getter, js_name = "taxableIncomeBeforeTruncation")]
-    pub fn taxable_income_before_truncation(&self) -> u32 {
+    pub fn taxable_income_before_truncation(&self) -> u64 {
         self.taxable_income_before_truncation
     }
 
     #[wasm_bindgen(getter, js_name = "taxableIncome")]
-    pub fn taxable_income(&self) -> u32 {
+    pub fn taxable_income(&self) -> u64 {
         self.taxable_income
     }
 
     #[wasm_bindgen(getter, js_name = "baseTax")]
-    pub fn base_tax(&self) -> u32 {
+    pub fn base_tax(&self) -> u64 {
         self.base_tax
     }
 
     #[wasm_bindgen(getter, js_name = "reconstructionTax")]
-    pub fn reconstruction_tax(&self) -> u32 {
+    pub fn reconstruction_tax(&self) -> u64 {
         self.reconstruction_tax
     }
 
     #[wasm_bindgen(getter, js_name = "totalTax")]
-    pub fn total_tax(&self) -> u32 {
+    pub fn total_tax(&self) -> u64 {
         self.total_tax
     }
 
@@ -805,7 +818,7 @@ impl IncomeTaxAssessmentResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("amount"),
-                    &JsValue::from_f64(line.amount as f64),
+                    &bigint_js_value(line.amount),
                 );
                 JsValue::from(obj)
             })
@@ -826,7 +839,7 @@ impl IncomeTaxAssessmentResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("taxableIncome"),
-                    &JsValue::from_f64(step.taxable_income as f64),
+                    &bigint_js_value(step.taxable_income),
                 );
                 let _ = js_sys::Reflect::set(
                     &obj,
@@ -841,12 +854,12 @@ impl IncomeTaxAssessmentResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("deduction"),
-                    &JsValue::from_f64(step.deduction as f64),
+                    &bigint_js_value(step.deduction),
                 );
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("result"),
-                    &JsValue::from_f64(step.result as f64),
+                    &bigint_js_value(step.result),
                 );
                 JsValue::from(obj)
             })
@@ -868,15 +881,15 @@ pub fn calc_income_deductions(input: &JsValue) -> Result<IncomeDeductionResult, 
         .map(|line| IncomeDeductionLineData {
             kind: income_deduction_kind_to_js(line.kind),
             label: line.label.clone(),
-            amount: line.amount.as_yen() as u32,
+            amount: line.amount.as_yen(),
         })
         .collect();
 
     Ok(IncomeDeductionResult {
-        total_income_amount: result.total_income_amount.as_yen() as u32,
-        total_deductions: result.total_deductions.as_yen() as u32,
-        taxable_income_before_truncation: result.taxable_income_before_truncation.as_yen() as u32,
-        taxable_income: result.taxable_income.as_yen() as u32,
+        total_income_amount: result.total_income_amount.as_yen(),
+        total_deductions: result.total_deductions.as_yen(),
+        taxable_income_before_truncation: result.taxable_income_before_truncation.as_yen(),
+        taxable_income: result.taxable_income.as_yen(),
         breakdown_data,
     })
 }
@@ -911,34 +924,34 @@ pub fn calc_income_tax_assessment(
         .map(|line| IncomeDeductionLineData {
             kind: income_deduction_kind_to_js(line.kind),
             label: line.label.clone(),
-            amount: line.amount.as_yen() as u32,
+            amount: line.amount.as_yen(),
         })
         .collect();
     let tax_breakdown_data = result
         .tax
         .breakdown
         .iter()
-        .map(|step| IncomeTaxStepData {
+        .map(|step| IncomeTaxAssessmentStepData {
             label: step.label.clone(),
-            taxable_income: step.taxable_income as u32,
+            taxable_income: step.taxable_income,
             rate_numer: step.rate_numer as u32,
             rate_denom: step.rate_denom as u32,
-            deduction: step.deduction as u32,
-            result: step.result.as_yen() as u32,
+            deduction: step.deduction,
+            result: step.result.as_yen(),
         })
         .collect();
 
     Ok(IncomeTaxAssessmentResult {
-        total_income_amount: result.deductions.total_income_amount.as_yen() as u32,
-        total_deductions: result.deductions.total_deductions.as_yen() as u32,
+        total_income_amount: result.deductions.total_income_amount.as_yen(),
+        total_deductions: result.deductions.total_deductions.as_yen(),
         taxable_income_before_truncation: result
             .deductions
             .taxable_income_before_truncation
-            .as_yen() as u32,
-        taxable_income: result.deductions.taxable_income.as_yen() as u32,
-        base_tax: result.tax.base_tax.as_yen() as u32,
-        reconstruction_tax: result.tax.reconstruction_tax.as_yen() as u32,
-        total_tax: result.tax.total_tax.as_yen() as u32,
+            .as_yen(),
+        taxable_income: result.deductions.taxable_income.as_yen(),
+        base_tax: result.tax.base_tax.as_yen(),
+        reconstruction_tax: result.tax.reconstruction_tax.as_yen(),
+        total_tax: result.tax.total_tax.as_yen(),
         reconstruction_tax_applied: result.tax.reconstruction_tax_applied,
         deduction_breakdown_data,
         tax_breakdown_data,

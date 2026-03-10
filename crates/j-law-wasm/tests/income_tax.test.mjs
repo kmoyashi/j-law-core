@@ -39,6 +39,10 @@ function withDate(input) {
   };
 }
 
+function asBigInt(value) {
+  return BigInt(value);
+}
+
 // ─── データ駆動テスト ───────────────────────────────────────────────────────
 
 describe("calcIncomeTax - フィクスチャ駆動", () => {
@@ -81,14 +85,14 @@ describe("calcIncomeDeductions - フィクスチャ駆動", () => {
       const r = calcIncomeDeductions(withDate(c.input));
       const exp = c.expected;
 
-      assert.equal(r.totalIncomeAmount, exp.total_income_amount, "totalIncomeAmount");
-      assert.equal(r.totalDeductions, exp.total_deductions, "totalDeductions");
+      assert.equal(r.totalIncomeAmount, asBigInt(exp.total_income_amount), "totalIncomeAmount");
+      assert.equal(r.totalDeductions, asBigInt(exp.total_deductions), "totalDeductions");
       assert.equal(
         r.taxableIncomeBeforeTruncation,
-        exp.taxable_income_before_truncation,
+        asBigInt(exp.taxable_income_before_truncation),
         "taxableIncomeBeforeTruncation"
       );
-      assert.equal(r.taxableIncome, exp.taxable_income, "taxableIncome");
+      assert.equal(r.taxableIncome, asBigInt(exp.taxable_income), "taxableIncome");
     });
   }
 });
@@ -109,6 +113,26 @@ describe("calcIncomeDeductions - JS固有テスト", () => {
       /generalCount|general_count/
     );
   });
+
+  it("u32 を超える金額を BigInt で返す", () => {
+    const r = calcIncomeDeductions(
+      withDate({
+        total_income_amount: 10_000_000_000,
+        date: "2024-01-01",
+        social_insurance_premium_paid: 5_000_000_000,
+      })
+    );
+
+    assert.equal(r.totalIncomeAmount, 10_000_000_000n);
+    assert.equal(r.totalDeductions, 5_000_000_000n);
+    assert.equal(r.taxableIncomeBeforeTruncation, 5_000_000_000n);
+    assert.equal(r.taxableIncome, 5_000_000_000n);
+
+    const breakdown = r.breakdown();
+    const socialInsurance = breakdown.find((line) => line.amount === 5_000_000_000n);
+    assert.ok(socialInsurance, "social insurance deduction line must exist");
+    assert.equal(typeof socialInsurance.amount, "bigint");
+  });
 });
 
 describe("calcIncomeTaxAssessment - フィクスチャ駆動", () => {
@@ -120,10 +144,10 @@ describe("calcIncomeTaxAssessment - フィクスチャ駆動", () => {
       );
       const exp = c.expected;
 
-      assert.equal(r.taxableIncome, exp.taxable_income, "taxableIncome");
-      assert.equal(r.baseTax, exp.base_tax, "baseTax");
-      assert.equal(r.reconstructionTax, exp.reconstruction_tax, "reconstructionTax");
-      assert.equal(r.totalTax, exp.total_tax, "totalTax");
+      assert.equal(r.taxableIncome, asBigInt(exp.taxable_income), "taxableIncome");
+      assert.equal(r.baseTax, asBigInt(exp.base_tax), "baseTax");
+      assert.equal(r.reconstructionTax, asBigInt(exp.reconstruction_tax), "reconstructionTax");
+      assert.equal(r.totalTax, asBigInt(exp.total_tax), "totalTax");
     });
   }
 });
@@ -144,5 +168,27 @@ describe("calcIncomeTaxAssessment - JS固有テスト", () => {
         ),
       /specificCount|specific_count/
     );
+  });
+
+  it("assessment の高額結果を BigInt で返す", () => {
+    const r = calcIncomeTaxAssessment(
+      withDate({
+        total_income_amount: 10_000_000_000,
+        date: "2024-01-01",
+      }),
+      true
+    );
+
+    assert.equal(r.totalIncomeAmount, 10_000_000_000n);
+    assert.equal(r.taxableIncome, 10_000_000_000n);
+    assert.equal(r.baseTax, 4_495_204_000n);
+    assert.equal(r.reconstructionTax, 94_399_284n);
+    assert.equal(r.totalTax, 4_589_603_200n);
+
+    const taxBreakdown = r.taxBreakdown();
+    assert.equal(typeof taxBreakdown[0].taxableIncome, "bigint");
+    assert.equal(typeof taxBreakdown[0].result, "bigint");
+    assert.equal(taxBreakdown[0].taxableIncome, 10_000_000_000n);
+    assert.equal(taxBreakdown[0].result, 4_495_204_000n);
   });
 });
