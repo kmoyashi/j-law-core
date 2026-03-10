@@ -18,11 +18,26 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const { calcIncomeTax } = require("../pkg/j_law_wasm.js");
+const {
+  calcIncomeDeductions,
+  calcIncomeTax,
+  calcIncomeTaxAssessment,
+} = require("../pkg/j_law_wasm.js");
 
 const fixtures = JSON.parse(
   readFileSync(resolve(__dirname, "../../../tests/fixtures/income_tax.json"), "utf-8")
 );
+const deductionFixtures = JSON.parse(
+  readFileSync(resolve(__dirname, "../../../tests/fixtures/income_tax_deductions.json"), "utf-8")
+);
+
+function withDate(input) {
+  const [year, month, day] = input.date.split("-").map(Number);
+  return {
+    ...input,
+    date: new Date(Date.UTC(year, month - 1, day)),
+  };
+}
 
 // ─── データ駆動テスト ───────────────────────────────────────────────────────
 
@@ -30,8 +45,7 @@ describe("calcIncomeTax - フィクスチャ駆動", () => {
   for (const c of fixtures.income_tax) {
     it(`${c.id}: ${c.description}`, () => {
       const { taxable_income, apply_reconstruction_tax } = c.input;
-      const [year, month, day] = c.input.date.split("-").map(Number);
-      const date = new Date(Date.UTC(year, month - 1, day));
+      const date = withDate(c.input).date;
       const r = calcIncomeTax(taxable_income, date, apply_reconstruction_tax);
       const exp = c.expected;
 
@@ -59,4 +73,39 @@ describe("calcIncomeTax - JS固有テスト", () => {
       assert.ok(step.rateDenom > 0, "rateDenom must be > 0");
     }
   });
+});
+
+describe("calcIncomeDeductions - フィクスチャ駆動", () => {
+  for (const c of deductionFixtures.income_tax_deductions) {
+    it(`${c.id}: ${c.description}`, () => {
+      const r = calcIncomeDeductions(withDate(c.input));
+      const exp = c.expected;
+
+      assert.equal(r.totalIncomeAmount, exp.total_income_amount, "totalIncomeAmount");
+      assert.equal(r.totalDeductions, exp.total_deductions, "totalDeductions");
+      assert.equal(
+        r.taxableIncomeBeforeTruncation,
+        exp.taxable_income_before_truncation,
+        "taxableIncomeBeforeTruncation"
+      );
+      assert.equal(r.taxableIncome, exp.taxable_income, "taxableIncome");
+    });
+  }
+});
+
+describe("calcIncomeTaxAssessment - フィクスチャ駆動", () => {
+  for (const c of deductionFixtures.income_tax_assessment) {
+    it(`${c.id}: ${c.description}`, () => {
+      const r = calcIncomeTaxAssessment(
+        withDate(c.input),
+        c.input.apply_reconstruction_tax
+      );
+      const exp = c.expected;
+
+      assert.equal(r.taxableIncome, exp.taxable_income, "taxableIncome");
+      assert.equal(r.baseTax, exp.base_tax, "baseTax");
+      assert.equal(r.reconstructionTax, exp.reconstruction_tax, "reconstructionTax");
+      assert.equal(r.totalTax, exp.total_tax, "totalTax");
+    });
+  }
 });

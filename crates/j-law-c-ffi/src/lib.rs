@@ -7,8 +7,16 @@ use j_law_core::domains::consumption_tax::{
     policy::StandardConsumptionTaxPolicy,
 };
 use j_law_core::domains::income_tax::{
+    assessment::{calculate_income_tax_assessment, IncomeTaxAssessmentContext},
     calculator::calculate_income_tax,
     context::{IncomeTaxContext, IncomeTaxFlag},
+    deduction::calculate_income_deductions,
+    deduction::{
+        DependentDeductionInput, DonationDeductionInput, ExpenseDeductionInput,
+        IncomeDeductionContext, IncomeDeductionInput, IncomeDeductionKind,
+        LifeInsuranceDeductionInput, MedicalDeductionInput, PersonalDeductionInput,
+        SpouseDeductionInput,
+    },
     policy::StandardIncomeTaxPolicy,
 };
 use j_law_core::domains::real_estate::{
@@ -20,9 +28,10 @@ use j_law_core::domains::stamp_tax::{
     context::{StampTaxContext, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
-use j_law_core::LegalDate;
+use j_law_core::{JLawError, LegalDate};
 use j_law_registry::load_brokerage_fee_params;
 use j_law_registry::load_consumption_tax_params;
+use j_law_registry::load_income_tax_deduction_params;
 use j_law_registry::load_income_tax_params;
 use j_law_registry::load_stamp_tax_params;
 
@@ -31,6 +40,9 @@ use j_law_registry::load_stamp_tax_params;
 /// ティア内訳の最大件数。現行法令では 3 ティアだが余裕を持たせる。
 pub const J_LAW_MAX_TIERS: usize = 8;
 
+/// 所得控除内訳の最大件数。
+pub const J_LAW_MAX_DEDUCTION_LINES: usize = 8;
+
 /// ティアラベルの最大バイト長（NUL 終端含む）。
 pub const J_LAW_LABEL_LEN: usize = 64;
 
@@ -38,7 +50,7 @@ pub const J_LAW_LABEL_LEN: usize = 64;
 pub const J_LAW_ERROR_BUF_LEN: usize = 256;
 
 /// C FFI の互換バージョン。
-pub const J_LAW_C_FFI_VERSION: u32 = 1;
+pub const J_LAW_C_FFI_VERSION: u32 = 2;
 
 // ─── C 互換型定義 ──────────────────────────────────────────────────────────────
 
@@ -97,6 +109,130 @@ unsafe fn write_error_msg(msg: &str, buf: *mut c_char, buf_len: c_int) {
         *buf.add(i) = b as c_char;
     }
     *buf.add(copy_len) = 0;
+}
+
+fn income_deduction_kind_to_c(kind: IncomeDeductionKind) -> u32 {
+    match kind {
+        IncomeDeductionKind::Basic => 1,
+        IncomeDeductionKind::Spouse => 2,
+        IncomeDeductionKind::Dependent => 3,
+        IncomeDeductionKind::SocialInsurance => 4,
+        IncomeDeductionKind::Medical => 5,
+        IncomeDeductionKind::LifeInsurance => 6,
+        IncomeDeductionKind::Donation => 7,
+    }
+}
+
+fn try_count_to_u16(value: u64, field: &str) -> Result<u16, JLawError> {
+    u16::try_from(value).map_err(|_| {
+        JLawError::Input(j_law_core::InputError::InvalidDeductionInput {
+            field: field.into(),
+            reason: "u16 の上限を超えています".into(),
+        })
+    })
+}
+
+fn to_income_deduction_context(
+    input: &JLawIncomeDeductionInput,
+) -> Result<IncomeDeductionContext, JLawError> {
+    let spouse = if input.has_spouse != 0 {
+        Some(SpouseDeductionInput {
+            spouse_total_income_amount: input.spouse_total_income_amount,
+            is_same_household: input.spouse_is_same_household != 0,
+            is_elderly: input.spouse_is_elderly != 0,
+        })
+    } else {
+        None
+    };
+    let medical = if input.has_medical != 0 {
+        Some(MedicalDeductionInput {
+            medical_expense_paid: input.medical_expense_paid,
+            reimbursed_amount: input.medical_reimbursed_amount,
+        })
+    } else {
+        None
+    };
+    let life_insurance = if input.has_life_insurance != 0 {
+        Some(LifeInsuranceDeductionInput {
+            new_general_paid_amount: input.life_new_general_paid_amount,
+            new_individual_pension_paid_amount: input.life_new_individual_pension_paid_amount,
+            new_care_medical_paid_amount: input.life_new_care_medical_paid_amount,
+            old_general_paid_amount: input.life_old_general_paid_amount,
+            old_individual_pension_paid_amount: input.life_old_individual_pension_paid_amount,
+        })
+    } else {
+        None
+    };
+    let donation = if input.has_donation != 0 {
+        Some(DonationDeductionInput {
+            qualified_donation_amount: input.donation_qualified_amount,
+        })
+    } else {
+        None
+    };
+
+    Ok(IncomeDeductionContext {
+        total_income_amount: input.total_income_amount,
+        target_date: LegalDate::new(input.year, input.month, input.day),
+        deductions: IncomeDeductionInput {
+            personal: PersonalDeductionInput {
+                spouse,
+                dependent: DependentDeductionInput {
+                    general_count: try_count_to_u16(
+                        input.dependent_general_count,
+                        "dependent.general_count",
+                    )?,
+                    specific_count: try_count_to_u16(
+                        input.dependent_specific_count,
+                        "dependent.specific_count",
+                    )?,
+                    elderly_cohabiting_count: try_count_to_u16(
+                        input.dependent_elderly_cohabiting_count,
+                        "dependent.elderly_cohabiting_count",
+                    )?,
+                    elderly_other_count: try_count_to_u16(
+                        input.dependent_elderly_other_count,
+                        "dependent.elderly_other_count",
+                    )?,
+                },
+            },
+            expense: ExpenseDeductionInput {
+                social_insurance_premium_paid: input.social_insurance_premium_paid,
+                medical,
+                life_insurance,
+                donation,
+            },
+        },
+    })
+}
+
+fn write_income_tax_breakdown(
+    breakdown: &[j_law_core::domains::income_tax::IncomeTaxStep],
+    out_breakdown: &mut [JLawIncomeTaxStep; J_LAW_MAX_TIERS],
+) -> c_int {
+    let len = breakdown.len().min(J_LAW_MAX_TIERS);
+    for (i, step) in breakdown.iter().take(J_LAW_MAX_TIERS).enumerate() {
+        out_breakdown[i].taxable_income = step.taxable_income;
+        out_breakdown[i].rate_numer = step.rate_numer;
+        out_breakdown[i].rate_denom = step.rate_denom;
+        out_breakdown[i].deduction = step.deduction;
+        out_breakdown[i].result = step.result.as_yen();
+        copy_str_to_fixed_buf(&step.label, &mut out_breakdown[i].label);
+    }
+    len as c_int
+}
+
+fn write_income_deduction_breakdown(
+    breakdown: &[j_law_core::domains::income_tax::IncomeDeductionLine],
+    out_breakdown: &mut [JLawIncomeDeductionLine; J_LAW_MAX_DEDUCTION_LINES],
+) -> c_int {
+    let len = breakdown.len().min(J_LAW_MAX_DEDUCTION_LINES);
+    for (i, line) in breakdown.iter().take(J_LAW_MAX_DEDUCTION_LINES).enumerate() {
+        out_breakdown[i].kind = income_deduction_kind_to_c(line.kind);
+        out_breakdown[i].amount = line.amount.as_yen();
+        copy_str_to_fixed_buf(&line.label, &mut out_breakdown[i].label);
+    }
+    len as c_int
 }
 
 // ─── C FFI 公開関数 ────────────────────────────────────────────────────────────
@@ -242,6 +378,116 @@ pub struct JLawIncomeTaxResult {
     pub breakdown_len: c_int,
 }
 
+/// 所得控除の内訳1行（C 互換）。
+#[repr(C)]
+pub struct JLawIncomeDeductionLine {
+    /// 控除種別定数。
+    pub kind: u32,
+    /// ラベル（NUL 終端・最大 63 文字）。
+    pub label: [c_char; J_LAW_LABEL_LEN],
+    /// 控除額（円）。
+    pub amount: u64,
+}
+
+/// 所得控除計算の入力（C 互換）。
+#[repr(C)]
+pub struct JLawIncomeDeductionInput {
+    /// 総所得金額等（円）。
+    pub total_income_amount: u64,
+    /// 基準日（年）。
+    pub year: u16,
+    /// 基準日（月）。
+    pub month: u8,
+    /// 基準日（日）。
+    pub day: u8,
+    /// 配偶者控除入力があるか。
+    pub has_spouse: c_int,
+    /// 配偶者の合計所得金額（円）。
+    pub spouse_total_income_amount: u64,
+    /// 配偶者が生計を一にするか。
+    pub spouse_is_same_household: c_int,
+    /// 配偶者が老人控除対象配偶者か。
+    pub spouse_is_elderly: c_int,
+    /// 一般の控除対象扶養親族の人数。
+    pub dependent_general_count: u64,
+    /// 特定扶養親族の人数。
+    pub dependent_specific_count: u64,
+    /// 同居老親等の人数。
+    pub dependent_elderly_cohabiting_count: u64,
+    /// 同居老親等以外の老人扶養親族の人数。
+    pub dependent_elderly_other_count: u64,
+    /// 社会保険料控除の対象支払額（円）。
+    pub social_insurance_premium_paid: u64,
+    /// 医療費控除入力があるか。
+    pub has_medical: c_int,
+    /// 支払医療費（円）。
+    pub medical_expense_paid: u64,
+    /// 補填額（円）。
+    pub medical_reimbursed_amount: u64,
+    /// 生命保険料控除入力があるか。
+    pub has_life_insurance: c_int,
+    /// 新契約の一般生命保険料（円）。
+    pub life_new_general_paid_amount: u64,
+    /// 新契約の個人年金保険料（円）。
+    pub life_new_individual_pension_paid_amount: u64,
+    /// 新契約の介護医療保険料（円）。
+    pub life_new_care_medical_paid_amount: u64,
+    /// 旧契約の一般生命保険料（円）。
+    pub life_old_general_paid_amount: u64,
+    /// 旧契約の個人年金保険料（円）。
+    pub life_old_individual_pension_paid_amount: u64,
+    /// 寄附金控除入力があるか。
+    pub has_donation: c_int,
+    /// 控除対象寄附金額（円）。
+    pub donation_qualified_amount: u64,
+}
+
+/// 所得控除の計算結果（C 互換）。
+#[repr(C)]
+pub struct JLawIncomeDeductionResult {
+    /// 総所得金額等（円）。
+    pub total_income_amount: u64,
+    /// 所得控除額合計（円）。
+    pub total_deductions: u64,
+    /// 1,000円未満切り捨て前の課税所得金額（円）。
+    pub taxable_income_before_truncation: u64,
+    /// 1,000円未満切り捨て後の課税所得金額（円）。
+    pub taxable_income: u64,
+    /// 控除内訳。
+    pub breakdown: [JLawIncomeDeductionLine; J_LAW_MAX_DEDUCTION_LINES],
+    /// breakdown の有効件数。
+    pub breakdown_len: c_int,
+}
+
+/// 所得控除から所得税額までの通し計算結果（C 互換）。
+#[repr(C)]
+pub struct JLawIncomeTaxAssessmentResult {
+    /// 総所得金額等（円）。
+    pub total_income_amount: u64,
+    /// 所得控除額合計（円）。
+    pub total_deductions: u64,
+    /// 1,000円未満切り捨て前の課税所得金額（円）。
+    pub taxable_income_before_truncation: u64,
+    /// 1,000円未満切り捨て後の課税所得金額（円）。
+    pub taxable_income: u64,
+    /// 基準所得税額（円）。
+    pub base_tax: u64,
+    /// 復興特別所得税額（円）。
+    pub reconstruction_tax: u64,
+    /// 申告納税額（円）。
+    pub total_tax: u64,
+    /// 復興特別所得税が適用されたか。
+    pub reconstruction_tax_applied: c_int,
+    /// 所得控除の内訳。
+    pub deduction_breakdown: [JLawIncomeDeductionLine; J_LAW_MAX_DEDUCTION_LINES],
+    /// deduction_breakdown の有効件数。
+    pub deduction_breakdown_len: c_int,
+    /// 所得税の内訳。
+    pub tax_breakdown: [JLawIncomeTaxStep; J_LAW_MAX_TIERS],
+    /// tax_breakdown の有効件数。
+    pub tax_breakdown_len: c_int,
+}
+
 // ─── 所得税 C FFI 公開関数 ──────────────────────────────────────────────────────
 
 /// 所得税法第89条に基づく所得税額を計算する。
@@ -321,16 +567,168 @@ pub unsafe extern "C" fn j_law_calc_income_tax(
     } else {
         0
     };
-    out.breakdown_len = result.breakdown.len().min(J_LAW_MAX_TIERS) as c_int;
+    out.breakdown_len = write_income_tax_breakdown(&result.breakdown, &mut out.breakdown);
 
-    for (i, step) in result.breakdown.iter().take(J_LAW_MAX_TIERS).enumerate() {
-        out.breakdown[i].taxable_income = step.taxable_income;
-        out.breakdown[i].rate_numer = step.rate_numer;
-        out.breakdown[i].rate_denom = step.rate_denom;
-        out.breakdown[i].deduction = step.deduction;
-        out.breakdown[i].result = step.result.as_yen();
-        copy_str_to_fixed_buf(&step.label, &mut out.breakdown[i].label);
+    0
+}
+
+/// 所得控除を計算し、課税所得金額までを返す。
+///
+/// # 法的根拠
+/// 所得税法 第73条（医療費控除）
+/// 所得税法 第74条（社会保険料控除）
+/// 所得税法 第76条（生命保険料控除）
+/// 所得税法 第78条（寄附金控除）
+/// 所得税法 第83条（配偶者控除）
+/// 所得税法 第84条（扶養控除）
+/// 所得税法 第86条（基礎控除）
+///
+/// # Safety
+/// - `input` は有効な入力ポインタであること。
+/// - `out_result` は呼び出し元が所有する有効なポインタであること。
+/// - `error_buf` は `error_buf_len` バイト以上の領域を指していること。
+#[no_mangle]
+pub unsafe extern "C" fn j_law_calc_income_deductions(
+    input: *const JLawIncomeDeductionInput,
+    out_result: *mut JLawIncomeDeductionResult,
+    error_buf: *mut c_char,
+    error_buf_len: c_int,
+) -> c_int {
+    if input.is_null() || out_result.is_null() || error_buf.is_null() || error_buf_len <= 0 {
+        return -1;
     }
+
+    let input = &*input;
+    let ctx = match to_income_deduction_context(input) {
+        Ok(ctx) => ctx,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+    let params = match load_income_tax_deduction_params(LegalDate::new(
+        input.year,
+        input.month,
+        input.day,
+    )) {
+        Ok(params) => params,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+    let result = match calculate_income_deductions(&ctx, &params) {
+        Ok(result) => result,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    let out = &mut *out_result;
+    out.total_income_amount = result.total_income_amount.as_yen();
+    out.total_deductions = result.total_deductions.as_yen();
+    out.taxable_income_before_truncation = result.taxable_income_before_truncation.as_yen();
+    out.taxable_income = result.taxable_income.as_yen();
+    out.breakdown_len = write_income_deduction_breakdown(&result.breakdown, &mut out.breakdown);
+
+    0
+}
+
+/// 所得控除の計算から所得税額までを通しで計算する。
+///
+/// # 法的根拠
+/// 所得税法 第73条（医療費控除）
+/// 所得税法 第74条（社会保険料控除）
+/// 所得税法 第76条（生命保険料控除）
+/// 所得税法 第78条（寄附金控除）
+/// 所得税法 第83条（配偶者控除）
+/// 所得税法 第84条（扶養控除）
+/// 所得税法 第86条（基礎控除）
+/// 所得税法 第89条第1項（所得税の税率）
+/// 復興財源確保法 第13条（復興特別所得税）
+///
+/// # Safety
+/// - `input` は有効な入力ポインタであること。
+/// - `out_result` は呼び出し元が所有する有効なポインタであること。
+/// - `error_buf` は `error_buf_len` バイト以上の領域を指していること。
+#[no_mangle]
+pub unsafe extern "C" fn j_law_calc_income_tax_assessment(
+    input: *const JLawIncomeDeductionInput,
+    apply_reconstruction_tax: c_int,
+    out_result: *mut JLawIncomeTaxAssessmentResult,
+    error_buf: *mut c_char,
+    error_buf_len: c_int,
+) -> c_int {
+    if input.is_null() || out_result.is_null() || error_buf.is_null() || error_buf_len <= 0 {
+        return -1;
+    }
+
+    let input = &*input;
+    let deduction_context = match to_income_deduction_context(input) {
+        Ok(ctx) => ctx,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+    let deduction_params = match load_income_tax_deduction_params(LegalDate::new(
+        input.year,
+        input.month,
+        input.day,
+    )) {
+        Ok(params) => params,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+    let tax_params =
+        match load_income_tax_params(LegalDate::new(input.year, input.month, input.day)) {
+            Ok(params) => params,
+            Err(e) => {
+                write_error_msg(&e.to_string(), error_buf, error_buf_len);
+                return 1;
+            }
+        };
+
+    let mut flags = HashSet::new();
+    if apply_reconstruction_tax != 0 {
+        flags.insert(IncomeTaxFlag::ApplyReconstructionTax);
+    }
+    let ctx = IncomeTaxAssessmentContext {
+        deduction_context,
+        flags,
+        policy: Box::new(StandardIncomeTaxPolicy),
+    };
+    let result = match calculate_income_tax_assessment(&ctx, &deduction_params, &tax_params) {
+        Ok(result) => result,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    let out = &mut *out_result;
+    out.total_income_amount = result.deductions.total_income_amount.as_yen();
+    out.total_deductions = result.deductions.total_deductions.as_yen();
+    out.taxable_income_before_truncation =
+        result.deductions.taxable_income_before_truncation.as_yen();
+    out.taxable_income = result.deductions.taxable_income.as_yen();
+    out.base_tax = result.tax.base_tax.as_yen();
+    out.reconstruction_tax = result.tax.reconstruction_tax.as_yen();
+    out.total_tax = result.tax.total_tax.as_yen();
+    out.reconstruction_tax_applied = if result.tax.reconstruction_tax_applied {
+        1
+    } else {
+        0
+    };
+    out.deduction_breakdown_len = write_income_deduction_breakdown(
+        &result.deductions.breakdown,
+        &mut out.deduction_breakdown,
+    );
+    out.tax_breakdown_len =
+        write_income_tax_breakdown(&result.tax.breakdown, &mut out.tax_breakdown);
 
     0
 }
@@ -554,6 +952,35 @@ mod tests {
         String::from_utf8_lossy(&bytes).into_owned()
     }
 
+    fn sample_income_deduction_input() -> JLawIncomeDeductionInput {
+        JLawIncomeDeductionInput {
+            total_income_amount: 6_000_000,
+            year: 2024,
+            month: 1,
+            day: 1,
+            has_spouse: 0,
+            spouse_total_income_amount: 0,
+            spouse_is_same_household: 0,
+            spouse_is_elderly: 0,
+            dependent_general_count: 0,
+            dependent_specific_count: 0,
+            dependent_elderly_cohabiting_count: 0,
+            dependent_elderly_other_count: 0,
+            social_insurance_premium_paid: 150_000,
+            has_medical: 1,
+            medical_expense_paid: 500_000,
+            medical_reimbursed_amount: 50_000,
+            has_life_insurance: 1,
+            life_new_general_paid_amount: 100_000,
+            life_new_individual_pension_paid_amount: 60_000,
+            life_new_care_medical_paid_amount: 80_000,
+            life_old_general_paid_amount: 0,
+            life_old_individual_pension_paid_amount: 0,
+            has_donation: 1,
+            donation_qualified_amount: 500_000,
+        }
+    }
+
     #[test]
     fn ffi_version_matches_constant() {
         assert_eq!(j_law_c_ffi_version(), J_LAW_C_FFI_VERSION);
@@ -670,6 +1097,63 @@ mod tests {
 
         assert_eq!(status, 1);
         assert!(error_buf_to_string(&error_buf).contains("1988-12-31"));
+    }
+
+    #[test]
+    fn income_deductions_write_expected_c_result() {
+        let input = sample_income_deduction_input();
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeDeductionResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_deductions(
+                &input,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0);
+        assert_eq!(error_buf_to_string(&error_buf), "");
+        assert_eq!(result.total_income_amount, 6_000_000);
+        assert_eq!(result.total_deductions, 1_593_000);
+        assert_eq!(result.taxable_income_before_truncation, 4_407_000);
+        assert_eq!(result.taxable_income, 4_407_000);
+        assert_eq!(result.breakdown_len, 7);
+        assert_eq!(result.breakdown[0].kind, 1);
+        assert_eq!(fixed_buf_to_string(&result.breakdown[0].label), "基礎控除");
+        assert_eq!(result.breakdown[4].amount, 350_000);
+        assert_eq!(result.breakdown[5].amount, 115_000);
+        assert_eq!(result.breakdown[6].amount, 498_000);
+    }
+
+    #[test]
+    fn income_tax_assessment_writes_expected_c_result() {
+        let input = sample_income_deduction_input();
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeTaxAssessmentResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_tax_assessment(
+                &input,
+                1,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0);
+        assert_eq!(error_buf_to_string(&error_buf), "");
+        assert_eq!(result.total_deductions, 1_593_000);
+        assert_eq!(result.taxable_income, 4_407_000);
+        assert_eq!(result.base_tax, 453_900);
+        assert_eq!(result.reconstruction_tax, 9_531);
+        assert_eq!(result.total_tax, 463_400);
+        assert_eq!(result.reconstruction_tax_applied, 1);
+        assert_eq!(result.deduction_breakdown_len, 7);
+        assert_eq!(result.tax_breakdown_len, 1);
     }
 
     #[test]

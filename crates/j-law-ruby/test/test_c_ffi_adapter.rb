@@ -5,7 +5,7 @@ require "j_law_ruby"
 
 class TestCFFIAdapter < Minitest::Test
   def test_ffi_version_matches
-    assert_equal 1, JLawRuby::Internal::CFFI.ffi_version
+    assert_equal 2, JLawRuby::Internal::CFFI.ffi_version
   end
 
   def test_compiled_library_is_loaded_from_gem_path

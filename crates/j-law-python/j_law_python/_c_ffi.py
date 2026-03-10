@@ -9,6 +9,7 @@ from . import build_support
 
 FFI_VERSION = build_support.FFI_VERSION
 MAX_TIERS = 8
+MAX_DEDUCTION_LINES = 8
 LABEL_LEN = 64
 ERROR_BUF_LEN = 256
 U64_MAX = (1 << 64) - 1
@@ -58,6 +59,71 @@ class _IncomeTaxResultStruct(ctypes.Structure):
         ("reconstruction_tax_applied", ctypes.c_int),
         ("breakdown", _IncomeTaxStepStruct * MAX_TIERS),
         ("breakdown_len", ctypes.c_int),
+    ]
+
+
+class _IncomeDeductionLineStruct(ctypes.Structure):
+    _fields_ = [
+        ("kind", ctypes.c_uint32),
+        ("label", ctypes.c_char * LABEL_LEN),
+        ("amount", ctypes.c_uint64),
+    ]
+
+
+class _IncomeDeductionInputStruct(ctypes.Structure):
+    _fields_ = [
+        ("total_income_amount", ctypes.c_uint64),
+        ("year", ctypes.c_uint16),
+        ("month", ctypes.c_uint8),
+        ("day", ctypes.c_uint8),
+        ("has_spouse", ctypes.c_int),
+        ("spouse_total_income_amount", ctypes.c_uint64),
+        ("spouse_is_same_household", ctypes.c_int),
+        ("spouse_is_elderly", ctypes.c_int),
+        ("dependent_general_count", ctypes.c_uint64),
+        ("dependent_specific_count", ctypes.c_uint64),
+        ("dependent_elderly_cohabiting_count", ctypes.c_uint64),
+        ("dependent_elderly_other_count", ctypes.c_uint64),
+        ("social_insurance_premium_paid", ctypes.c_uint64),
+        ("has_medical", ctypes.c_int),
+        ("medical_expense_paid", ctypes.c_uint64),
+        ("medical_reimbursed_amount", ctypes.c_uint64),
+        ("has_life_insurance", ctypes.c_int),
+        ("life_new_general_paid_amount", ctypes.c_uint64),
+        ("life_new_individual_pension_paid_amount", ctypes.c_uint64),
+        ("life_new_care_medical_paid_amount", ctypes.c_uint64),
+        ("life_old_general_paid_amount", ctypes.c_uint64),
+        ("life_old_individual_pension_paid_amount", ctypes.c_uint64),
+        ("has_donation", ctypes.c_int),
+        ("donation_qualified_amount", ctypes.c_uint64),
+    ]
+
+
+class _IncomeDeductionResultStruct(ctypes.Structure):
+    _fields_ = [
+        ("total_income_amount", ctypes.c_uint64),
+        ("total_deductions", ctypes.c_uint64),
+        ("taxable_income_before_truncation", ctypes.c_uint64),
+        ("taxable_income", ctypes.c_uint64),
+        ("breakdown", _IncomeDeductionLineStruct * MAX_DEDUCTION_LINES),
+        ("breakdown_len", ctypes.c_int),
+    ]
+
+
+class _IncomeTaxAssessmentResultStruct(ctypes.Structure):
+    _fields_ = [
+        ("total_income_amount", ctypes.c_uint64),
+        ("total_deductions", ctypes.c_uint64),
+        ("taxable_income_before_truncation", ctypes.c_uint64),
+        ("taxable_income", ctypes.c_uint64),
+        ("base_tax", ctypes.c_uint64),
+        ("reconstruction_tax", ctypes.c_uint64),
+        ("total_tax", ctypes.c_uint64),
+        ("reconstruction_tax_applied", ctypes.c_int),
+        ("deduction_breakdown", _IncomeDeductionLineStruct * MAX_DEDUCTION_LINES),
+        ("deduction_breakdown_len", ctypes.c_int),
+        ("tax_breakdown", _IncomeTaxStepStruct * MAX_TIERS),
+        ("tax_breakdown_len", ctypes.c_int),
     ]
 
 
@@ -115,6 +181,56 @@ class IncomeTaxRecord:
     total_tax: int
     reconstruction_tax_applied: bool
     breakdown: list[IncomeTaxStepRecord]
+
+
+@dataclass(frozen=True)
+class IncomeDeductionInputRecord:
+    total_income_amount: int
+    year: int
+    month: int
+    day: int
+    has_spouse: bool = False
+    spouse_total_income_amount: int = 0
+    spouse_is_same_household: bool = False
+    spouse_is_elderly: bool = False
+    dependent_general_count: int = 0
+    dependent_specific_count: int = 0
+    dependent_elderly_cohabiting_count: int = 0
+    dependent_elderly_other_count: int = 0
+    social_insurance_premium_paid: int = 0
+    has_medical: bool = False
+    medical_expense_paid: int = 0
+    medical_reimbursed_amount: int = 0
+    has_life_insurance: bool = False
+    life_new_general_paid_amount: int = 0
+    life_new_individual_pension_paid_amount: int = 0
+    life_new_care_medical_paid_amount: int = 0
+    life_old_general_paid_amount: int = 0
+    life_old_individual_pension_paid_amount: int = 0
+    has_donation: bool = False
+    donation_qualified_amount: int = 0
+
+
+@dataclass(frozen=True)
+class IncomeDeductionLineRecord:
+    kind: int
+    label: str
+    amount: int
+
+
+@dataclass(frozen=True)
+class IncomeDeductionRecord:
+    total_income_amount: int
+    total_deductions: int
+    taxable_income_before_truncation: int
+    taxable_income: int
+    breakdown: list[IncomeDeductionLineRecord]
+
+
+@dataclass(frozen=True)
+class IncomeTaxAssessmentRecord:
+    deductions: IncomeDeductionRecord
+    tax: IncomeTaxRecord
 
 
 @dataclass(frozen=True)
@@ -190,6 +306,99 @@ def _read_income_tax_breakdown(
     ]
 
 
+def _read_income_deduction_breakdown(
+    steps: ctypes.Array[_IncomeDeductionLineStruct],
+    length: int,
+) -> list[IncomeDeductionLineRecord]:
+    safe_length = max(0, min(length, MAX_DEDUCTION_LINES))
+    return [
+        IncomeDeductionLineRecord(
+            kind=int(step.kind),
+            label=_decode_fixed_string(step.label),
+            amount=int(step.amount),
+        )
+        for step in steps[:safe_length]
+    ]
+
+
+def _build_income_deduction_input_struct(
+    record: IncomeDeductionInputRecord,
+) -> _IncomeDeductionInputStruct:
+    struct = _IncomeDeductionInputStruct()
+    struct.total_income_amount = _validate_u64(
+        record.total_income_amount,
+        "total_income_amount",
+    )
+    struct.year = record.year
+    struct.month = record.month
+    struct.day = record.day
+    struct.has_spouse = _bool_to_c_int(record.has_spouse)
+    struct.spouse_total_income_amount = _validate_u64(
+        record.spouse_total_income_amount,
+        "spouse_total_income_amount",
+    )
+    struct.spouse_is_same_household = _bool_to_c_int(
+        record.spouse_is_same_household
+    )
+    struct.spouse_is_elderly = _bool_to_c_int(record.spouse_is_elderly)
+    struct.dependent_general_count = _validate_u64(
+        record.dependent_general_count,
+        "dependent_general_count",
+    )
+    struct.dependent_specific_count = _validate_u64(
+        record.dependent_specific_count,
+        "dependent_specific_count",
+    )
+    struct.dependent_elderly_cohabiting_count = _validate_u64(
+        record.dependent_elderly_cohabiting_count,
+        "dependent_elderly_cohabiting_count",
+    )
+    struct.dependent_elderly_other_count = _validate_u64(
+        record.dependent_elderly_other_count,
+        "dependent_elderly_other_count",
+    )
+    struct.social_insurance_premium_paid = _validate_u64(
+        record.social_insurance_premium_paid,
+        "social_insurance_premium_paid",
+    )
+    struct.has_medical = _bool_to_c_int(record.has_medical)
+    struct.medical_expense_paid = _validate_u64(
+        record.medical_expense_paid,
+        "medical_expense_paid",
+    )
+    struct.medical_reimbursed_amount = _validate_u64(
+        record.medical_reimbursed_amount,
+        "medical_reimbursed_amount",
+    )
+    struct.has_life_insurance = _bool_to_c_int(record.has_life_insurance)
+    struct.life_new_general_paid_amount = _validate_u64(
+        record.life_new_general_paid_amount,
+        "life_new_general_paid_amount",
+    )
+    struct.life_new_individual_pension_paid_amount = _validate_u64(
+        record.life_new_individual_pension_paid_amount,
+        "life_new_individual_pension_paid_amount",
+    )
+    struct.life_new_care_medical_paid_amount = _validate_u64(
+        record.life_new_care_medical_paid_amount,
+        "life_new_care_medical_paid_amount",
+    )
+    struct.life_old_general_paid_amount = _validate_u64(
+        record.life_old_general_paid_amount,
+        "life_old_general_paid_amount",
+    )
+    struct.life_old_individual_pension_paid_amount = _validate_u64(
+        record.life_old_individual_pension_paid_amount,
+        "life_old_individual_pension_paid_amount",
+    )
+    struct.has_donation = _bool_to_c_int(record.has_donation)
+    struct.donation_qualified_amount = _validate_u64(
+        record.donation_qualified_amount,
+        "donation_qualified_amount",
+    )
+    return struct
+
+
 LIBRARY_PATH = build_support.resolve_shared_library_path()
 if LIBRARY_PATH is None:
     raise ImportError(
@@ -223,6 +432,21 @@ _LIB.j_law_calc_income_tax.argtypes = [
     ctypes.c_int,
 ]
 _LIB.j_law_calc_income_tax.restype = ctypes.c_int
+_LIB.j_law_calc_income_deductions.argtypes = [
+    ctypes.POINTER(_IncomeDeductionInputStruct),
+    ctypes.POINTER(_IncomeDeductionResultStruct),
+    ctypes.POINTER(ctypes.c_char),
+    ctypes.c_int,
+]
+_LIB.j_law_calc_income_deductions.restype = ctypes.c_int
+_LIB.j_law_calc_income_tax_assessment.argtypes = [
+    ctypes.POINTER(_IncomeDeductionInputStruct),
+    ctypes.c_int,
+    ctypes.POINTER(_IncomeTaxAssessmentResultStruct),
+    ctypes.POINTER(ctypes.c_char),
+    ctypes.c_int,
+]
+_LIB.j_law_calc_income_tax_assessment.restype = ctypes.c_int
 _LIB.j_law_calc_consumption_tax.argtypes = [
     ctypes.c_uint64,
     ctypes.c_uint16,
@@ -329,6 +553,73 @@ def calc_income_tax(
             int(result.breakdown_len),
         ),
     )
+
+
+def calc_income_deductions(
+    record: IncomeDeductionInputRecord,
+) -> IncomeDeductionRecord:
+    input_struct = _build_income_deduction_input_struct(record)
+    result = _IncomeDeductionResultStruct()
+    error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
+    status = _LIB.j_law_calc_income_deductions(
+        ctypes.byref(input_struct),
+        ctypes.byref(result),
+        error_buffer,
+        ERROR_BUF_LEN,
+    )
+    if status != 0:
+        raise CFFIError(_read_error(error_buffer))
+
+    return IncomeDeductionRecord(
+        total_income_amount=int(result.total_income_amount),
+        total_deductions=int(result.total_deductions),
+        taxable_income_before_truncation=int(result.taxable_income_before_truncation),
+        taxable_income=int(result.taxable_income),
+        breakdown=_read_income_deduction_breakdown(
+            result.breakdown,
+            int(result.breakdown_len),
+        ),
+    )
+
+
+def calc_income_tax_assessment(
+    record: IncomeDeductionInputRecord,
+    apply_reconstruction_tax: bool,
+) -> IncomeTaxAssessmentRecord:
+    input_struct = _build_income_deduction_input_struct(record)
+    result = _IncomeTaxAssessmentResultStruct()
+    error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
+    status = _LIB.j_law_calc_income_tax_assessment(
+        ctypes.byref(input_struct),
+        ctypes.c_int(_bool_to_c_int(apply_reconstruction_tax)),
+        ctypes.byref(result),
+        error_buffer,
+        ERROR_BUF_LEN,
+    )
+    if status != 0:
+        raise CFFIError(_read_error(error_buffer))
+
+    deductions = IncomeDeductionRecord(
+        total_income_amount=int(result.total_income_amount),
+        total_deductions=int(result.total_deductions),
+        taxable_income_before_truncation=int(result.taxable_income_before_truncation),
+        taxable_income=int(result.taxable_income),
+        breakdown=_read_income_deduction_breakdown(
+            result.deduction_breakdown,
+            int(result.deduction_breakdown_len),
+        ),
+    )
+    tax = IncomeTaxRecord(
+        base_tax=int(result.base_tax),
+        reconstruction_tax=int(result.reconstruction_tax),
+        total_tax=int(result.total_tax),
+        reconstruction_tax_applied=bool(result.reconstruction_tax_applied),
+        breakdown=_read_income_tax_breakdown(
+            result.tax_breakdown,
+            int(result.tax_breakdown_len),
+        ),
+    )
+    return IncomeTaxAssessmentRecord(deductions=deductions, tax=tax)
 
 
 def calc_consumption_tax(

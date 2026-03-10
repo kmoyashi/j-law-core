@@ -8,7 +8,7 @@ import shutil
 import subprocess
 from pathlib import Path
 
-FFI_VERSION = 1
+FFI_VERSION = 2
 ENV_LIBRARY_PATH = "JLAW_PYTHON_C_FFI_LIB"
 PACKAGE_ROOT = Path(__file__).resolve().parents[1]
 

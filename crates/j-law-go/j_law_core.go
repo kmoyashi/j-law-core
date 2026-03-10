@@ -145,6 +145,75 @@ type IncomeTaxResult struct {
 	Breakdown []IncomeTaxStep
 }
 
+// IncomeDeductionLine は所得控除の内訳1行を表す。
+type IncomeDeductionLine struct {
+	Kind   uint32
+	Label  string
+	Amount uint64
+}
+
+// SpouseDeductionInput は配偶者控除の入力を表す。
+type SpouseDeductionInput struct {
+	SpouseTotalIncomeAmount uint64
+	IsSameHousehold         bool
+	IsElderly               bool
+}
+
+// DependentDeductionInput は扶養控除の入力を表す。
+type DependentDeductionInput struct {
+	GeneralCount           uint64
+	SpecificCount          uint64
+	ElderlyCohabitingCount uint64
+	ElderlyOtherCount      uint64
+}
+
+// MedicalDeductionInput は医療費控除の入力を表す。
+type MedicalDeductionInput struct {
+	MedicalExpensePaid uint64
+	ReimbursedAmount   uint64
+}
+
+// LifeInsuranceDeductionInput は生命保険料控除の入力を表す。
+type LifeInsuranceDeductionInput struct {
+	NewGeneralPaidAmount           uint64
+	NewIndividualPensionPaidAmount uint64
+	NewCareMedicalPaidAmount       uint64
+	OldGeneralPaidAmount           uint64
+	OldIndividualPensionPaidAmount uint64
+}
+
+// DonationDeductionInput は寄附金控除の入力を表す。
+type DonationDeductionInput struct {
+	QualifiedDonationAmount uint64
+}
+
+// IncomeDeductionInput は所得控除計算の入力を表す。
+type IncomeDeductionInput struct {
+	TotalIncomeAmount          uint64
+	Date                       time.Time
+	Spouse                     *SpouseDeductionInput
+	Dependent                  DependentDeductionInput
+	SocialInsurancePremiumPaid uint64
+	Medical                    *MedicalDeductionInput
+	LifeInsurance              *LifeInsuranceDeductionInput
+	Donation                   *DonationDeductionInput
+}
+
+// IncomeDeductionResult は所得控除の計算結果を表す。
+type IncomeDeductionResult struct {
+	TotalIncomeAmount             uint64
+	TotalDeductions               uint64
+	TaxableIncomeBeforeTruncation uint64
+	TaxableIncome                 uint64
+	Breakdown                     []IncomeDeductionLine
+}
+
+// IncomeTaxAssessmentResult は所得控除から所得税額までの通し計算結果を表す。
+type IncomeTaxAssessmentResult struct {
+	Deductions *IncomeDeductionResult
+	Tax        *IncomeTaxResult
+}
+
 // ─── 所得税 Go 公開関数 ─────────────────────────────────────────────────────────
 
 // CalcIncomeTax は所得税法第89条に基づく所得税額を計算する。
@@ -191,6 +260,60 @@ func CalcIncomeTax(
 	return toGoIncomeTaxResult(&cResult), nil
 }
 
+// CalcIncomeDeductions は総所得金額等から所得控除を計算し、課税所得金額までを返す。
+func CalcIncomeDeductions(
+	input IncomeDeductionInput,
+) (*IncomeDeductionResult, error) {
+	var cResult C.JLawIncomeDeductionResult
+	cInput := toCIncomeDeductionInput(input)
+	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
+	defer C.free(unsafe.Pointer(errorBuf))
+
+	ret := C.j_law_calc_income_deductions(
+		&cInput,
+		&cResult,
+		errorBuf,
+		C.J_LAW_ERROR_BUF_LEN,
+	)
+	if ret != 0 {
+		return nil, errors.New(C.GoString(errorBuf))
+	}
+
+	return toGoIncomeDeductionResult(&cResult), nil
+}
+
+// CalcIncomeTaxAssessment は所得控除から所得税額までを通しで計算する。
+func CalcIncomeTaxAssessment(
+	input IncomeDeductionInput,
+	applyReconstructionTax bool,
+) (*IncomeTaxAssessmentResult, error) {
+	var cResult C.JLawIncomeTaxAssessmentResult
+	cInput := toCIncomeDeductionInput(input)
+	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
+	defer C.free(unsafe.Pointer(errorBuf))
+
+	applyFlag := C.int(0)
+	if applyReconstructionTax {
+		applyFlag = 1
+	}
+
+	ret := C.j_law_calc_income_tax_assessment(
+		&cInput,
+		applyFlag,
+		&cResult,
+		errorBuf,
+		C.J_LAW_ERROR_BUF_LEN,
+	)
+	if ret != 0 {
+		return nil, errors.New(C.GoString(errorBuf))
+	}
+
+	return &IncomeTaxAssessmentResult{
+		Deductions: toGoIncomeDeductionResultFromAssessment(&cResult),
+		Tax:        toGoIncomeTaxResultFromAssessment(&cResult),
+	}, nil
+}
+
 // ─── 内部変換 ───────────────────────────────────────────────────────────────────
 
 // toGoIncomeTaxResult は所得税の C 構造体を Go 構造体に変換する。
@@ -216,6 +339,124 @@ func toGoIncomeTaxResult(c *C.JLawIncomeTaxResult) *IncomeTaxResult {
 		ReconstructionTaxApplied: c.reconstruction_tax_applied != 0,
 		Breakdown:                breakdown,
 	}
+}
+
+func toGoIncomeDeductionResult(c *C.JLawIncomeDeductionResult) *IncomeDeductionResult {
+	breakdownLen := int(c.breakdown_len)
+	breakdown := make([]IncomeDeductionLine, breakdownLen)
+	for i := 0; i < breakdownLen; i++ {
+		line := &c.breakdown[i]
+		breakdown[i] = IncomeDeductionLine{
+			Kind:   uint32(line.kind),
+			Label:  C.GoString(&line.label[0]),
+			Amount: uint64(line.amount),
+		}
+	}
+
+	return &IncomeDeductionResult{
+		TotalIncomeAmount:             uint64(c.total_income_amount),
+		TotalDeductions:               uint64(c.total_deductions),
+		TaxableIncomeBeforeTruncation: uint64(c.taxable_income_before_truncation),
+		TaxableIncome:                 uint64(c.taxable_income),
+		Breakdown:                     breakdown,
+	}
+}
+
+func toGoIncomeDeductionResultFromAssessment(
+	c *C.JLawIncomeTaxAssessmentResult,
+) *IncomeDeductionResult {
+	breakdownLen := int(c.deduction_breakdown_len)
+	breakdown := make([]IncomeDeductionLine, breakdownLen)
+	for i := 0; i < breakdownLen; i++ {
+		line := &c.deduction_breakdown[i]
+		breakdown[i] = IncomeDeductionLine{
+			Kind:   uint32(line.kind),
+			Label:  C.GoString(&line.label[0]),
+			Amount: uint64(line.amount),
+		}
+	}
+
+	return &IncomeDeductionResult{
+		TotalIncomeAmount:             uint64(c.total_income_amount),
+		TotalDeductions:               uint64(c.total_deductions),
+		TaxableIncomeBeforeTruncation: uint64(c.taxable_income_before_truncation),
+		TaxableIncome:                 uint64(c.taxable_income),
+		Breakdown:                     breakdown,
+	}
+}
+
+func toGoIncomeTaxResultFromAssessment(
+	c *C.JLawIncomeTaxAssessmentResult,
+) *IncomeTaxResult {
+	breakdownLen := int(c.tax_breakdown_len)
+	breakdown := make([]IncomeTaxStep, breakdownLen)
+	for i := 0; i < breakdownLen; i++ {
+		step := &c.tax_breakdown[i]
+		breakdown[i] = IncomeTaxStep{
+			Label:         C.GoString(&step.label[0]),
+			TaxableIncome: uint64(step.taxable_income),
+			RateNumer:     uint64(step.rate_numer),
+			RateDenom:     uint64(step.rate_denom),
+			Deduction:     uint64(step.deduction),
+			Result:        uint64(step.result),
+		}
+	}
+
+	return &IncomeTaxResult{
+		BaseTax:                  uint64(c.base_tax),
+		ReconstructionTax:        uint64(c.reconstruction_tax),
+		TotalTax:                 uint64(c.total_tax),
+		ReconstructionTaxApplied: c.reconstruction_tax_applied != 0,
+		Breakdown:                breakdown,
+	}
+}
+
+func toCIncomeDeductionInput(input IncomeDeductionInput) C.JLawIncomeDeductionInput {
+	year := input.Date.Year()
+	month := int(input.Date.Month())
+	day := input.Date.Day()
+
+	cInput := C.JLawIncomeDeductionInput{
+		total_income_amount:                C.uint64_t(input.TotalIncomeAmount),
+		year:                               C.uint16_t(year),
+		month:                              C.uint8_t(month),
+		day:                                C.uint8_t(day),
+		dependent_general_count:            C.uint64_t(input.Dependent.GeneralCount),
+		dependent_specific_count:           C.uint64_t(input.Dependent.SpecificCount),
+		dependent_elderly_cohabiting_count: C.uint64_t(input.Dependent.ElderlyCohabitingCount),
+		dependent_elderly_other_count:      C.uint64_t(input.Dependent.ElderlyOtherCount),
+		social_insurance_premium_paid:      C.uint64_t(input.SocialInsurancePremiumPaid),
+	}
+
+	if input.Spouse != nil {
+		cInput.has_spouse = 1
+		cInput.spouse_total_income_amount = C.uint64_t(input.Spouse.SpouseTotalIncomeAmount)
+		if input.Spouse.IsSameHousehold {
+			cInput.spouse_is_same_household = 1
+		}
+		if input.Spouse.IsElderly {
+			cInput.spouse_is_elderly = 1
+		}
+	}
+	if input.Medical != nil {
+		cInput.has_medical = 1
+		cInput.medical_expense_paid = C.uint64_t(input.Medical.MedicalExpensePaid)
+		cInput.medical_reimbursed_amount = C.uint64_t(input.Medical.ReimbursedAmount)
+	}
+	if input.LifeInsurance != nil {
+		cInput.has_life_insurance = 1
+		cInput.life_new_general_paid_amount = C.uint64_t(input.LifeInsurance.NewGeneralPaidAmount)
+		cInput.life_new_individual_pension_paid_amount = C.uint64_t(input.LifeInsurance.NewIndividualPensionPaidAmount)
+		cInput.life_new_care_medical_paid_amount = C.uint64_t(input.LifeInsurance.NewCareMedicalPaidAmount)
+		cInput.life_old_general_paid_amount = C.uint64_t(input.LifeInsurance.OldGeneralPaidAmount)
+		cInput.life_old_individual_pension_paid_amount = C.uint64_t(input.LifeInsurance.OldIndividualPensionPaidAmount)
+	}
+	if input.Donation != nil {
+		cInput.has_donation = 1
+		cInput.donation_qualified_amount = C.uint64_t(input.Donation.QualifiedDonationAmount)
+	}
+
+	return cInput
 }
 
 // toGoResult は C 構造体を Go 構造体に変換する。

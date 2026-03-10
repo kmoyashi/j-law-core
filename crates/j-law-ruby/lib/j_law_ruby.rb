@@ -164,6 +164,53 @@ module JLawRuby
       alias to_s inspect
     end
 
+    # 所得控除の計算結果。
+    class IncomeDeductionResult
+      attr_reader :total_income_amount, :total_deductions,
+                  :taxable_income_before_truncation, :taxable_income, :breakdown
+
+      def initialize(r)
+        @total_income_amount = r.total_income_amount
+        @total_deductions = r.total_deductions
+        @taxable_income_before_truncation = r.taxable_income_before_truncation
+        @taxable_income = r.taxable_income
+        @breakdown = r.breakdown.map do |line|
+          {
+            kind: line.kind,
+            label: line.label,
+            amount: line.amount,
+          }
+        end
+      end
+
+      def inspect
+        "#<JLawRuby::IncomeTax::IncomeDeductionResult " \
+          "total_income_amount=#{@total_income_amount} " \
+          "total_deductions=#{@total_deductions} " \
+          "taxable_income=#{@taxable_income}>"
+      end
+
+      alias to_s inspect
+    end
+
+    # 所得控除から所得税額までの通し計算結果。
+    class IncomeTaxAssessmentResult
+      attr_reader :deductions, :tax
+
+      def initialize(r)
+        @deductions = IncomeDeductionResult.new(r.deductions)
+        @tax = IncomeTaxResult.new(r.tax)
+      end
+
+      def inspect
+        "#<JLawRuby::IncomeTax::IncomeTaxAssessmentResult " \
+          "taxable_income=#{@deductions.taxable_income} " \
+          "total_tax=#{@tax.total_tax}>"
+      end
+
+      alias to_s inspect
+    end
+
     # 所得税法第89条に基づく所得税額を計算する。
     #
     # @param taxable_income [Integer] 課税所得金額（円）
@@ -183,6 +230,72 @@ module JLawRuby
         apply_reconstruction_tax
       )
       IncomeTaxResult.new(r)
+    end
+
+    # 所得控除を計算し、課税所得金額までを返す。
+    def self.calc_income_deductions(
+      total_income_amount,
+      date,
+      spouse: nil,
+      dependent: {},
+      social_insurance_premium_paid: 0,
+      medical: nil,
+      life_insurance: nil,
+      donation: nil
+    )
+      unless date.is_a?(::Date) || date.is_a?(::DateTime)
+        raise TypeError,
+              "date には Date または DateTime を指定してください (got #{date.class})"
+      end
+
+      r = Internal::CFFI.calc_income_deductions(
+        total_income_amount: total_income_amount,
+        year: date.year,
+        month: date.month,
+        day: date.day,
+        spouse: spouse,
+        dependent: dependent,
+        social_insurance_premium_paid: social_insurance_premium_paid,
+        medical: medical,
+        life_insurance: life_insurance,
+        donation: donation
+      )
+      IncomeDeductionResult.new(r)
+    end
+
+    # 所得控除から所得税額までを通しで計算する。
+    def self.calc_income_tax_assessment(
+      total_income_amount,
+      date,
+      apply_reconstruction_tax: true,
+      spouse: nil,
+      dependent: {},
+      social_insurance_premium_paid: 0,
+      medical: nil,
+      life_insurance: nil,
+      donation: nil
+    )
+      unless date.is_a?(::Date) || date.is_a?(::DateTime)
+        raise TypeError,
+              "date には Date または DateTime を指定してください (got #{date.class})"
+      end
+
+      r = Internal::CFFI.calc_income_tax_assessment(
+        {
+          total_income_amount: total_income_amount,
+          year: date.year,
+          month: date.month,
+          day: date.day,
+          spouse: spouse,
+          dependent: dependent,
+          social_insurance_premium_paid: social_insurance_premium_paid,
+          medical: medical,
+          life_insurance: life_insurance,
+          donation: donation,
+        },
+        apply_reconstruction_tax
+      )
+      IncomeTaxAssessmentResult.new(r)
     end
   end
 

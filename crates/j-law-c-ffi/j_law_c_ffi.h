@@ -12,6 +12,9 @@ extern "C" {
 /** ティア内訳の最大件数。現行法令では 3 ティアだが余裕を持たせている。 */
 #define J_LAW_MAX_TIERS 8
 
+/** 所得控除内訳の最大件数。 */
+#define J_LAW_MAX_DEDUCTION_LINES 8
+
 /** ティアラベルの最大バイト長（NUL 終端含む）。 */
 #define J_LAW_LABEL_LEN 64
 
@@ -19,7 +22,16 @@ extern "C" {
 #define J_LAW_ERROR_BUF_LEN 256
 
 /** j-law-c-ffi の FFI 互換バージョン。 */
-#define J_LAW_C_FFI_VERSION 1
+#define J_LAW_C_FFI_VERSION 2
+
+/** 所得控除種別定数。 */
+#define J_LAW_INCOME_DEDUCTION_KIND_BASIC 1
+#define J_LAW_INCOME_DEDUCTION_KIND_SPOUSE 2
+#define J_LAW_INCOME_DEDUCTION_KIND_DEPENDENT 3
+#define J_LAW_INCOME_DEDUCTION_KIND_SOCIAL_INSURANCE 4
+#define J_LAW_INCOME_DEDUCTION_KIND_MEDICAL 5
+#define J_LAW_INCOME_DEDUCTION_KIND_LIFE_INSURANCE 6
+#define J_LAW_INCOME_DEDUCTION_KIND_DONATION 7
 
 /* ─── 構造体 ─────────────────────────────────────────────────────────────── */
 
@@ -132,6 +144,78 @@ typedef struct {
     int      breakdown_len;
 } JLawIncomeTaxResult;
 
+/**
+ * 所得控除の内訳1行。
+ */
+typedef struct {
+    /** 控除種別定数（J_LAW_INCOME_DEDUCTION_KIND_*）。 */
+    uint32_t kind;
+    /** ラベル（NUL 終端・最大 63 文字）。 */
+    char     label[J_LAW_LABEL_LEN];
+    /** 控除額（円）。 */
+    uint64_t amount;
+} JLawIncomeDeductionLine;
+
+/**
+ * 所得控除計算の入力。
+ */
+typedef struct {
+    uint64_t total_income_amount;
+    uint16_t year;
+    uint8_t  month;
+    uint8_t  day;
+    int      has_spouse;
+    uint64_t spouse_total_income_amount;
+    int      spouse_is_same_household;
+    int      spouse_is_elderly;
+    uint64_t dependent_general_count;
+    uint64_t dependent_specific_count;
+    uint64_t dependent_elderly_cohabiting_count;
+    uint64_t dependent_elderly_other_count;
+    uint64_t social_insurance_premium_paid;
+    int      has_medical;
+    uint64_t medical_expense_paid;
+    uint64_t medical_reimbursed_amount;
+    int      has_life_insurance;
+    uint64_t life_new_general_paid_amount;
+    uint64_t life_new_individual_pension_paid_amount;
+    uint64_t life_new_care_medical_paid_amount;
+    uint64_t life_old_general_paid_amount;
+    uint64_t life_old_individual_pension_paid_amount;
+    int      has_donation;
+    uint64_t donation_qualified_amount;
+} JLawIncomeDeductionInput;
+
+/**
+ * 所得控除の計算結果。
+ */
+typedef struct {
+    uint64_t total_income_amount;
+    uint64_t total_deductions;
+    uint64_t taxable_income_before_truncation;
+    uint64_t taxable_income;
+    JLawIncomeDeductionLine breakdown[J_LAW_MAX_DEDUCTION_LINES];
+    int      breakdown_len;
+} JLawIncomeDeductionResult;
+
+/**
+ * 所得控除から所得税額までの通し計算結果。
+ */
+typedef struct {
+    uint64_t total_income_amount;
+    uint64_t total_deductions;
+    uint64_t taxable_income_before_truncation;
+    uint64_t taxable_income;
+    uint64_t base_tax;
+    uint64_t reconstruction_tax;
+    uint64_t total_tax;
+    int      reconstruction_tax_applied;
+    JLawIncomeDeductionLine deduction_breakdown[J_LAW_MAX_DEDUCTION_LINES];
+    int      deduction_breakdown_len;
+    JLawIncomeTaxStep tax_breakdown[J_LAW_MAX_TIERS];
+    int      tax_breakdown_len;
+} JLawIncomeTaxAssessmentResult;
+
 /* ─── 所得税 関数 ─────────────────────────────────────────────────────────── */
 
 /**
@@ -156,6 +240,45 @@ int j_law_calc_income_tax(
     uint8_t  day,
     int      apply_reconstruction_tax,
     JLawIncomeTaxResult *out_result,
+    char    *error_buf,
+    int      error_buf_len
+);
+
+/**
+ * 所得控除額を計算し、課税所得金額までを返す。
+ *
+ * 法的根拠: 所得税法 第73条 / 第74条 / 第76条 / 第78条 / 第83条 / 第84条 / 第86条
+ *
+ * @param input                 [IN] 所得控除計算の入力
+ * @param out_result            [OUT] 計算結果の書き込み先
+ * @param error_buf             [OUT] エラーメッセージの書き込み先
+ * @param error_buf_len         error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
+ * @return                      成功時 0、失敗時 非0
+ */
+int j_law_calc_income_deductions(
+    const JLawIncomeDeductionInput *input,
+    JLawIncomeDeductionResult *out_result,
+    char    *error_buf,
+    int      error_buf_len
+);
+
+/**
+ * 所得控除から所得税額までを通しで計算する。
+ *
+ * 法的根拠: 所得税法 第73条 / 第74条 / 第76条 / 第78条 / 第83条 / 第84条 / 第86条 /
+ *           第89条第1項 / 復興財源確保法 第13条
+ *
+ * @param input                    [IN] 所得控除計算の入力
+ * @param apply_reconstruction_tax 復興特別所得税を適用するか（0 = false, 非0 = true）
+ * @param out_result               [OUT] 計算結果の書き込み先
+ * @param error_buf                [OUT] エラーメッセージの書き込み先
+ * @param error_buf_len            error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
+ * @return                         成功時 0、失敗時 非0
+ */
+int j_law_calc_income_tax_assessment(
+    const JLawIncomeDeductionInput *input,
+    int      apply_reconstruction_tax,
+    JLawIncomeTaxAssessmentResult *out_result,
     char    *error_buf,
     int      error_buf_len
 );
