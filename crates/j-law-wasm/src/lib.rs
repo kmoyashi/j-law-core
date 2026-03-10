@@ -31,7 +31,7 @@ use ::j_law_core::domains::stamp_tax::{
     context::{StampTaxContext, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
-use ::j_law_core::LegalDate;
+use ::j_law_core::{InputError, JLawError, LegalDate};
 use ::j_law_registry::load_brokerage_fee_params;
 use ::j_law_registry::load_consumption_tax_params;
 use ::j_law_registry::load_income_tax_deduction_params;
@@ -82,6 +82,22 @@ fn get_optional_u64(obj: &JsValue, keys: &[&str], default: u64) -> Result<u64, J
             .map(|v| v as u64)
             .ok_or_else(|| JsValue::from_str(&format!("invalid numeric field: {}", keys[0])))
     }
+}
+
+fn invalid_deduction_input(field: &str, reason: &str) -> JsValue {
+    JsValue::from_str(
+        &JLawError::from(InputError::InvalidDeductionInput {
+            field: field.to_string(),
+            reason: reason.to_string(),
+        })
+        .to_string(),
+    )
+}
+
+fn get_optional_u16(obj: &JsValue, keys: &[&str], default: u16) -> Result<u16, JsValue> {
+    let value = get_optional_u64(obj, keys, u64::from(default))?;
+    u16::try_from(value)
+        .map_err(|_| invalid_deduction_input(keys[0], &format!("count must be <= {}", u16::MAX)))
 }
 
 fn get_required_bool(obj: &JsValue, keys: &[&str]) -> Result<bool, JsValue> {
@@ -145,20 +161,18 @@ fn to_income_deduction_context(input: &JsValue) -> Result<IncomeDeductionContext
     };
     let dependent = match get_optional_object(input, &["dependent"])? {
         Some(dependent) => DependentDeductionInput {
-            general_count: get_optional_u64(&dependent, &["generalCount", "general_count"], 0)?
-                as u16,
-            specific_count: get_optional_u64(&dependent, &["specificCount", "specific_count"], 0)?
-                as u16,
-            elderly_cohabiting_count: get_optional_u64(
+            general_count: get_optional_u16(&dependent, &["generalCount", "general_count"], 0)?,
+            specific_count: get_optional_u16(&dependent, &["specificCount", "specific_count"], 0)?,
+            elderly_cohabiting_count: get_optional_u16(
                 &dependent,
                 &["elderlyCohabitingCount", "elderly_cohabiting_count"],
                 0,
-            )? as u16,
-            elderly_other_count: get_optional_u64(
+            )?,
+            elderly_other_count: get_optional_u16(
                 &dependent,
                 &["elderlyOtherCount", "elderly_other_count"],
                 0,
-            )? as u16,
+            )?,
         },
         None => DependentDeductionInput::default(),
     };

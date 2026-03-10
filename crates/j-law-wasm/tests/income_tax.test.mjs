@@ -93,6 +93,24 @@ describe("calcIncomeDeductions - フィクスチャ駆動", () => {
   }
 });
 
+describe("calcIncomeDeductions - JS固有テスト", () => {
+  it("dependent count が u16 上限を超える場合はエラー", () => {
+    assert.throws(
+      () =>
+        calcIncomeDeductions(
+          withDate({
+            total_income_amount: 5_000_000,
+            date: "2024-01-01",
+            dependent: {
+              general_count: 70_000,
+            },
+          })
+        ),
+      /generalCount|general_count/
+    );
+  });
+});
+
 describe("calcIncomeTaxAssessment - フィクスチャ駆動", () => {
   for (const c of deductionFixtures.income_tax_assessment) {
     it(`${c.id}: ${c.description}`, () => {
@@ -108,4 +126,23 @@ describe("calcIncomeTaxAssessment - フィクスチャ駆動", () => {
       assert.equal(r.totalTax, exp.total_tax, "totalTax");
     });
   }
+});
+
+describe("calcIncomeTaxAssessment - JS固有テスト", () => {
+  it("dependent count が u16 上限を超える場合はエラー", () => {
+    assert.throws(
+      () =>
+        calcIncomeTaxAssessment(
+          withDate({
+            total_income_amount: 5_000_000,
+            date: "2024-01-01",
+            dependent: {
+              specific_count: 70_000,
+            },
+          }),
+          true
+        ),
+      /specificCount|specific_count/
+    );
+  });
 });
