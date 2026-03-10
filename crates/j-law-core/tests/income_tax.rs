@@ -12,3 +12,6 @@ mod edge_cases;
 
 #[path = "income_tax/full_pipeline_examples.rs"]
 mod full_pipeline_examples;
+
+#[path = "income_tax/registry_examples.rs"]
+mod registry_examples;

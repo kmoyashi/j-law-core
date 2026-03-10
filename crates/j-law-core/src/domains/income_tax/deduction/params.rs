@@ -1,7 +1,12 @@
 /// 所得控除計算で使用するパラメータセット。
 ///
 /// # 法的根拠
+/// 所得税法 第73条（医療費控除）
 /// 所得税法 第74条（社会保険料控除）
+/// 所得税法 第76条（生命保険料控除）
+/// 所得税法 第78条（寄附金控除）
+/// 所得税法 第83条（配偶者控除）
+/// 所得税法 第84条（扶養控除）
 /// 所得税法 第86条（基礎控除）
 #[derive(Debug, Clone)]
 pub struct IncomeDeductionParams {
@@ -56,11 +61,20 @@ pub struct BasicDeductionBracket {
 /// 支出系控除パラメータ。
 ///
 /// # 法的根拠
+/// 所得税法 第73条（医療費控除）
 /// 所得税法 第74条（社会保険料控除）
+/// 所得税法 第76条（生命保険料控除）
+/// 所得税法 第78条（寄附金控除）
 #[derive(Debug, Clone)]
 pub struct ExpenseDeductionParams {
     /// 社会保険料控除のパラメータ。
     pub social_insurance: SocialInsuranceDeductionParams,
+    /// 医療費控除のパラメータ。
+    pub medical: MedicalDeductionParams,
+    /// 生命保険料控除のパラメータ。
+    pub life_insurance: LifeInsuranceDeductionParams,
+    /// 寄附金控除のパラメータ。
+    pub donation: DonationDeductionParams,
 }
 
 /// 社会保険料控除のパラメータ。
@@ -71,6 +85,78 @@ pub struct ExpenseDeductionParams {
 /// 所得税法 第74条（社会保険料控除）
 #[derive(Debug, Clone, Copy)]
 pub struct SocialInsuranceDeductionParams;
+
+/// 医療費控除のパラメータ。
+///
+/// # 法的根拠
+/// 所得税法 第73条（医療費控除）
+#[derive(Debug, Clone, Copy)]
+pub struct MedicalDeductionParams {
+    /// 足切額に用いる所得割合の分子。
+    pub income_threshold_rate_numer: u64,
+    /// 足切額に用いる所得割合の分母。
+    pub income_threshold_rate_denom: u64,
+    /// 足切額の固定上限額（円）。
+    pub threshold_cap_amount: u64,
+    /// 医療費控除額の上限額（円）。
+    pub deduction_cap_amount: u64,
+}
+
+/// 生命保険料控除のパラメータ。
+///
+/// # 法的根拠
+/// 所得税法 第76条（生命保険料控除）
+#[derive(Debug, Clone)]
+pub struct LifeInsuranceDeductionParams {
+    /// 新契約に適用する計算ブラケット。
+    pub new_contract_brackets: Vec<LifeInsuranceDeductionBracket>,
+    /// 旧契約に適用する計算ブラケット。
+    pub old_contract_brackets: Vec<LifeInsuranceDeductionBracket>,
+    /// 新旧両方の契約がある区分の控除上限額（円）。
+    pub mixed_contract_cap_amount: u64,
+    /// 新契約のみの区分に適用する控除上限額（円）。
+    pub new_contract_cap_amount: u64,
+    /// 旧契約のみの区分に適用する控除上限額（円）。
+    pub old_contract_cap_amount: u64,
+    /// 全区分合計の控除上限額（円）。
+    pub combined_cap_amount: u64,
+}
+
+/// 生命保険料控除のブラケット。
+///
+/// # 法的根拠
+/// 所得税法 第76条（生命保険料控除）
+#[derive(Debug, Clone)]
+pub struct LifeInsuranceDeductionBracket {
+    /// ブラケットの表示名。
+    pub label: String,
+    /// 支払保険料の下限（円・この金額以上）。
+    pub paid_from: u64,
+    /// 支払保険料の上限（円・この金額以下）。`None` は上限なし。
+    pub paid_to_inclusive: Option<u64>,
+    /// 控除額計算に用いる乗率の分子。
+    pub rate_numer: u64,
+    /// 控除額計算に用いる乗率の分母。
+    pub rate_denom: u64,
+    /// 控除額に加算する固定額（円）。
+    pub addition_amount: u64,
+    /// 当該ブラケット単体での控除上限額（円）。
+    pub deduction_cap_amount: u64,
+}
+
+/// 寄附金控除のパラメータ。
+///
+/// # 法的根拠
+/// 所得税法 第78条（寄附金控除）
+#[derive(Debug, Clone, Copy)]
+pub struct DonationDeductionParams {
+    /// 総所得金額等に対する控除対象上限割合の分子。
+    pub income_cap_rate_numer: u64,
+    /// 総所得金額等に対する控除対象上限割合の分母。
+    pub income_cap_rate_denom: u64,
+    /// 控除対象外となる自己負担額（円）。
+    pub non_deductible_amount: u64,
+}
 
 /// 配偶者控除のパラメータ。
 ///

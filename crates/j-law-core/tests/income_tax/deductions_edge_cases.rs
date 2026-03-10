@@ -4,12 +4,14 @@
 
 use j_law_core::domains::income_tax::deduction::{
     calculate_income_deductions, BasicDeductionBracket, BasicDeductionParams,
-    DependentDeductionInput, DependentDeductionParams, ExpenseDeductionInput,
-    ExpenseDeductionParams, IncomeDeductionContext, IncomeDeductionInput, IncomeDeductionParams,
-    PersonalDeductionInput, PersonalDeductionParams, SocialInsuranceDeductionParams,
-    SpouseDeductionInput, SpouseDeductionParams, SpouseIncomeBracket,
+    DependentDeductionInput, DependentDeductionParams, DonationDeductionParams,
+    ExpenseDeductionInput, ExpenseDeductionParams, IncomeDeductionContext, IncomeDeductionInput,
+    IncomeDeductionParams, LifeInsuranceDeductionBracket, LifeInsuranceDeductionParams,
+    MedicalDeductionInput, MedicalDeductionParams, PersonalDeductionInput, PersonalDeductionParams,
+    SocialInsuranceDeductionParams, SpouseDeductionInput, SpouseDeductionParams,
+    SpouseIncomeBracket,
 };
-use j_law_core::LegalDate;
+use j_law_core::{InputError, JLawError, LegalDate};
 
 fn deduction_params_2024() -> IncomeDeductionParams {
     IncomeDeductionParams {
@@ -84,6 +86,41 @@ fn deduction_params_2024() -> IncomeDeductionParams {
         },
         expense: ExpenseDeductionParams {
             social_insurance: SocialInsuranceDeductionParams,
+            medical: MedicalDeductionParams {
+                income_threshold_rate_numer: 5,
+                income_threshold_rate_denom: 100,
+                threshold_cap_amount: 100_000,
+                deduction_cap_amount: 2_000_000,
+            },
+            life_insurance: LifeInsuranceDeductionParams {
+                new_contract_brackets: vec![LifeInsuranceDeductionBracket {
+                    label: "8万円超".into(),
+                    paid_from: 0,
+                    paid_to_inclusive: None,
+                    rate_numer: 0,
+                    rate_denom: 1,
+                    addition_amount: 40_000,
+                    deduction_cap_amount: 40_000,
+                }],
+                old_contract_brackets: vec![LifeInsuranceDeductionBracket {
+                    label: "10万円超".into(),
+                    paid_from: 0,
+                    paid_to_inclusive: None,
+                    rate_numer: 0,
+                    rate_denom: 1,
+                    addition_amount: 50_000,
+                    deduction_cap_amount: 50_000,
+                }],
+                mixed_contract_cap_amount: 40_000,
+                new_contract_cap_amount: 40_000,
+                old_contract_cap_amount: 50_000,
+                combined_cap_amount: 120_000,
+            },
+            donation: DonationDeductionParams {
+                income_cap_rate_numer: 40,
+                income_cap_rate_denom: 100,
+                non_deductible_amount: 2_000,
+            },
         },
     }
 }
@@ -103,6 +140,9 @@ fn ctx(
             },
             expense: ExpenseDeductionInput {
                 social_insurance_premium_paid,
+                medical: None,
+                life_insurance: None,
+                donation: None,
             },
         },
     }
@@ -165,4 +205,35 @@ fn spouse_deduction_uses_taxpayer_income_thresholds() {
             expected_spouse_deduction
         );
     }
+}
+
+#[test]
+fn medical_deduction_rejects_reimbursement_above_payment() {
+    let result = calculate_income_deductions(
+        &IncomeDeductionContext {
+            total_income_amount: 5_000_000,
+            target_date: LegalDate::new(2024, 1, 1),
+            deductions: IncomeDeductionInput {
+                personal: PersonalDeductionInput {
+                    spouse: None,
+                    dependent: DependentDeductionInput::default(),
+                },
+                expense: ExpenseDeductionInput {
+                    social_insurance_premium_paid: 0,
+                    medical: Some(MedicalDeductionInput {
+                        medical_expense_paid: 100_000,
+                        reimbursed_amount: 100_001,
+                    }),
+                    life_insurance: None,
+                    donation: None,
+                },
+            },
+        },
+        &deduction_params_2024(),
+    );
+
+    assert!(matches!(
+        result,
+        Err(JLawError::Input(InputError::InvalidDeductionInput { .. }))
+    ));
 }

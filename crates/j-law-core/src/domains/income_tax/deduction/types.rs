@@ -39,7 +39,12 @@ pub struct IncomeDeductionLine {
 /// 所得控除の計算結果。
 ///
 /// # 法的根拠
+/// 所得税法 第73条（医療費控除）
 /// 所得税法 第74条（社会保険料控除）
+/// 所得税法 第76条（生命保険料控除）
+/// 所得税法 第78条（寄附金控除）
+/// 所得税法 第83条（配偶者控除）
+/// 所得税法 第84条（扶養控除）
 /// 所得税法 第86条（基礎控除）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IncomeDeductionResult {

@@ -248,6 +248,9 @@ mod tests {
                 personal: PersonalDeductionInput { spouse, dependent },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid: 0,
+                    medical: None,
+                    life_insurance: None,
+                    donation: None,
                 },
             },
         }

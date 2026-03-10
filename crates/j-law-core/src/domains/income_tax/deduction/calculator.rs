@@ -9,7 +9,12 @@ use crate::types::amount::FinalAmount;
 /// 総所得金額等から所得控除額を差し引き、課税所得金額を計算する。
 ///
 /// # 法的根拠
+/// 所得税法 第73条（医療費控除）
 /// 所得税法 第74条（社会保険料控除）
+/// 所得税法 第76条（生命保険料控除）
+/// 所得税法 第78条（寄附金控除）
+/// 所得税法 第83条（配偶者控除）
+/// 所得税法 第84条（扶養控除）
 /// 所得税法 第86条（基礎控除）
 pub fn calculate_income_deductions(
     ctx: &IncomeDeductionContext,
@@ -56,8 +61,9 @@ mod tests {
     };
     use crate::domains::income_tax::deduction::params::{
         BasicDeductionBracket, BasicDeductionParams, DependentDeductionParams,
-        ExpenseDeductionParams, PersonalDeductionParams, SocialInsuranceDeductionParams,
-        SpouseDeductionParams,
+        DonationDeductionParams, ExpenseDeductionParams, LifeInsuranceDeductionBracket,
+        LifeInsuranceDeductionParams, MedicalDeductionParams, PersonalDeductionParams,
+        SocialInsuranceDeductionParams, SpouseDeductionParams,
     };
     use crate::types::date::LegalDate;
 
@@ -85,6 +91,41 @@ mod tests {
             },
             expense: ExpenseDeductionParams {
                 social_insurance: SocialInsuranceDeductionParams,
+                medical: MedicalDeductionParams {
+                    income_threshold_rate_numer: 5,
+                    income_threshold_rate_denom: 100,
+                    threshold_cap_amount: 100_000,
+                    deduction_cap_amount: 2_000_000,
+                },
+                life_insurance: LifeInsuranceDeductionParams {
+                    new_contract_brackets: vec![LifeInsuranceDeductionBracket {
+                        label: "8万円超".into(),
+                        paid_from: 0,
+                        paid_to_inclusive: None,
+                        rate_numer: 0,
+                        rate_denom: 1,
+                        addition_amount: 40_000,
+                        deduction_cap_amount: 40_000,
+                    }],
+                    old_contract_brackets: vec![LifeInsuranceDeductionBracket {
+                        label: "10万円超".into(),
+                        paid_from: 0,
+                        paid_to_inclusive: None,
+                        rate_numer: 0,
+                        rate_denom: 1,
+                        addition_amount: 50_000,
+                        deduction_cap_amount: 50_000,
+                    }],
+                    mixed_contract_cap_amount: 40_000,
+                    new_contract_cap_amount: 40_000,
+                    old_contract_cap_amount: 50_000,
+                    combined_cap_amount: 120_000,
+                },
+                donation: DonationDeductionParams {
+                    income_cap_rate_numer: 40,
+                    income_cap_rate_denom: 100,
+                    non_deductible_amount: 2_000,
+                },
             },
         }
     }
@@ -100,6 +141,9 @@ mod tests {
                 },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid,
+                    medical: None,
+                    life_insurance: None,
+                    donation: None,
                 },
             },
         }

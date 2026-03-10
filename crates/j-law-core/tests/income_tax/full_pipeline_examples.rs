@@ -7,9 +7,11 @@ use std::collections::HashSet;
 use j_law_core::domains::income_tax::{
     calculate_income_tax_assessment, deduction::BasicDeductionBracket,
     deduction::BasicDeductionParams, deduction::DependentDeductionInput,
-    deduction::DependentDeductionParams, deduction::ExpenseDeductionInput,
-    deduction::ExpenseDeductionParams, deduction::IncomeDeductionContext,
-    deduction::IncomeDeductionInput, deduction::IncomeDeductionParams,
+    deduction::DependentDeductionParams, deduction::DonationDeductionParams,
+    deduction::ExpenseDeductionInput, deduction::ExpenseDeductionParams,
+    deduction::IncomeDeductionContext, deduction::IncomeDeductionInput,
+    deduction::IncomeDeductionParams, deduction::LifeInsuranceDeductionBracket,
+    deduction::LifeInsuranceDeductionParams, deduction::MedicalDeductionParams,
     deduction::PersonalDeductionInput, deduction::PersonalDeductionParams,
     deduction::SocialInsuranceDeductionParams, deduction::SpouseDeductionInput,
     deduction::SpouseDeductionParams, deduction::SpouseIncomeBracket, IncomeTaxAssessmentContext,
@@ -160,6 +162,41 @@ fn deduction_params_2024() -> IncomeDeductionParams {
         },
         expense: ExpenseDeductionParams {
             social_insurance: SocialInsuranceDeductionParams,
+            medical: MedicalDeductionParams {
+                income_threshold_rate_numer: 5,
+                income_threshold_rate_denom: 100,
+                threshold_cap_amount: 100_000,
+                deduction_cap_amount: 2_000_000,
+            },
+            life_insurance: LifeInsuranceDeductionParams {
+                new_contract_brackets: vec![LifeInsuranceDeductionBracket {
+                    label: "8万円超".into(),
+                    paid_from: 0,
+                    paid_to_inclusive: None,
+                    rate_numer: 0,
+                    rate_denom: 1,
+                    addition_amount: 40_000,
+                    deduction_cap_amount: 40_000,
+                }],
+                old_contract_brackets: vec![LifeInsuranceDeductionBracket {
+                    label: "10万円超".into(),
+                    paid_from: 0,
+                    paid_to_inclusive: None,
+                    rate_numer: 0,
+                    rate_denom: 1,
+                    addition_amount: 50_000,
+                    deduction_cap_amount: 50_000,
+                }],
+                mixed_contract_cap_amount: 40_000,
+                new_contract_cap_amount: 40_000,
+                old_contract_cap_amount: 50_000,
+                combined_cap_amount: 120_000,
+            },
+            donation: DonationDeductionParams {
+                income_cap_rate_numer: 40,
+                income_cap_rate_denom: 100,
+                non_deductible_amount: 2_000,
+            },
         },
     }
 }
@@ -189,6 +226,9 @@ fn assessment_connects_deductions_to_income_tax() {
                 },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid: 480_900,
+                    medical: None,
+                    life_insurance: None,
+                    donation: None,
                 },
             },
         },
