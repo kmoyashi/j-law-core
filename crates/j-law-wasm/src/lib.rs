@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use js_sys::Array;
+use js_sys::{Array, Number};
 use wasm_bindgen::{prelude::*, JsCast};
 
 use ::j_law_core::domains::consumption_tax::{
@@ -66,10 +66,14 @@ fn get_prop_any(obj: &JsValue, keys: &[&str]) -> Result<JsValue, JsValue> {
 
 fn get_required_u64(obj: &JsValue, keys: &[&str]) -> Result<u64, JsValue> {
     let value = get_prop_any(obj, keys)?;
-    value
-        .as_f64()
-        .map(|v| v as u64)
-        .ok_or_else(|| JsValue::from_str(&format!("missing numeric field: {}", keys[0])))
+    if value.is_undefined() || value.is_null() {
+        Err(JsValue::from_str(&format!(
+            "missing numeric field: {}",
+            keys[0]
+        )))
+    } else {
+        parse_js_u64(&value, keys[0])
+    }
 }
 
 fn get_optional_u64(obj: &JsValue, keys: &[&str], default: u64) -> Result<u64, JsValue> {
@@ -77,10 +81,7 @@ fn get_optional_u64(obj: &JsValue, keys: &[&str], default: u64) -> Result<u64, J
     if value.is_undefined() || value.is_null() {
         Ok(default)
     } else {
-        value
-            .as_f64()
-            .map(|v| v as u64)
-            .ok_or_else(|| JsValue::from_str(&format!("invalid numeric field: {}", keys[0])))
+        parse_js_u64(&value, keys[0])
     }
 }
 
@@ -96,6 +97,39 @@ fn invalid_deduction_input(field: &str, reason: &str) -> JsValue {
 
 fn bigint_js_value(value: u64) -> JsValue {
     js_sys::BigInt::from(value).into()
+}
+
+fn parse_js_u64(value: &JsValue, field: &str) -> Result<u64, JsValue> {
+    if value.is_bigint() {
+        let bigint = value.clone().dyn_into::<js_sys::BigInt>().map_err(|_| {
+            invalid_deduction_input(
+                field,
+                "must be a non-negative safe integer Number or BigInt",
+            )
+        })?;
+        return u64::try_from(bigint).map_err(|_| {
+            invalid_deduction_input(
+                field,
+                "must be a non-negative safe integer Number or BigInt",
+            )
+        });
+    }
+
+    let Some(number) = value.as_f64() else {
+        return Err(invalid_deduction_input(
+            field,
+            "must be a non-negative safe integer Number or BigInt",
+        ));
+    };
+
+    if !Number::is_safe_integer(value) || number < 0.0 {
+        return Err(invalid_deduction_input(
+            field,
+            "must be a non-negative safe integer Number or BigInt",
+        ));
+    }
+
+    Ok(number as u64)
 }
 
 fn get_optional_u16(obj: &JsValue, keys: &[&str], default: u16) -> Result<u16, JsValue> {

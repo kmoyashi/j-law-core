@@ -114,14 +114,25 @@ describe("calcIncomeDeductions - JS固有テスト", () => {
     );
   });
 
+  it("負数・小数・unsafe integer の totalIncomeAmount はエラー", () => {
+    for (const totalIncomeAmount of [-1, 1.5, 9_007_199_254_740_993]) {
+      assert.throws(
+        () =>
+          calcIncomeDeductions({
+            total_income_amount: totalIncomeAmount,
+            date: new Date(Date.UTC(2024, 0, 1)),
+          }),
+        /totalIncomeAmount|total_income_amount/
+      );
+    }
+  });
+
   it("u32 を超える金額を BigInt で返す", () => {
-    const r = calcIncomeDeductions(
-      withDate({
-        total_income_amount: 10_000_000_000,
-        date: "2024-01-01",
-        social_insurance_premium_paid: 5_000_000_000,
-      })
-    );
+    const r = calcIncomeDeductions({
+      total_income_amount: 10_000_000_000n,
+      date: new Date(Date.UTC(2024, 0, 1)),
+      social_insurance_premium_paid: 5_000_000_000n,
+    });
 
     assert.equal(r.totalIncomeAmount, 10_000_000_000n);
     assert.equal(r.totalDeductions, 5_000_000_000n);
@@ -170,12 +181,26 @@ describe("calcIncomeTaxAssessment - JS固有テスト", () => {
     );
   });
 
+  it("unsafe integer の totalIncomeAmount はエラー", () => {
+    assert.throws(
+      () =>
+        calcIncomeTaxAssessment(
+          {
+            total_income_amount: 9_007_199_254_740_993,
+            date: new Date(Date.UTC(2024, 0, 1)),
+          },
+          true
+        ),
+      /totalIncomeAmount|total_income_amount/
+    );
+  });
+
   it("assessment の高額結果を BigInt で返す", () => {
     const r = calcIncomeTaxAssessment(
-      withDate({
-        total_income_amount: 10_000_000_000,
-        date: "2024-01-01",
-      }),
+      {
+        total_income_amount: 10_000_000_000n,
+        date: new Date(Date.UTC(2024, 0, 1)),
+      },
       true
     );
 

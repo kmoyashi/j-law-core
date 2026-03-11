@@ -30,6 +30,7 @@ pub fn load_income_tax_deduction_params(
             path: "income_tax/deductions.json".into(),
             cause: e.to_string(),
         })?;
+    validate_registry(&registry)?;
 
     let date_str = target_date.to_date_str();
     let entry = find_entry(&registry, &date_str).ok_or_else(|| InputError::DateOutOfRange {
@@ -186,10 +187,339 @@ fn to_life_insurance_bracket(
     }
 }
 
+fn validate_registry(registry: &IncomeTaxDeductionRegistry) -> Result<(), JLawError> {
+    validate_periods(registry)?;
+    validate_denominators(registry)?;
+    Ok(())
+}
+
+fn validate_periods(registry: &IncomeTaxDeductionRegistry) -> Result<(), RegistryError> {
+    let mut sorted = registry.history.iter().collect::<Vec<_>>();
+    sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
+
+    for window in sorted.windows(2) {
+        let current = window[0];
+        let next = window[1];
+
+        let Some(current_until) = &current.effective_until else {
+            return Err(RegistryError::PeriodOverlap {
+                domain: registry.domain.clone(),
+                from: next.effective_from.clone(),
+                until: "open-ended".into(),
+            });
+        };
+
+        if current_until >= &next.effective_from {
+            return Err(RegistryError::PeriodOverlap {
+                domain: registry.domain.clone(),
+                from: next.effective_from.clone(),
+                until: current_until.clone(),
+            });
+        }
+
+        let expected_next_start =
+            next_date_str(current_until, "income_tax/deductions.json/effective_until")?;
+        if expected_next_start != next.effective_from {
+            return Err(RegistryError::PeriodGap {
+                domain: registry.domain.clone(),
+                end: current_until.clone(),
+                next_start: next.effective_from.clone(),
+            });
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_denominators(registry: &IncomeTaxDeductionRegistry) -> Result<(), RegistryError> {
+    for (entry_index, entry) in registry.history.iter().enumerate() {
+        if entry.params.expense.medical.income_threshold_rate.denom == 0 {
+            return Err(RegistryError::ZeroDenominator {
+                path: format!(
+                    "{}/history[{entry_index}]/expense/medical/income_threshold_rate.denom",
+                    registry.domain
+                ),
+            });
+        }
+        if entry.params.expense.donation.income_cap_rate.denom == 0 {
+            return Err(RegistryError::ZeroDenominator {
+                path: format!(
+                    "{}/history[{entry_index}]/expense/donation/income_cap_rate.denom",
+                    registry.domain
+                ),
+            });
+        }
+
+        for (bracket_index, bracket) in entry
+            .params
+            .expense
+            .life_insurance
+            .new_contract_brackets
+            .iter()
+            .enumerate()
+        {
+            if bracket.rate.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!(
+                        "{}/history[{entry_index}]/expense/life_insurance/new_contract_brackets[{bracket_index}]/rate.denom",
+                        registry.domain
+                    ),
+                });
+            }
+        }
+
+        for (bracket_index, bracket) in entry
+            .params
+            .expense
+            .life_insurance
+            .old_contract_brackets
+            .iter()
+            .enumerate()
+        {
+            if bracket.rate.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!(
+                        "{}/history[{entry_index}]/expense/life_insurance/old_contract_brackets[{bracket_index}]/rate.denom",
+                        registry.domain
+                    ),
+                });
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn next_date_str(date: &str, path: &str) -> Result<String, RegistryError> {
+    let (year, month, day) = parse_iso_date(date, path)?;
+    let max_day = days_in_month(year, month);
+
+    let (next_year, next_month, next_day) = if day < max_day {
+        (year, month, day + 1)
+    } else if month < 12 {
+        (year, month + 1, 1)
+    } else {
+        (year + 1, 1, 1)
+    };
+
+    Ok(format!("{next_year:04}-{next_month:02}-{next_day:02}"))
+}
+
+fn parse_iso_date(date: &str, path: &str) -> Result<(u32, u32, u32), RegistryError> {
+    let mut parts = date.split('-');
+    let year = parts
+        .next()
+        .ok_or_else(|| invalid_date_parse_error(path, date))?
+        .parse::<u32>()
+        .map_err(|_| invalid_date_parse_error(path, date))?;
+    let month = parts
+        .next()
+        .ok_or_else(|| invalid_date_parse_error(path, date))?
+        .parse::<u32>()
+        .map_err(|_| invalid_date_parse_error(path, date))?;
+    let day = parts
+        .next()
+        .ok_or_else(|| invalid_date_parse_error(path, date))?
+        .parse::<u32>()
+        .map_err(|_| invalid_date_parse_error(path, date))?;
+
+    if parts.next().is_some()
+        || !(1..=12).contains(&month)
+        || day == 0
+        || day > days_in_month(year, month)
+    {
+        return Err(invalid_date_parse_error(path, date));
+    }
+
+    Ok((year, month, day))
+}
+
+fn invalid_date_parse_error(path: &str, value: &str) -> RegistryError {
+    RegistryError::ParseError {
+        path: path.into(),
+        cause: format!("invalid ISO date: {value}"),
+    }
+}
+
+fn days_in_month(year: u32, month: u32) -> u32 {
+    match month {
+        1 | 3 | 5 | 7 | 8 | 10 | 12 => 31,
+        4 | 6 | 9 | 11 => 30,
+        2 if is_leap_year(year) => 29,
+        2 => 28,
+        _ => 0,
+    }
+}
+
+fn is_leap_year(year: u32) -> bool {
+    (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
+}
+
 #[cfg(test)]
 #[allow(clippy::disallowed_methods)]
 mod tests {
     use super::*;
+    use serde_json::json;
+
+    fn registry_from_value(value: serde_json::Value) -> IncomeTaxDeductionRegistry {
+        serde_json::from_value(value).unwrap()
+    }
+
+    fn sample_registry() -> IncomeTaxDeductionRegistry {
+        registry_from_value(json!({
+            "domain": "income_tax",
+            "history": [
+                {
+                    "effective_from": "2019-01-01",
+                    "effective_until": "2019-12-31",
+                    "params": {
+                        "personal": {
+                            "basic": {
+                                "brackets": [
+                                    {
+                                        "label": "一律",
+                                        "income_from": 0,
+                                        "income_to_inclusive": null,
+                                        "deduction_amount": 380000
+                                    }
+                                ]
+                            },
+                            "spouse": {
+                                "qualifying_spouse_income_max": 380000,
+                                "taxpayer_income_brackets": [
+                                    {
+                                        "label": "1000万円以下",
+                                        "taxpayer_income_from": 0,
+                                        "taxpayer_income_to_inclusive": null,
+                                        "deduction_amount": 380000,
+                                        "elderly_deduction_amount": 480000
+                                    }
+                                ]
+                            },
+                            "dependent": {
+                                "general_deduction_amount": 380000,
+                                "specific_deduction_amount": 630000,
+                                "elderly_cohabiting_deduction_amount": 580000,
+                                "elderly_other_deduction_amount": 480000
+                            }
+                        },
+                        "expense": {
+                            "social_insurance": {},
+                            "medical": {
+                                "income_threshold_rate": { "numer": 5, "denom": 100 },
+                                "threshold_cap_amount": 100000,
+                                "deduction_cap_amount": 2000000
+                            },
+                            "life_insurance": {
+                                "new_contract_brackets": [
+                                    {
+                                        "label": "一律",
+                                        "paid_from": 0,
+                                        "paid_to_inclusive": null,
+                                        "rate": { "numer": 1, "denom": 1 },
+                                        "addition_amount": 0,
+                                        "deduction_cap_amount": 40000
+                                    }
+                                ],
+                                "old_contract_brackets": [
+                                    {
+                                        "label": "一律",
+                                        "paid_from": 0,
+                                        "paid_to_inclusive": null,
+                                        "rate": { "numer": 1, "denom": 1 },
+                                        "addition_amount": 0,
+                                        "deduction_cap_amount": 50000
+                                    }
+                                ],
+                                "mixed_contract_cap_amount": 40000,
+                                "new_contract_cap_amount": 40000,
+                                "old_contract_cap_amount": 50000,
+                                "combined_cap_amount": 120000
+                            },
+                            "donation": {
+                                "income_cap_rate": { "numer": 40, "denom": 100 },
+                                "non_deductible_amount": 2000
+                            }
+                        }
+                    }
+                },
+                {
+                    "effective_from": "2020-01-01",
+                    "effective_until": null,
+                    "params": {
+                        "personal": {
+                            "basic": {
+                                "brackets": [
+                                    {
+                                        "label": "一律",
+                                        "income_from": 0,
+                                        "income_to_inclusive": null,
+                                        "deduction_amount": 480000
+                                    }
+                                ]
+                            },
+                            "spouse": {
+                                "qualifying_spouse_income_max": 480000,
+                                "taxpayer_income_brackets": [
+                                    {
+                                        "label": "1000万円以下",
+                                        "taxpayer_income_from": 0,
+                                        "taxpayer_income_to_inclusive": null,
+                                        "deduction_amount": 380000,
+                                        "elderly_deduction_amount": 480000
+                                    }
+                                ]
+                            },
+                            "dependent": {
+                                "general_deduction_amount": 380000,
+                                "specific_deduction_amount": 630000,
+                                "elderly_cohabiting_deduction_amount": 580000,
+                                "elderly_other_deduction_amount": 480000
+                            }
+                        },
+                        "expense": {
+                            "social_insurance": {},
+                            "medical": {
+                                "income_threshold_rate": { "numer": 5, "denom": 100 },
+                                "threshold_cap_amount": 100000,
+                                "deduction_cap_amount": 2000000
+                            },
+                            "life_insurance": {
+                                "new_contract_brackets": [
+                                    {
+                                        "label": "一律",
+                                        "paid_from": 0,
+                                        "paid_to_inclusive": null,
+                                        "rate": { "numer": 1, "denom": 1 },
+                                        "addition_amount": 0,
+                                        "deduction_cap_amount": 40000
+                                    }
+                                ],
+                                "old_contract_brackets": [
+                                    {
+                                        "label": "一律",
+                                        "paid_from": 0,
+                                        "paid_to_inclusive": null,
+                                        "rate": { "numer": 1, "denom": 1 },
+                                        "addition_amount": 0,
+                                        "deduction_cap_amount": 50000
+                                    }
+                                ],
+                                "mixed_contract_cap_amount": 40000,
+                                "new_contract_cap_amount": 40000,
+                                "old_contract_cap_amount": 50000,
+                                "combined_cap_amount": 120000
+                            },
+                            "donation": {
+                                "income_cap_rate": { "numer": 40, "denom": 100 },
+                                "non_deductible_amount": 2000
+                            }
+                        }
+                    }
+                }
+            ]
+        }))
+    }
 
     #[test]
     fn load_2024_params() {
@@ -227,6 +557,54 @@ mod tests {
         assert!(matches!(
             result,
             Err(JLawError::Input(InputError::DateOutOfRange { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_accepts_current_data() {
+        let json_str = include_str!("../data/income_tax/deductions.json");
+        let registry: IncomeTaxDeductionRegistry = serde_json::from_str(json_str).unwrap();
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_rejects_period_overlap() {
+        let mut registry = sample_registry();
+        registry.history[0].effective_until = Some("2020-01-15".into());
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::PeriodOverlap { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_rejects_period_gap() {
+        let mut registry = sample_registry();
+        registry.history[0].effective_until = Some("2019-12-30".into());
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::PeriodGap { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_rejects_zero_denominator() {
+        let mut registry = sample_registry();
+        registry.history[0]
+            .params
+            .expense
+            .medical
+            .income_threshold_rate
+            .denom = 0;
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::ZeroDenominator { .. }))
         ));
     }
 }
