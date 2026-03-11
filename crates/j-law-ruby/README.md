@@ -6,7 +6,7 @@
 
 ## インストール
 
-source gem として配布する前提です。`gem install` 時に Rust toolchain が必要です。
+source gem として配布する前提です。`gem install` 時に Rust 1.94.0 toolchain が必要です。
 
 ```sh
 gem install j_law_ruby

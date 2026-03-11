@@ -197,9 +197,9 @@ fn validate_periods(registry: &IncomeTaxDeductionRegistry) -> Result<(), Registr
     let mut sorted = registry.history.iter().collect::<Vec<_>>();
     sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
 
-    for window in sorted.windows(2) {
-        let current = window[0];
-        let next = window[1];
+    for [current, next] in sorted.array_windows::<2>() {
+        let current = *current;
+        let next = *next;
 
         let Some(current_until) = &current.effective_until else {
             return Err(RegistryError::PeriodOverlap {
@@ -351,10 +351,8 @@ fn days_in_month(year: u32, month: u32) -> u32 {
     }
 }
 
-#[allow(clippy::manual_is_multiple_of)]
 fn is_leap_year(year: u32) -> bool {
-    // Keep the leap-year check compatible with the Rust 1.85 Docker toolchain.
-    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
+    year.is_multiple_of(4) && !year.is_multiple_of(100) || year.is_multiple_of(400)
 }
 
 #[cfg(test)]

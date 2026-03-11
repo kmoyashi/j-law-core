@@ -134,7 +134,7 @@ cargo test --all
 ### インストール
 
 ```bash
-# ソースからビルド（要 Rust toolchain）
+# ソースからビルド（要 Rust 1.94.0 toolchain）
 pip install ./crates/j-law-python
 ```
 
@@ -353,7 +353,7 @@ function calcBrokerageFee(
 ### インストール
 
 ```bash
-# ソースからビルド（要 Rust toolchain）
+# ソースからビルド（要 Rust 1.94.0 toolchain）
 cd crates/j-law-ruby
 bundle install
 rake compile
@@ -362,7 +362,7 @@ rake compile
 ### 要件
 
 - Ruby >= 3.0
-- Rust toolchain
+- Rust 1.94.0 toolchain
 - rb_sys ~> 0.9
 
 ### 使用例
@@ -467,7 +467,7 @@ make test
 ### 要件
 
 - Go 1.21+
-- Rust toolchain（静的ライブラリのビルドに必要）
+- Rust 1.94.0 toolchain（静的ライブラリのビルドに必要）
 - C コンパイラ（CGo に必要）
 
 ### 使用例

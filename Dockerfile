@@ -6,7 +6,7 @@
 # =============================================================================
 
 # ---- ベースステージ: Rust ツールチェイン + ソースコード ----
-FROM rust:1.85-bookworm AS base-rust
+FROM rust:1.94-bookworm AS base-rust
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ crates/

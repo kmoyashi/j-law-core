@@ -2,6 +2,7 @@
 name = "j-law-wasm"
 version = "0.0.1"
 edition = "2021"
+rust-version = "1.94"
 license = "MIT"
 description = "日本の法令が定める各種計算を法的正確性を保証して実装するライブラリ（WebAssembly）"
 repository = "https://github.com/kmoyashi/j-law-core"

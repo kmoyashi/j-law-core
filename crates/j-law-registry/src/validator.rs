@@ -30,10 +30,7 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
     let mut sorted = registry.history.clone();
     sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
 
-    for i in 0..sorted.len().saturating_sub(1) {
-        let current = &sorted[i];
-        let next = &sorted[i + 1];
-
+    for [current, next] in sorted.array_windows::<2>() {
         let current_until = match &current.effective_until {
             Some(d) => d.clone(),
             // active（現行）エントリは期間が終わっていないので次エントリと重複チェック不要
