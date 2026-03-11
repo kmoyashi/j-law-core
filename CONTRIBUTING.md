@@ -26,8 +26,8 @@ J-Law-Core へのコントリビューションを歓迎します。
 
 ### 必要なツール
 
-- Rust toolchain（`rustup` 経由でインストール）
-- `cargo fmt` / `cargo clippy`（Rust toolchain に同梱）
+- Rust 1.94.0 toolchain（`rustup` 経由でインストール）
+- `cargo fmt` / `cargo clippy`（Rust 1.94.0 toolchain に同梱）
 
 ### ビルドとテスト
 
