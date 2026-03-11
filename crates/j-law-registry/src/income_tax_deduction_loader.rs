@@ -351,8 +351,10 @@ fn days_in_month(year: u32, month: u32) -> u32 {
     }
 }
 
+#[allow(clippy::manual_is_multiple_of)]
 fn is_leap_year(year: u32) -> bool {
-    (year.is_multiple_of(4) && !year.is_multiple_of(100)) || year.is_multiple_of(400)
+    // Keep the leap-year check compatible with the Rust 1.85 Docker toolchain.
+    (year % 4 == 0 && year % 100 != 0) || year % 400 == 0
 }
 
 #[cfg(test)]
@@ -606,5 +608,29 @@ mod tests {
             result,
             Err(JLawError::Registry(RegistryError::ZeroDenominator { .. }))
         ));
+    }
+
+    #[test]
+    fn parse_iso_date_accepts_leap_day_in_leap_year() {
+        let result = parse_iso_date("2024-02-29", "history[0].effective_from");
+        assert!(matches!(result, Ok((2024, 2, 29))));
+    }
+
+    #[test]
+    fn parse_iso_date_rejects_leap_day_in_common_year() {
+        let result = parse_iso_date("2023-02-29", "history[0].effective_from");
+        assert!(matches!(result, Err(RegistryError::ParseError { .. })));
+    }
+
+    #[test]
+    fn parse_iso_date_rejects_century_non_leap_year() {
+        let result = parse_iso_date("1900-02-29", "history[0].effective_from");
+        assert!(matches!(result, Err(RegistryError::ParseError { .. })));
+    }
+
+    #[test]
+    fn parse_iso_date_accepts_century_leap_year() {
+        let result = parse_iso_date("2000-02-29", "history[0].effective_from");
+        assert!(matches!(result, Ok((2000, 2, 29))));
     }
 }
