@@ -1,0 +1,108 @@
+{
+  "income_tax_deductions": [
+    {
+      "id": "expense_bundle_2024",
+      "description": "2024年分の支出系控除をまとめて計算する",
+      "input": {
+        "total_income_amount": 6000000,
+        "date": "2024-01-01",
+        "spouse": null,
+        "dependent": {
+          "general_count": 0,
+          "specific_count": 0,
+          "elderly_cohabiting_count": 0,
+          "elderly_other_count": 0
+        },
+        "social_insurance_premium_paid": 150000,
+        "medical": {
+          "medical_expense_paid": 500000,
+          "reimbursed_amount": 50000
+        },
+        "life_insurance": {
+          "new_general_paid_amount": 100000,
+          "new_individual_pension_paid_amount": 60000,
+          "new_care_medical_paid_amount": 80000,
+          "old_general_paid_amount": 0,
+          "old_individual_pension_paid_amount": 0
+        },
+        "donation": {
+          "qualified_donation_amount": 500000
+        }
+      },
+      "expected": {
+        "total_income_amount": 6000000,
+        "total_deductions": 1593000,
+        "taxable_income_before_truncation": 4407000,
+        "taxable_income": 4407000
+      }
+    },
+    {
+      "id": "spouse_and_dependent_2024",
+      "description": "2024年分の人的控除を含む課税所得計算",
+      "input": {
+        "total_income_amount": 8000000,
+        "date": "2024-01-01",
+        "spouse": {
+          "spouse_total_income_amount": 480000,
+          "is_same_household": true,
+          "is_elderly": true
+        },
+        "dependent": {
+          "general_count": 1,
+          "specific_count": 1,
+          "elderly_cohabiting_count": 1,
+          "elderly_other_count": 1
+        },
+        "social_insurance_premium_paid": 200000,
+        "medical": null,
+        "life_insurance": null,
+        "donation": null
+      },
+      "expected": {
+        "total_income_amount": 8000000,
+        "total_deductions": 3230000,
+        "taxable_income_before_truncation": 4770000,
+        "taxable_income": 4770000
+      }
+    }
+  ],
+  "income_tax_assessment": [
+    {
+      "id": "expense_bundle_assessment_2024",
+      "description": "2024年分の支出系控除から所得税額までを通し計算する",
+      "input": {
+        "total_income_amount": 6000000,
+        "date": "2024-01-01",
+        "spouse": null,
+        "dependent": {
+          "general_count": 0,
+          "specific_count": 0,
+          "elderly_cohabiting_count": 0,
+          "elderly_other_count": 0
+        },
+        "social_insurance_premium_paid": 150000,
+        "medical": {
+          "medical_expense_paid": 500000,
+          "reimbursed_amount": 50000
+        },
+        "life_insurance": {
+          "new_general_paid_amount": 100000,
+          "new_individual_pension_paid_amount": 60000,
+          "new_care_medical_paid_amount": 80000,
+          "old_general_paid_amount": 0,
+          "old_individual_pension_paid_amount": 0
+        },
+        "donation": {
+          "qualified_donation_amount": 500000
+        },
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "taxable_income": 4407000,
+        "base_tax": 453900,
+        "reconstruction_tax": 9531,
+        "total_tax": 463400
+      }
+    }
+  ]
+}
