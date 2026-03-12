@@ -25,6 +25,7 @@ J-Law-Core は、日本の法令・告示・省令が定める各種計算を、
 | ----------------------- | --------------------------------------- | --------------------------------------------------------------- |
 | 不動産（`real_estate`） | 宅地建物取引業法 第46条                 | 1970年12月1日施行〜 / 2018年1月1日施行〜 / 2024年7月1日施行〜  |
 | 所得税（`income_tax`）  | 所得税法 第89条 / 復興財源確保法 第13条 | 2015年1月1日施行                                                |
+| 源泉徴収（`withholding_tax`） | 所得税法 第204条第1項 | 2013年1月1日〜2037年12月31日（報酬・料金等の二段階税率類型） |
 
 ---
 
@@ -36,6 +37,7 @@ J-Law-Core は、日本の法令・告示・省令が定める各種計算を、
 import datetime
 from j_law_python.real_estate import calc_brokerage_fee
 from j_law_python.income_tax import calc_income_tax
+from j_law_python.withholding_tax import calc_withholding_tax
 
 # 媒介報酬の計算（宅建業法 第46条）
 result = calc_brokerage_fee(5_000_000, datetime.date(2024, 8, 1))
@@ -56,12 +58,21 @@ result = calc_income_tax(5_000_000, datetime.date(2024, 1, 1), apply_reconstruct
 print(result.total_tax)          # 584500
 print(result.base_tax)           # 572500
 print(result.reconstruction_tax) # 12022
+
+# 報酬・料金等の源泉徴収（所得税法 第204条第1項）
+result = calc_withholding_tax(
+    1_500_000,
+    datetime.date(2026, 1, 1),
+    "professional_fee",
+)
+print(result.tax_amount)         # 204200
+print(result.net_payment_amount) # 1295800
 ```
 
 ### JavaScript (WASM)
 
 ```javascript
-const { calcBrokerageFee, calcIncomeTax } = require("j-law-wasm");
+const { calcBrokerageFee, calcIncomeTax, calcWithholdingTax } = require("j-law-wasm");
 
 // Date は JST で解釈される。Date.UTC() を使うとタイムゾーン非依存になる
 const fee = calcBrokerageFee(5_000_000, new Date(Date.UTC(2024, 7, 1)), false, false);
@@ -69,6 +80,15 @@ console.log(fee.totalWithTax); // 231000
 
 const tax = calcIncomeTax(5_000_000, new Date(Date.UTC(2024, 0, 1)), true);
 console.log(tax.totalTax); // 584500
+
+const withholding = calcWithholdingTax(
+  1_500_000,
+  new Date(Date.UTC(2026, 0, 1)),
+  "professional_fee",
+  false,
+  0
+);
+console.log(withholding.taxAmount); // 204200
 ```
 
 ### Ruby
@@ -81,6 +101,13 @@ puts result.total_with_tax  # 231000
 
 result = JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2024, 1, 1), true)
 puts result.total_tax       # 584500
+
+result = JLawRuby::WithholdingTax.calc_withholding_tax(
+  1_500_000,
+  Date.new(2026, 1, 1),
+  :professional_fee
+)
+puts result.tax_amount      # 204200
 ```
 
 ### Go
@@ -97,6 +124,16 @@ fmt.Println(result.TotalWithTax) // 231000
 taxDate := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
 taxResult, err := jlawcore.CalcIncomeTax(5_000_000, taxDate, true)
 fmt.Println(taxResult.TotalTax)  // 584500
+
+withholdingDate := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
+withholdingResult, err := jlawcore.CalcWithholdingTax(
+    1_500_000,
+    withholdingDate,
+    jlawcore.WithholdingTaxCategoryProfessionalFee,
+    false,
+    0,
+)
+fmt.Println(withholdingResult.TaxAmount) // 204200
 ```
 
 ### Rust
@@ -150,11 +187,13 @@ j-law-core/
 │   │       ├── error.rs          # JLawError 階層
 │   │       └── domains/
 │   │           ├── real_estate/  # 不動産ドメイン（宅建業法 第46条）
-│   │           └── income_tax/   # 所得税ドメイン（所得税法 第89条）
+│   │           ├── income_tax/   # 所得税ドメイン（所得税法 第89条）
+│   │           └── withholding_tax/ # 源泉徴収ドメイン（所得税法 第204条）
 │   ├── j-law-registry/           # 法令パラメータ管理（JSON）
 │   │   └── data/
 │   │       ├── real_estate/      # 宅建業法告示パラメータ
-│   │       └── income_tax/       # 所得税法パラメータ
+│   │       ├── income_tax/       # 所得税法パラメータ
+│   │       └── withholding_tax/  # 源泉徴収パラメータ
 │   ├── j-law-python/             # Python バインディング（ctypes + C ABI）
 │   ├── j-law-wasm/               # WASM/JavaScript バインディング（wasm-bindgen）
 │   ├── j-law-ruby/               # Ruby バインディング（ffi + C ABI）
@@ -163,7 +202,8 @@ j-law-core/
 ├── tests/
 │   └── fixtures/                 # 全言語共通テストフィクスチャ（JSON）
 │       ├── real_estate.json
-│       └── income_tax.json
+│       ├── income_tax.json
+│       └── withholding_tax.json
 ├── Dockerfile                    # マルチステージテスト環境
 └── docker-compose.yml            # 全言語テスト一括実行
 ```
@@ -221,6 +261,28 @@ j-law-core/
 
 - **復興特別所得税**: 基準所得税額 × 2.1%（2013〜2037年）
 - **申告納税額**: 100円未満切り捨て
+
+### 源泉徴収ドメイン — 報酬・料金等（所得税法 第204条第1項）
+
+初版の `withholding_tax` ドメインは、給与所得の税額表ではなく、報酬・料金等のうち次の二段階税率類型を対象にしています。
+
+- 原稿料・講演料等
+- 税理士・弁護士・公認会計士等の報酬・料金
+- 役務提供等を約することにより一時に支払う専属契約金
+
+税額計算:
+
+- 100万円以下の部分: 10.21%
+- 100万円超の部分: 20.42%
+
+対応期間:
+
+- 2013年1月1日から2037年12月31日まで
+
+特例:
+
+- 原稿料・講演料等について、応募作品等の入選者に支払う賞金・謝金で 1 回 50,000 円以下の場合は源泉徴収不要
+- 請求書等で消費税額が明示されている場合、その明示額を計算対象額から控除可能
 
 ---
 

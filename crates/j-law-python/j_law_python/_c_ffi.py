@@ -13,6 +13,7 @@ MAX_DEDUCTION_LINES = 8
 LABEL_LEN = 64
 ERROR_BUF_LEN = 256
 U64_MAX = (1 << 64) - 1
+U32_MAX = (1 << 32) - 1
 
 
 class CFFIError(RuntimeError):
@@ -146,6 +147,19 @@ class _StampTaxResultStruct(ctypes.Structure):
     ]
 
 
+class _WithholdingTaxResultStruct(ctypes.Structure):
+    _fields_ = [
+        ("gross_payment_amount", ctypes.c_uint64),
+        ("taxable_payment_amount", ctypes.c_uint64),
+        ("tax_amount", ctypes.c_uint64),
+        ("net_payment_amount", ctypes.c_uint64),
+        ("category", ctypes.c_uint32),
+        ("submission_prize_exempted", ctypes.c_int),
+        ("breakdown", _BreakdownStepStruct * MAX_TIERS),
+        ("breakdown_len", ctypes.c_int),
+    ]
+
+
 @dataclass(frozen=True)
 class BreakdownStepRecord:
     label: str
@@ -250,6 +264,17 @@ class StampTaxRecord:
     reduced_rate_applied: bool
 
 
+@dataclass(frozen=True)
+class WithholdingTaxRecord:
+    gross_payment_amount: int
+    taxable_payment_amount: int
+    tax_amount: int
+    net_payment_amount: int
+    category: int
+    submission_prize_exempted: bool
+    breakdown: list[BreakdownStepRecord]
+
+
 def _decode_fixed_string(raw: ctypes.Array[ctypes.c_char]) -> str:
     return bytes(raw).split(b"\0", 1)[0].decode("utf-8")
 
@@ -261,6 +286,12 @@ def _bool_to_c_int(value: bool) -> int:
 def _validate_u64(value: int, field_name: str) -> int:
     if value < 0 or value > U64_MAX:
         raise CFFIError(f"{field_name} must be between 0 and {U64_MAX}")
+    return value
+
+
+def _validate_u32(value: int, field_name: str) -> int:
+    if value < 0 or value > U32_MAX:
+        raise CFFIError(f"{field_name} must be between 0 and {U32_MAX}")
     return value
 
 
@@ -469,6 +500,19 @@ _LIB.j_law_calc_stamp_tax.argtypes = [
     ctypes.c_int,
 ]
 _LIB.j_law_calc_stamp_tax.restype = ctypes.c_int
+_LIB.j_law_calc_withholding_tax.argtypes = [
+    ctypes.c_uint64,
+    ctypes.c_uint64,
+    ctypes.c_uint16,
+    ctypes.c_uint8,
+    ctypes.c_uint8,
+    ctypes.c_uint32,
+    ctypes.c_int,
+    ctypes.POINTER(_WithholdingTaxResultStruct),
+    ctypes.POINTER(ctypes.c_char),
+    ctypes.c_int,
+]
+_LIB.j_law_calc_withholding_tax.restype = ctypes.c_int
 
 _ACTUAL_FFI_VERSION = _LIB.j_law_c_ffi_version()
 if _ACTUAL_FFI_VERSION != FFI_VERSION:
@@ -682,4 +726,47 @@ def calc_stamp_tax(
         tax_amount=int(result.tax_amount),
         bracket_label=_decode_fixed_string(result.bracket_label),
         reduced_rate_applied=bool(result.reduced_rate_applied),
+    )
+
+
+def calc_withholding_tax(
+    payment_amount: int,
+    separated_consumption_tax_amount: int,
+    year: int,
+    month: int,
+    day: int,
+    category: int,
+    is_submission_prize: bool,
+) -> WithholdingTaxRecord:
+    checked_payment_amount = _validate_u64(payment_amount, "payment_amount")
+    checked_separated_consumption_tax_amount = _validate_u64(
+        separated_consumption_tax_amount,
+        "separated_consumption_tax_amount",
+    )
+    checked_category = _validate_u32(category, "category")
+    result = _WithholdingTaxResultStruct()
+    error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
+    status = _LIB.j_law_calc_withholding_tax(
+        ctypes.c_uint64(checked_payment_amount),
+        ctypes.c_uint64(checked_separated_consumption_tax_amount),
+        ctypes.c_uint16(year),
+        ctypes.c_uint8(month),
+        ctypes.c_uint8(day),
+        ctypes.c_uint32(checked_category),
+        ctypes.c_int(_bool_to_c_int(is_submission_prize)),
+        ctypes.byref(result),
+        error_buffer,
+        ERROR_BUF_LEN,
+    )
+    if status != 0:
+        raise CFFIError(_read_error(error_buffer))
+
+    return WithholdingTaxRecord(
+        gross_payment_amount=int(result.gross_payment_amount),
+        taxable_payment_amount=int(result.taxable_payment_amount),
+        tax_amount=int(result.tax_amount),
+        net_payment_amount=int(result.net_payment_amount),
+        category=int(result.category),
+        submission_prize_exempted=bool(result.submission_prize_exempted),
+        breakdown=_read_breakdown(result.breakdown, int(result.breakdown_len)),
     )

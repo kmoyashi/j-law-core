@@ -48,6 +48,9 @@ pub enum InputError {
     #[error("所得控除の入力が無効です: field={field}, reason={reason}")]
     InvalidDeductionInput { field: String, reason: String },
 
+    #[error("源泉徴収入力が無効です: field={field}, reason={reason}")]
+    InvalidWithholdingInput { field: String, reason: String },
+
     #[error("分母にゼロが指定されました")]
     ZeroDenominator,
 }
@@ -104,6 +107,16 @@ mod tests {
         };
         assert!(e.to_string().contains("social_insurance_premium_paid"));
         assert!(e.to_string().contains("test"));
+    }
+
+    #[test]
+    fn invalid_withholding_input_display() {
+        let e = InputError::InvalidWithholdingInput {
+            field: "category".into(),
+            reason: "unknown".into(),
+        };
+        assert!(e.to_string().contains("category"));
+        assert!(e.to_string().contains("unknown"));
     }
 
     #[test]

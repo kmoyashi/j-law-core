@@ -22,7 +22,7 @@ extern "C" {
 #define J_LAW_ERROR_BUF_LEN 256
 
 /** j-law-c-ffi の FFI 互換バージョン。 */
-#define J_LAW_C_FFI_VERSION 2
+#define J_LAW_C_FFI_VERSION 3
 
 /** 所得控除種別定数。 */
 #define J_LAW_INCOME_DEDUCTION_KIND_BASIC 1
@@ -32,6 +32,11 @@ extern "C" {
 #define J_LAW_INCOME_DEDUCTION_KIND_MEDICAL 5
 #define J_LAW_INCOME_DEDUCTION_KIND_LIFE_INSURANCE 6
 #define J_LAW_INCOME_DEDUCTION_KIND_DONATION 7
+
+/** 源泉徴収カテゴリ定数。 */
+#define J_LAW_WITHHOLDING_TAX_CATEGORY_MANUSCRIPT_AND_LECTURE 1
+#define J_LAW_WITHHOLDING_TAX_CATEGORY_PROFESSIONAL_FEE 2
+#define J_LAW_WITHHOLDING_TAX_CATEGORY_EXCLUSIVE_CONTRACT_FEE 3
 
 /* ─── 構造体 ─────────────────────────────────────────────────────────────── */
 
@@ -104,6 +109,63 @@ int j_law_calc_brokerage_fee(
     int      is_low_cost_vacant_house,
     int      is_seller,
     JLawBrokerageFeeResult *out_result,
+    char    *error_buf,
+    int      error_buf_len
+);
+
+/* ─── 源泉徴収 構造体 ─────────────────────────────────────────────────────── */
+
+/**
+ * 源泉徴収税額の計算結果。
+ */
+typedef struct {
+    /** 支払総額（円）。 */
+    uint64_t gross_payment_amount;
+    /** 源泉徴収税額の計算対象額（円）。 */
+    uint64_t taxable_payment_amount;
+    /** 源泉徴収税額（円）。 */
+    uint64_t tax_amount;
+    /** 源泉徴収後の支払額（円）。 */
+    uint64_t net_payment_amount;
+    /** カテゴリコード（J_LAW_WITHHOLDING_TAX_CATEGORY_*）。 */
+    uint32_t category;
+    /** 応募作品等の入選賞金・謝金の非課税特例を適用したか（0 = false, 1 = true）。 */
+    int      submission_prize_exempted;
+    /** 計算内訳（breakdown_len 件が有効）。 */
+    JLawBreakdownStep breakdown[J_LAW_MAX_TIERS];
+    /** breakdown の有効件数。 */
+    int      breakdown_len;
+} JLawWithholdingTaxResult;
+
+/* ─── 源泉徴収 関数 ───────────────────────────────────────────────────────── */
+
+/**
+ * 所得税法第204条第1項に基づく報酬・料金等の源泉徴収税額を計算する。
+ *
+ * 法的根拠: 所得税法 第204条第1項 / 国税庁タックスアンサー No.2795 / No.2798 / No.2810
+ *
+ * @param payment_amount                   支払総額（円）
+ * @param separated_consumption_tax_amount 区分表示された消費税額（円）
+ * @param year                             基準日（年）
+ * @param month                            基準日（月）
+ * @param day                              基準日（日）
+ * @param category                         カテゴリコード（J_LAW_WITHHOLDING_TAX_CATEGORY_*）
+ * @param is_submission_prize              応募作品等の入選賞金・謝金として扱うか（0 = false, 非0 = true）
+ *                                         WARNING: 事実認定は呼び出し元の責任。
+ * @param out_result                       [OUT] 計算結果の書き込み先
+ * @param error_buf                        [OUT] エラーメッセージの書き込み先
+ * @param error_buf_len                    error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
+ * @return                                 成功時 0、失敗時 非0
+ */
+int j_law_calc_withholding_tax(
+    uint64_t payment_amount,
+    uint64_t separated_consumption_tax_amount,
+    uint16_t year,
+    uint8_t  month,
+    uint8_t  day,
+    uint32_t category,
+    int      is_submission_prize,
+    JLawWithholdingTaxResult *out_result,
     char    *error_buf,
     int      error_buf_len
 );

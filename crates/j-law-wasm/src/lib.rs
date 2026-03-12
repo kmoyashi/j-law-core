@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::str::FromStr;
 
 use js_sys::{Array, Number};
 use wasm_bindgen::{prelude::*, JsCast};
@@ -31,12 +32,19 @@ use ::j_law_core::domains::stamp_tax::{
     context::{StampTaxContext, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
+use ::j_law_core::domains::withholding_tax::{
+    calculator::calculate_withholding_tax,
+    context::{WithholdingTaxContext, WithholdingTaxFlag},
+    policy::StandardWithholdingTaxPolicy,
+    WithholdingTaxCategory,
+};
 use ::j_law_core::{InputError, JLawError, LegalDate};
 use ::j_law_registry::load_brokerage_fee_params;
 use ::j_law_registry::load_consumption_tax_params;
 use ::j_law_registry::load_income_tax_deduction_params;
 use ::j_law_registry::load_income_tax_params;
 use ::j_law_registry::load_stamp_tax_params;
+use ::j_law_registry::load_withholding_tax_params;
 
 // ─── 日付ユーティリティ ──────────────────────────────────────────────────────────
 
@@ -1067,5 +1075,147 @@ pub fn calc_stamp_tax(
         tax_amount: result.tax_amount.as_yen() as u32,
         bracket_label: result.bracket_label,
         reduced_rate_applied: result.reduced_rate_applied,
+    })
+}
+
+/// 源泉徴収税額の計算結果。
+#[wasm_bindgen]
+pub struct WithholdingTaxResult {
+    gross_payment_amount: u32,
+    taxable_payment_amount: u32,
+    tax_amount: u32,
+    net_payment_amount: u32,
+    category: String,
+    submission_prize_exempted: bool,
+    breakdown_data: Vec<BreakdownStepData>,
+}
+
+#[wasm_bindgen]
+impl WithholdingTaxResult {
+    #[wasm_bindgen(getter, js_name = "grossPaymentAmount")]
+    pub fn gross_payment_amount(&self) -> u32 {
+        self.gross_payment_amount
+    }
+
+    #[wasm_bindgen(getter, js_name = "taxablePaymentAmount")]
+    pub fn taxable_payment_amount(&self) -> u32 {
+        self.taxable_payment_amount
+    }
+
+    #[wasm_bindgen(getter, js_name = "taxAmount")]
+    pub fn tax_amount(&self) -> u32 {
+        self.tax_amount
+    }
+
+    #[wasm_bindgen(getter, js_name = "netPaymentAmount")]
+    pub fn net_payment_amount(&self) -> u32 {
+        self.net_payment_amount
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn category(&self) -> String {
+        self.category.clone()
+    }
+
+    #[wasm_bindgen(getter, js_name = "submissionPrizeExempted")]
+    pub fn submission_prize_exempted(&self) -> bool {
+        self.submission_prize_exempted
+    }
+
+    pub fn breakdown(&self) -> Array {
+        self.breakdown_data
+            .iter()
+            .map(|step| {
+                let obj = js_sys::Object::new();
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("label"),
+                    &JsValue::from_str(&step.label),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("baseAmount"),
+                    &JsValue::from_f64(step.base_amount as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("rateNumer"),
+                    &JsValue::from_f64(step.rate_numer as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("rateDenom"),
+                    &JsValue::from_f64(step.rate_denom as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("result"),
+                    &JsValue::from_f64(step.result as f64),
+                );
+                JsValue::from(obj)
+            })
+            .collect()
+    }
+}
+
+/// 所得税法第204条第1項に基づく報酬・料金等の源泉徴収税額を計算する。
+///
+/// @param paymentAmount - 支払総額（円）
+/// @param date - 基準日（JavaScript Date オブジェクト。JST で解釈される）
+/// @param category - `"manuscript_and_lecture" | "professional_fee" | "exclusive_contract_fee"`
+/// @param isSubmissionPrize - 応募作品等の入選賞金・謝金として扱うか
+/// @param separatedConsumptionTaxAmount - 区分表示された消費税額（円）
+/// @returns WithholdingTaxResult
+#[wasm_bindgen(js_name = "calcWithholdingTax")]
+pub fn calc_withholding_tax_js(
+    payment_amount: u32,
+    date: &js_sys::Date,
+    category: &str,
+    is_submission_prize: bool,
+    separated_consumption_tax_amount: u32,
+) -> Result<WithholdingTaxResult, JsValue> {
+    let (year, month, day) = extract_jst_date(date);
+    let params = load_withholding_tax_params(LegalDate::new(year, month, day))
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let category = WithholdingTaxCategory::from_str(category)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let mut flags = HashSet::new();
+    if is_submission_prize {
+        flags.insert(WithholdingTaxFlag::IsSubmissionPrize);
+    }
+
+    let ctx = WithholdingTaxContext {
+        payment_amount: payment_amount as u64,
+        separated_consumption_tax_amount: separated_consumption_tax_amount as u64,
+        category,
+        target_date: LegalDate::new(year, month, day),
+        flags,
+        policy: Box::new(StandardWithholdingTaxPolicy),
+    };
+
+    let result =
+        calculate_withholding_tax(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let breakdown_data = result
+        .breakdown
+        .iter()
+        .map(|step| BreakdownStepData {
+            label: step.label.clone(),
+            base_amount: step.base_amount as u32,
+            rate_numer: step.rate_numer as u32,
+            rate_denom: step.rate_denom as u32,
+            result: step.result.as_yen() as u32,
+        })
+        .collect();
+
+    Ok(WithholdingTaxResult {
+        gross_payment_amount: result.gross_payment_amount.as_yen() as u32,
+        taxable_payment_amount: result.taxable_payment_amount.as_yen() as u32,
+        tax_amount: result.tax_amount.as_yen() as u32,
+        net_payment_amount: result.net_payment_amount.as_yen() as u32,
+        category: result.category.to_string(),
+        submission_prize_exempted: result.submission_prize_exempted,
+        breakdown_data,
     })
 }
