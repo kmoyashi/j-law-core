@@ -24,6 +24,12 @@ module JLawRuby
         :total_without_tax, :total_with_tax, :tax_amount, :low_cost_special_applied, :breakdown,
         keyword_init: true
       )
+      SocialInsuranceRecord = Struct.new(
+        :health_related_amount, :pension_amount, :total_amount,
+        :health_standard_monthly_remuneration, :pension_standard_monthly_remuneration,
+        :care_insurance_applied, :breakdown,
+        keyword_init: true
+      )
       IncomeTaxStepRecord = Struct.new(
         :label, :taxable_income, :rate_numer, :rate_denom, :deduction, :result,
         keyword_init: true
@@ -75,6 +81,18 @@ module JLawRuby
                :total_with_tax, :uint64,
                :tax_amount, :uint64,
                :low_cost_special_applied, :int,
+               :breakdown_padding, [:char, 4],
+               :breakdown_storage, [:char, BreakdownStepStruct.size * MAX_TIERS],
+               :breakdown_len, :int
+      end
+
+      class SocialInsuranceStruct < FFI::Struct
+        layout :health_related_amount, :uint64,
+               :pension_amount, :uint64,
+               :total_amount, :uint64,
+               :health_standard_monthly_remuneration, :uint64,
+               :pension_standard_monthly_remuneration, :uint64,
+               :care_insurance_applied, :int,
                :breakdown_padding, [:char, 4],
                :breakdown_storage, [:char, BreakdownStepStruct.size * MAX_TIERS],
                :breakdown_len, :int
@@ -178,6 +196,10 @@ module JLawRuby
                       [:uint64, :uint16, :uint8, :uint8, :int, :int,
                        BrokerageFeeStruct.by_ref, :pointer, :int],
                       :int
+      attach_function :j_law_calc_social_insurance,
+                      [:uint64, :uint16, :uint8, :uint8, :uint8, :int,
+                       SocialInsuranceStruct.by_ref, :pointer, :int],
+                      :int
       attach_function :j_law_calc_income_tax,
                       [:uint64, :uint16, :uint8, :uint8, :int,
                        IncomeTaxStruct.by_ref, :pointer, :int],
@@ -239,6 +261,46 @@ module JLawRuby
           low_cost_special_applied: c_int_to_bool(result[:low_cost_special_applied]),
           breakdown: read_struct_array(
             result.pointer + BrokerageFeeStruct.offset_of(:breakdown_storage),
+            BreakdownStepStruct,
+            result[:breakdown_len]
+          ).map do |step|
+            BreakdownStepRecord.new(
+              label: read_fixed_string(step, :label, LABEL_LEN),
+              base_amount: step[:base_amount],
+              rate_numer: step[:rate_numer],
+              rate_denom: step[:rate_denom],
+              result: step[:result]
+            )
+          end
+        )
+      end
+
+      def calc_social_insurance(standard_monthly_remuneration, year, month, day, prefecture_code, is_care_insurance_applicable)
+        result = SocialInsuranceStruct.new
+
+        call_with_error do |error_buf|
+          j_law_calc_social_insurance(
+            standard_monthly_remuneration,
+            year,
+            month,
+            day,
+            prefecture_code,
+            bool_to_c_int(is_care_insurance_applicable),
+            result,
+            error_buf,
+            ERROR_BUF_LEN
+          )
+        end
+
+        SocialInsuranceRecord.new(
+          health_related_amount: result[:health_related_amount],
+          pension_amount: result[:pension_amount],
+          total_amount: result[:total_amount],
+          health_standard_monthly_remuneration: result[:health_standard_monthly_remuneration],
+          pension_standard_monthly_remuneration: result[:pension_standard_monthly_remuneration],
+          care_insurance_applied: c_int_to_bool(result[:care_insurance_applied]),
+          breakdown: read_struct_array(
+            result.pointer + SocialInsuranceStruct.offset_of(:breakdown_storage),
             BreakdownStepStruct,
             result[:breakdown_len]
           ).map do |step|
@@ -438,7 +500,7 @@ module JLawRuby
         status = yield(error_buf)
         return if status.zero?
 
-        message = error_buf.read_string
+        message = error_buf.read_string.force_encoding("UTF-8")
         message = "j-law-c-ffi call failed with status #{status}" if message.empty?
         raise RuntimeError, message
       end

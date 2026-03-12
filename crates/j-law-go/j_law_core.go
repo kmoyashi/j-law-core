@@ -60,6 +60,17 @@ type BrokerageFeeResult struct {
 	Breakdown []BreakdownStep
 }
 
+// SocialInsuranceResult は社会保険料の計算結果を表す。
+type SocialInsuranceResult struct {
+	HealthRelatedAmount                 uint64
+	PensionAmount                       uint64
+	TotalAmount                         uint64
+	HealthStandardMonthlyRemuneration   uint64
+	PensionStandardMonthlyRemuneration  uint64
+	CareInsuranceApplied                bool
+	Breakdown                           []BreakdownStep
+}
+
 // ─── Go 公開関数 ────────────────────────────────────────────────────────────────
 
 // CalcBrokerageFee は宅建業法第46条に基づく媒介報酬を計算する。
@@ -113,6 +124,43 @@ func CalcBrokerageFee(
 	}
 
 	return toGoResult(&cResult), nil
+}
+
+// CalcSocialInsurance は協会けんぽ一般被保険者の月額社会保険料本人負担分を計算する。
+func CalcSocialInsurance(
+	standardMonthlyRemuneration uint64,
+	date time.Time,
+	prefectureCode uint8,
+	isCareInsuranceApplicable bool,
+) (*SocialInsuranceResult, error) {
+	year := date.Year()
+	month := int(date.Month())
+	day := date.Day()
+	var cResult C.JLawSocialInsuranceResult
+	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
+	defer C.free(unsafe.Pointer(errorBuf))
+
+	isCare := C.int(0)
+	if isCareInsuranceApplicable {
+		isCare = 1
+	}
+
+	ret := C.j_law_calc_social_insurance(
+		C.uint64_t(standardMonthlyRemuneration),
+		C.uint16_t(year),
+		C.uint8_t(month),
+		C.uint8_t(day),
+		C.uint8_t(prefectureCode),
+		isCare,
+		&cResult,
+		errorBuf,
+		C.J_LAW_ERROR_BUF_LEN,
+	)
+	if ret != 0 {
+		return nil, errors.New(C.GoString(errorBuf))
+	}
+
+	return toGoSocialInsuranceResult(&cResult), nil
 }
 
 // ─── 所得税 Go 公開型 ───────────────────────────────────────────────────────────
@@ -480,6 +528,30 @@ func toGoResult(c *C.JLawBrokerageFeeResult) *BrokerageFeeResult {
 		TaxAmount:             uint64(c.tax_amount),
 		LowCostSpecialApplied: c.low_cost_special_applied != 0,
 		Breakdown:             breakdown,
+	}
+}
+
+func toGoSocialInsuranceResult(c *C.JLawSocialInsuranceResult) *SocialInsuranceResult {
+	breakdown := make([]BreakdownStep, 0, int(c.breakdown_len))
+	for i := 0; i < int(c.breakdown_len); i++ {
+		step := c.breakdown[i]
+		breakdown = append(breakdown, BreakdownStep{
+			Label:      C.GoString(&step.label[0]),
+			BaseAmount: uint64(step.base_amount),
+			RateNumer:  uint64(step.rate_numer),
+			RateDenom:  uint64(step.rate_denom),
+			Result:     uint64(step.result),
+		})
+	}
+
+	return &SocialInsuranceResult{
+		HealthRelatedAmount:                uint64(c.health_related_amount),
+		PensionAmount:                      uint64(c.pension_amount),
+		TotalAmount:                        uint64(c.total_amount),
+		HealthStandardMonthlyRemuneration:  uint64(c.health_standard_monthly_remuneration),
+		PensionStandardMonthlyRemuneration: uint64(c.pension_standard_monthly_remuneration),
+		CareInsuranceApplied:               c.care_insurance_applied != 0,
+		Breakdown:                          breakdown,
 	}
 }
 

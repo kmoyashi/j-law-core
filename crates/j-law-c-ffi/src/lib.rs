@@ -23,6 +23,10 @@ use j_law_core::domains::real_estate::{
     calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
     RealEstateFlag,
 };
+use j_law_core::domains::social_insurance::{
+    calculate_social_insurance_premium, SocialInsuranceContext, SocialInsuranceFlag,
+    SocialInsurancePrefecture, StandardNenkinPolicy,
+};
 use j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
     context::{StampTaxContext, StampTaxFlag},
@@ -33,6 +37,7 @@ use j_law_registry::load_brokerage_fee_params;
 use j_law_registry::load_consumption_tax_params;
 use j_law_registry::load_income_tax_deduction_params;
 use j_law_registry::load_income_tax_params;
+use j_law_registry::load_social_insurance_params;
 use j_law_registry::load_stamp_tax_params;
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
@@ -79,6 +84,27 @@ pub struct JLawBrokerageFeeResult {
     /// 低廉な空き家特例が適用されたか（0 = false, 1 = true）。
     pub low_cost_special_applied: c_int,
     /// 各ティアの計算内訳。
+    pub breakdown: [JLawBreakdownStep; J_LAW_MAX_TIERS],
+    /// breakdown の有効件数。
+    pub breakdown_len: c_int,
+}
+
+/// 社会保険料の計算結果（C 互換）。
+#[repr(C)]
+pub struct JLawSocialInsuranceResult {
+    /// 健康保険料（介護該当時は介護保険料を含む）の本人負担額（円）。
+    pub health_related_amount: u64,
+    /// 厚生年金保険料の本人負担額（円）。
+    pub pension_amount: u64,
+    /// 本人負担合計額（円）。
+    pub total_amount: u64,
+    /// 健康保険側の標準報酬月額（円）。
+    pub health_standard_monthly_remuneration: u64,
+    /// 厚生年金側の標準報酬月額（円）。
+    pub pension_standard_monthly_remuneration: u64,
+    /// 介護保険料を合算したか（0 = false, 1 = true）。
+    pub care_insurance_applied: c_int,
+    /// 計算内訳（breakdown_len 件が有効）。
     pub breakdown: [JLawBreakdownStep; J_LAW_MAX_TIERS],
     /// breakdown の有効件数。
     pub breakdown_len: c_int,
@@ -244,6 +270,104 @@ fn write_income_deduction_breakdown(
 #[no_mangle]
 pub extern "C" fn j_law_c_ffi_version() -> u32 {
     J_LAW_C_FFI_VERSION
+}
+
+/// 協会けんぽ一般被保険者の月額社会保険料本人負担分を計算する。
+///
+/// # 法的根拠
+/// 健康保険法 第160条
+/// 介護保険法 第129条
+/// 厚生年金保険法 第81条
+///
+/// # 引数
+/// - `standard_monthly_remuneration`: 健康保険の標準報酬月額（円）
+/// - `year`, `month`, `day`: 保険料率の適用基準日
+/// - `prefecture_code`: 協会けんぽ支部コード（1 = 北海道 ... 13 = 東京 ... 47 = 沖縄）
+/// - `is_care_insurance_applicable`: 介護保険料合算フラグ（0 = false, 非0 = true）
+///   WARNING: 事実認定は呼び出し元の責任。
+/// - `out_result`: [OUT] 計算結果の書き込み先
+/// - `error_buf`: [OUT] エラーメッセージの書き込み先
+/// - `error_buf_len`: `error_buf` のバイト長（推奨: `J_LAW_ERROR_BUF_LEN`）
+///
+/// # Safety
+/// - `out_result` は有効なポインタであること。
+/// - `error_buf` は `error_buf_len` バイト以上の領域を指していること。
+/// - `error_buf_len` は 1 以上であること。
+#[no_mangle]
+pub unsafe extern "C" fn j_law_calc_social_insurance(
+    standard_monthly_remuneration: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    prefecture_code: u8,
+    is_care_insurance_applicable: c_int,
+    out_result: *mut JLawSocialInsuranceResult,
+    error_buf: *mut c_char,
+    error_buf_len: c_int,
+) -> c_int {
+    if out_result.is_null() || error_buf.is_null() || error_buf_len <= 0 {
+        return -1;
+    }
+
+    let prefecture = match SocialInsurancePrefecture::from_code(prefecture_code) {
+        Some(prefecture) => prefecture,
+        None => {
+            write_error_msg(
+                &format!("未知の都道府県コードです: prefecture_code={prefecture_code}"),
+                error_buf,
+                error_buf_len,
+            );
+            return 1;
+        }
+    };
+
+    let params = match load_social_insurance_params(LegalDate::new(year, month, day)) {
+        Ok(params) => params,
+        Err(error) => {
+            write_error_msg(&error.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    let mut flags = HashSet::new();
+    if is_care_insurance_applicable != 0 {
+        flags.insert(SocialInsuranceFlag::IsCareInsuranceApplicable);
+    }
+
+    let ctx = SocialInsuranceContext {
+        standard_monthly_remuneration,
+        target_date: LegalDate::new(year, month, day),
+        prefecture,
+        flags,
+        policy: Box::new(StandardNenkinPolicy),
+    };
+
+    let result = match calculate_social_insurance_premium(&ctx, &params) {
+        Ok(result) => result,
+        Err(error) => {
+            write_error_msg(&error.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    let out = &mut *out_result;
+    out.health_related_amount = result.health_related_amount.as_yen();
+    out.pension_amount = result.pension_amount.as_yen();
+    out.total_amount = result.total_amount.as_yen();
+    out.health_standard_monthly_remuneration = result.health_standard_monthly_remuneration.as_yen();
+    out.pension_standard_monthly_remuneration =
+        result.pension_standard_monthly_remuneration.as_yen();
+    out.care_insurance_applied = if result.care_insurance_applied { 1 } else { 0 };
+    out.breakdown_len = result.breakdown.len().min(J_LAW_MAX_TIERS) as c_int;
+    for (index, step) in result.breakdown.iter().take(J_LAW_MAX_TIERS).enumerate() {
+        copy_str_to_fixed_buf(&step.label, &mut out.breakdown[index].label);
+        out.breakdown[index].base_amount = step.standard_monthly_remuneration.as_yen();
+        out.breakdown[index].rate_numer = step.rate_numer;
+        out.breakdown[index].rate_denom = step.rate_denom;
+        out.breakdown[index].result = step.amount.as_yen();
+    }
+
+    0
 }
 
 /// 宅建業法第46条に基づく媒介報酬を計算する。
@@ -1255,5 +1379,61 @@ mod tests {
 
         assert_eq!(status, 1);
         assert!(error_buf_to_string(&error_buf).contains("2014-03-31"));
+    }
+
+    #[test]
+    fn social_insurance_writes_expected_c_result() {
+        let mut result = unsafe { std::mem::zeroed::<JLawSocialInsuranceResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_social_insurance(
+                118_000,
+                2026,
+                3,
+                1,
+                13,
+                0,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0);
+        assert_eq!(error_buf_to_string(&error_buf), "");
+        assert_eq!(result.health_related_amount, 5_811);
+        assert_eq!(result.pension_amount, 10_797);
+        assert_eq!(result.total_amount, 16_608);
+        assert_eq!(result.care_insurance_applied, 0);
+        assert_eq!(result.breakdown_len, 2);
+        assert_eq!(
+            fixed_buf_to_string(&result.breakdown[0].label),
+            "健康保険料"
+        );
+        assert_eq!(result.breakdown[0].base_amount, 118_000);
+    }
+
+    #[test]
+    fn social_insurance_propagates_errors() {
+        let mut result = unsafe { std::mem::zeroed::<JLawSocialInsuranceResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_social_insurance(
+                305_000,
+                2026,
+                3,
+                1,
+                13,
+                0,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 1);
+        assert!(error_buf_to_string(&error_buf).contains("標準報酬月額"));
     }
 }

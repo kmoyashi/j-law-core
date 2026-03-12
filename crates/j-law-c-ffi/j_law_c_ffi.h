@@ -67,6 +67,28 @@ typedef struct {
     int      breakdown_len;
 } JLawBrokerageFeeResult;
 
+/**
+ * 社会保険料の計算結果。
+ */
+typedef struct {
+    /** 健康保険料（介護該当時は介護保険料を含む）の本人負担額（円）。 */
+    uint64_t health_related_amount;
+    /** 厚生年金保険料の本人負担額（円）。 */
+    uint64_t pension_amount;
+    /** 本人負担合計額（円）。 */
+    uint64_t total_amount;
+    /** 健康保険側の標準報酬月額（円）。 */
+    uint64_t health_standard_monthly_remuneration;
+    /** 厚生年金側の標準報酬月額（円）。 */
+    uint64_t pension_standard_monthly_remuneration;
+    /** 介護保険料を合算したか（0 = false, 1 = true）。 */
+    int      care_insurance_applied;
+    /** 計算内訳（breakdown_len 件が有効）。 */
+    JLawBreakdownStep breakdown[J_LAW_MAX_TIERS];
+    /** breakdown の有効件数。 */
+    int      breakdown_len;
+} JLawSocialInsuranceResult;
+
 /* ─── 関数 ───────────────────────────────────────────────────────────────── */
 
 /**
@@ -76,6 +98,35 @@ typedef struct {
  * 期待する C FFI と一致するかを検証する。
  */
 uint32_t j_law_c_ffi_version(void);
+
+/**
+ * 協会けんぽ一般被保険者の月額社会保険料本人負担分を計算する。
+ *
+ * 法的根拠: 健康保険法 第160条 / 介護保険法 第129条 / 厚生年金保険法 第81条
+ *
+ * @param standard_monthly_remuneration 健康保険の標準報酬月額（円）
+ * @param year                          基準日（年）
+ * @param month                         基準日（月）
+ * @param day                           基準日（日）
+ * @param prefecture_code               協会けんぽ支部コード（1 = 北海道 ... 47 = 沖縄）
+ * @param is_care_insurance_applicable  介護保険料合算フラグ（0 = false, 非0 = true）
+ *                                      WARNING: 事実認定は呼び出し元の責任。
+ * @param out_result                    [OUT] 計算結果の書き込み先
+ * @param error_buf                     [OUT] エラーメッセージの書き込み先
+ * @param error_buf_len                 error_buf のバイト長
+ * @return                              成功時 0、失敗時 非0
+ */
+int j_law_calc_social_insurance(
+    uint64_t standard_monthly_remuneration,
+    uint16_t year,
+    uint8_t  month,
+    uint8_t  day,
+    uint8_t  prefecture_code,
+    int      is_care_insurance_applicable,
+    JLawSocialInsuranceResult *out_result,
+    char    *error_buf,
+    int      error_buf_len
+);
 
 /**
  * 宅建業法第46条に基づく媒介報酬を計算する。

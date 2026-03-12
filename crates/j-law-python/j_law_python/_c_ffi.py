@@ -40,6 +40,19 @@ class _BrokerageFeeResultStruct(ctypes.Structure):
     ]
 
 
+class _SocialInsuranceResultStruct(ctypes.Structure):
+    _fields_ = [
+        ("health_related_amount", ctypes.c_uint64),
+        ("pension_amount", ctypes.c_uint64),
+        ("total_amount", ctypes.c_uint64),
+        ("health_standard_monthly_remuneration", ctypes.c_uint64),
+        ("pension_standard_monthly_remuneration", ctypes.c_uint64),
+        ("care_insurance_applied", ctypes.c_int),
+        ("breakdown", _BreakdownStepStruct * MAX_TIERS),
+        ("breakdown_len", ctypes.c_int),
+    ]
+
+
 class _IncomeTaxStepStruct(ctypes.Structure):
     _fields_ = [
         ("label", ctypes.c_char * LABEL_LEN),
@@ -161,6 +174,17 @@ class BrokerageFeeRecord:
     total_with_tax: int
     tax_amount: int
     low_cost_special_applied: bool
+    breakdown: list[BreakdownStepRecord]
+
+
+@dataclass(frozen=True)
+class SocialInsuranceRecord:
+    health_related_amount: int
+    pension_amount: int
+    total_amount: int
+    health_standard_monthly_remuneration: int
+    pension_standard_monthly_remuneration: int
+    care_insurance_applied: bool
     breakdown: list[BreakdownStepRecord]
 
 
@@ -421,6 +445,18 @@ _LIB.j_law_calc_brokerage_fee.argtypes = [
     ctypes.c_int,
 ]
 _LIB.j_law_calc_brokerage_fee.restype = ctypes.c_int
+_LIB.j_law_calc_social_insurance.argtypes = [
+    ctypes.c_uint64,
+    ctypes.c_uint16,
+    ctypes.c_uint8,
+    ctypes.c_uint8,
+    ctypes.c_uint8,
+    ctypes.c_int,
+    ctypes.POINTER(_SocialInsuranceResultStruct),
+    ctypes.POINTER(ctypes.c_char),
+    ctypes.c_int,
+]
+_LIB.j_law_calc_social_insurance.restype = ctypes.c_int
 _LIB.j_law_calc_income_tax.argtypes = [
     ctypes.c_uint64,
     ctypes.c_uint16,
@@ -516,6 +552,49 @@ def calc_brokerage_fee(
         total_with_tax=int(result.total_with_tax),
         tax_amount=int(result.tax_amount),
         low_cost_special_applied=bool(result.low_cost_special_applied),
+        breakdown=_read_breakdown(result.breakdown, int(result.breakdown_len)),
+    )
+
+
+def calc_social_insurance(
+    standard_monthly_remuneration: int,
+    year: int,
+    month: int,
+    day: int,
+    prefecture_code: int,
+    is_care_insurance_applicable: bool,
+) -> SocialInsuranceRecord:
+    checked_amount = _validate_u64(
+        standard_monthly_remuneration,
+        "standard_monthly_remuneration",
+    )
+    result = _SocialInsuranceResultStruct()
+    error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
+    status = _LIB.j_law_calc_social_insurance(
+        ctypes.c_uint64(checked_amount),
+        ctypes.c_uint16(year),
+        ctypes.c_uint8(month),
+        ctypes.c_uint8(day),
+        ctypes.c_uint8(prefecture_code),
+        ctypes.c_int(_bool_to_c_int(is_care_insurance_applicable)),
+        ctypes.byref(result),
+        error_buffer,
+        ERROR_BUF_LEN,
+    )
+    if status != 0:
+        raise CFFIError(_read_error(error_buffer))
+
+    return SocialInsuranceRecord(
+        health_related_amount=int(result.health_related_amount),
+        pension_amount=int(result.pension_amount),
+        total_amount=int(result.total_amount),
+        health_standard_monthly_remuneration=int(
+            result.health_standard_monthly_remuneration
+        ),
+        pension_standard_monthly_remuneration=int(
+            result.pension_standard_monthly_remuneration
+        ),
+        care_insurance_applied=bool(result.care_insurance_applied),
         breakdown=_read_breakdown(result.breakdown, int(result.breakdown_len)),
     )
 

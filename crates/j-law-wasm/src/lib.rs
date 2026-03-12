@@ -26,6 +26,10 @@ use ::j_law_core::domains::real_estate::{
     calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
     RealEstateFlag,
 };
+use ::j_law_core::domains::social_insurance::{
+    calculate_social_insurance_premium, SocialInsuranceContext, SocialInsuranceFlag,
+    SocialInsurancePrefecture, StandardNenkinPolicy,
+};
 use ::j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
     context::{StampTaxContext, StampTaxFlag},
@@ -36,6 +40,7 @@ use ::j_law_registry::load_brokerage_fee_params;
 use ::j_law_registry::load_consumption_tax_params;
 use ::j_law_registry::load_income_tax_deduction_params;
 use ::j_law_registry::load_income_tax_params;
+use ::j_law_registry::load_social_insurance_params;
 use ::j_law_registry::load_stamp_tax_params;
 
 // ─── 日付ユーティリティ ──────────────────────────────────────────────────────────
@@ -989,6 +994,150 @@ pub fn calc_income_tax_assessment(
         reconstruction_tax_applied: result.tax.reconstruction_tax_applied,
         deduction_breakdown_data,
         tax_breakdown_data,
+    })
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  社会保険料
+// ═══════════════════════════════════════════════════════════════════════════════
+
+#[wasm_bindgen]
+pub struct SocialInsuranceResult {
+    health_related_amount: u32,
+    pension_amount: u32,
+    total_amount: u32,
+    health_standard_monthly_remuneration: u32,
+    pension_standard_monthly_remuneration: u32,
+    care_insurance_applied: bool,
+    breakdown_data: Vec<BreakdownStepData>,
+}
+
+#[wasm_bindgen]
+impl SocialInsuranceResult {
+    #[wasm_bindgen(getter, js_name = "healthRelatedAmount")]
+    pub fn health_related_amount(&self) -> u32 {
+        self.health_related_amount
+    }
+
+    #[wasm_bindgen(getter, js_name = "pensionAmount")]
+    pub fn pension_amount(&self) -> u32 {
+        self.pension_amount
+    }
+
+    #[wasm_bindgen(getter, js_name = "totalAmount")]
+    pub fn total_amount(&self) -> u32 {
+        self.total_amount
+    }
+
+    #[wasm_bindgen(getter, js_name = "healthStandardMonthlyRemuneration")]
+    pub fn health_standard_monthly_remuneration(&self) -> u32 {
+        self.health_standard_monthly_remuneration
+    }
+
+    #[wasm_bindgen(getter, js_name = "pensionStandardMonthlyRemuneration")]
+    pub fn pension_standard_monthly_remuneration(&self) -> u32 {
+        self.pension_standard_monthly_remuneration
+    }
+
+    #[wasm_bindgen(getter, js_name = "careInsuranceApplied")]
+    pub fn care_insurance_applied(&self) -> bool {
+        self.care_insurance_applied
+    }
+
+    #[wasm_bindgen(js_name = "breakdown")]
+    pub fn breakdown(&self) -> Array {
+        self.breakdown_data
+            .iter()
+            .map(|step| {
+                let obj = js_sys::Object::new();
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("label"),
+                    &JsValue::from_str(&step.label),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("baseAmount"),
+                    &JsValue::from_f64(step.base_amount as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("rateNumer"),
+                    &JsValue::from_f64(step.rate_numer as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("rateDenom"),
+                    &JsValue::from_f64(step.rate_denom as f64),
+                );
+                let _ = js_sys::Reflect::set(
+                    &obj,
+                    &JsValue::from_str("result"),
+                    &JsValue::from_f64(step.result as f64),
+                );
+                JsValue::from(obj)
+            })
+            .collect::<Array>()
+    }
+}
+
+/// 協会けんぽ一般被保険者の月額社会保険料本人負担分を計算する。
+#[wasm_bindgen(js_name = "calcSocialInsurance")]
+pub fn calc_social_insurance(
+    standard_monthly_remuneration: f64,
+    date: &js_sys::Date,
+    prefecture_code: u8,
+    is_care_insurance_applicable: bool,
+) -> Result<SocialInsuranceResult, JsValue> {
+    let (year, month, day) = extract_jst_date(date);
+
+    let prefecture = SocialInsurancePrefecture::from_code(prefecture_code).ok_or_else(|| {
+        JsValue::from_str(&format!(
+            "未知の都道府県コードです: prefecture_code={prefecture_code}"
+        ))
+    })?;
+
+    let params = load_social_insurance_params(LegalDate::new(year, month, day))
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let mut flags = HashSet::new();
+    if is_care_insurance_applicable {
+        flags.insert(SocialInsuranceFlag::IsCareInsuranceApplicable);
+    }
+
+    let ctx = SocialInsuranceContext {
+        standard_monthly_remuneration: standard_monthly_remuneration as u64,
+        target_date: LegalDate::new(year, month, day),
+        prefecture,
+        flags,
+        policy: Box::new(StandardNenkinPolicy),
+    };
+
+    let result = calculate_social_insurance_premium(&ctx, &params)
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+
+    let breakdown_data = result
+        .breakdown
+        .iter()
+        .map(|step| BreakdownStepData {
+            label: step.label.clone(),
+            base_amount: step.standard_monthly_remuneration.as_yen() as u32,
+            rate_numer: step.rate_numer as u32,
+            rate_denom: step.rate_denom as u32,
+            result: step.amount.as_yen() as u32,
+        })
+        .collect();
+
+    Ok(SocialInsuranceResult {
+        health_related_amount: result.health_related_amount.as_yen() as u32,
+        pension_amount: result.pension_amount.as_yen() as u32,
+        total_amount: result.total_amount.as_yen() as u32,
+        health_standard_monthly_remuneration: result.health_standard_monthly_remuneration.as_yen()
+            as u32,
+        pension_standard_monthly_remuneration: result.pension_standard_monthly_remuneration.as_yen()
+            as u32,
+        care_insurance_applied: result.care_insurance_applied,
+        breakdown_data,
     })
 }
 

@@ -348,4 +348,69 @@ module JLawRuby
       StampTaxResult.new(r)
     end
   end
+
+  # ── 社会保険料 ────────────────────────────────────────────────────────────────
+
+  module SocialInsurance
+    # 社会保険料の計算結果。
+    class SocialInsuranceResult
+      attr_reader :health_related_amount, :pension_amount, :total_amount,
+                  :health_standard_monthly_remuneration,
+                  :pension_standard_monthly_remuneration, :breakdown
+
+      def initialize(r)
+        @health_related_amount = r.health_related_amount
+        @pension_amount = r.pension_amount
+        @total_amount = r.total_amount
+        @health_standard_monthly_remuneration = r.health_standard_monthly_remuneration
+        @pension_standard_monthly_remuneration = r.pension_standard_monthly_remuneration
+        @care_insurance_applied = r.care_insurance_applied
+        @breakdown = r.breakdown.map do |step|
+          {
+            label: step.label,
+            base_amount: step.base_amount,
+            rate_numer: step.rate_numer,
+            rate_denom: step.rate_denom,
+            result: step.result,
+          }
+        end
+      end
+
+      def care_insurance_applied?
+        @care_insurance_applied
+      end
+
+      def inspect
+        "#<JLawRuby::SocialInsurance::SocialInsuranceResult " \
+          "health_related_amount=#{@health_related_amount} " \
+          "pension_amount=#{@pension_amount} " \
+          "total_amount=#{@total_amount} " \
+          "care_insurance_applied=#{@care_insurance_applied}>"
+      end
+
+      alias to_s inspect
+    end
+
+    def self.calc_social_insurance(
+      standard_monthly_remuneration,
+      date,
+      prefecture_code,
+      is_care_insurance_applicable = false
+    )
+      unless date.is_a?(::Date) || date.is_a?(::DateTime)
+        raise TypeError,
+              "date には Date または DateTime を指定してください (got #{date.class})"
+      end
+
+      r = Internal::CFFI.calc_social_insurance(
+        standard_monthly_remuneration,
+        date.year,
+        date.month,
+        date.day,
+        prefecture_code,
+        is_care_insurance_applicable
+      )
+      SocialInsuranceResult.new(r)
+    end
+  end
 end

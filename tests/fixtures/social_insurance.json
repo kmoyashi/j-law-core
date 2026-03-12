@@ -1,0 +1,68 @@
+{
+  "social_insurance": [
+    {
+      "id": "tokyo_2026_118k",
+      "description": "東京都・令和8年3月分・標準報酬月額118,000円・介護なし",
+      "input": {
+        "standard_monthly_remuneration": 118000,
+        "date": "2026-03-01",
+        "prefecture_code": 13,
+        "is_care_insurance_applicable": false
+      },
+      "expected": {
+        "health_related_amount": 5811,
+        "pension_amount": 10797,
+        "total_amount": 16608,
+        "care_insurance_applied": false
+      }
+    },
+    {
+      "id": "tokyo_2026_150k_care",
+      "description": "東京都・令和8年3月分・標準報酬月額150,000円・介護あり",
+      "input": {
+        "standard_monthly_remuneration": 150000,
+        "date": "2026-03-01",
+        "prefecture_code": 13,
+        "is_care_insurance_applicable": true
+      },
+      "expected": {
+        "health_related_amount": 8602,
+        "pension_amount": 13725,
+        "total_amount": 22327,
+        "care_insurance_applied": true
+      }
+    },
+    {
+      "id": "kanagawa_2026_160k",
+      "description": "神奈川県・令和8年3月分・標準報酬月額160,000円・介護なし",
+      "input": {
+        "standard_monthly_remuneration": 160000,
+        "date": "2026-03-01",
+        "prefecture_code": 14,
+        "is_care_insurance_applicable": false
+      },
+      "expected": {
+        "health_related_amount": 7936,
+        "pension_amount": 14640,
+        "total_amount": 22576,
+        "care_insurance_applied": false
+      }
+    },
+    {
+      "id": "tokyo_2025_680k_cap",
+      "description": "東京都・令和7年3月分・標準報酬月額680,000円・介護なし（厚生年金上限適用）",
+      "input": {
+        "standard_monthly_remuneration": 680000,
+        "date": "2025-03-01",
+        "prefecture_code": 13,
+        "is_care_insurance_applicable": false
+      },
+      "expected": {
+        "health_related_amount": 33694,
+        "pension_amount": 59475,
+        "total_amount": 93169,
+        "care_insurance_applied": false
+      }
+    }
+  ]
+}
