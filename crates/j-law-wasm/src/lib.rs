@@ -1004,7 +1004,7 @@ pub fn calc_income_tax_assessment(
 /// - `reducedRateApplied`: 軽減税率が適用されたか
 #[wasm_bindgen]
 pub struct StampTaxResult {
-    tax_amount: u32,
+    tax_amount: u64,
     bracket_label: String,
     reduced_rate_applied: bool,
 }
@@ -1012,7 +1012,7 @@ pub struct StampTaxResult {
 #[wasm_bindgen]
 impl StampTaxResult {
     #[wasm_bindgen(getter, js_name = "taxAmount")]
-    pub fn tax_amount(&self) -> u32 {
+    pub fn tax_amount(&self) -> u64 {
         self.tax_amount
     }
 
@@ -1078,7 +1078,7 @@ pub fn calc_stamp_tax(
         calculate_stamp_tax(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     Ok(StampTaxResult {
-        tax_amount: result.tax_amount.as_yen() as u32,
+        tax_amount: result.tax_amount.as_yen() as u64,
         bracket_label: result.bracket_label,
         reduced_rate_applied: result.reduced_rate_applied,
     })

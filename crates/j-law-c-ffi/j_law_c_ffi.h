@@ -22,7 +22,7 @@ extern "C" {
 #define J_LAW_ERROR_BUF_LEN 256
 
 /** j-law-c-ffi の FFI 互換バージョン。 */
-#define J_LAW_C_FFI_VERSION 2
+#define J_LAW_C_FFI_VERSION 3
 
 /** 所得控除種別定数。 */
 #define J_LAW_INCOME_DEDUCTION_KIND_BASIC 1
