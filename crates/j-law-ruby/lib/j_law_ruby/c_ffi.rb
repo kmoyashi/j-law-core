@@ -8,11 +8,13 @@ module JLawRuby
     module CFFI
       extend FFI::Library
 
-      FFI_VERSION = 2
+      FFI_VERSION = 3
       MAX_TIERS = 8
       MAX_DEDUCTION_LINES = 8
       LABEL_LEN = 64
       ERROR_BUF_LEN = 256
+      STAMP_TAX_DOCUMENT_KIND_REAL_ESTATE_TRANSFER = 0
+      STAMP_TAX_DOCUMENT_KIND_CONSTRUCTION_CONTRACT = 1
       GEM_ROOT = File.expand_path("../..", __dir__)
       LIBRARY_PATH = BuildSupport.resolve_shared_library_path(GEM_ROOT)
 
@@ -196,6 +198,10 @@ module JLawRuby
                       :int
       attach_function :j_law_calc_stamp_tax,
                       [:uint64, :uint16, :uint8, :uint8, :int,
+                       StampTaxStruct.by_ref, :pointer, :int],
+                      :int
+      attach_function :j_law_calc_stamp_tax_with_document_kind,
+                      [:uint64, :uint16, :uint8, :uint8, :int, :int,
                        StampTaxStruct.by_ref, :pointer, :int],
                       :int
 
@@ -409,16 +415,18 @@ module JLawRuby
         )
       end
 
-      def calc_stamp_tax(contract_amount, year, month, day, is_reduced_rate_applicable)
+      def calc_stamp_tax(contract_amount, year, month, day, is_reduced_rate_applicable,
+                         document_kind = STAMP_TAX_DOCUMENT_KIND_REAL_ESTATE_TRANSFER)
         result = StampTaxStruct.new
 
         call_with_error do |error_buf|
-          j_law_calc_stamp_tax(
+          j_law_calc_stamp_tax_with_document_kind(
             contract_amount,
             year,
             month,
             day,
             bool_to_c_int(is_reduced_rate_applicable),
+            document_kind,
             result,
             error_buf,
             ERROR_BUF_LEN

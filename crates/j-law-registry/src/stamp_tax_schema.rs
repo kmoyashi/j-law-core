@@ -12,10 +12,17 @@ pub struct StampTaxBracketEntry {
 
 /// 印紙税の計算パラメータ（JSON）。
 #[derive(Debug, Clone, Deserialize)]
-pub struct StampTaxParamsEntry {
+pub struct StampTaxDocumentParamsEntry {
     pub brackets: Vec<StampTaxBracketEntry>,
     pub reduced_rate_from: Option<String>,
     pub reduced_rate_until: Option<String>,
+}
+
+/// 印紙税の計算パラメータ（JSON）。
+#[derive(Debug, Clone, Deserialize)]
+pub struct StampTaxParamsEntry {
+    pub real_estate_transfer: StampTaxDocumentParamsEntry,
+    pub construction_contract: StampTaxDocumentParamsEntry,
 }
 
 /// 印紙税の履歴エントリ（JSON）。

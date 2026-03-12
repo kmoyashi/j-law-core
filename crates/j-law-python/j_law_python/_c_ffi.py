@@ -469,6 +469,18 @@ _LIB.j_law_calc_stamp_tax.argtypes = [
     ctypes.c_int,
 ]
 _LIB.j_law_calc_stamp_tax.restype = ctypes.c_int
+_LIB.j_law_calc_stamp_tax_with_document_kind.argtypes = [
+    ctypes.c_uint64,
+    ctypes.c_uint16,
+    ctypes.c_uint8,
+    ctypes.c_uint8,
+    ctypes.c_int,
+    ctypes.c_int,
+    ctypes.POINTER(_StampTaxResultStruct),
+    ctypes.POINTER(ctypes.c_char),
+    ctypes.c_int,
+]
+_LIB.j_law_calc_stamp_tax_with_document_kind.restype = ctypes.c_int
 
 _ACTUAL_FFI_VERSION = _LIB.j_law_c_ffi_version()
 if _ACTUAL_FFI_VERSION != FFI_VERSION:
@@ -661,16 +673,18 @@ def calc_stamp_tax(
     month: int,
     day: int,
     is_reduced_rate_applicable: bool,
+    document_kind: int = 0,
 ) -> StampTaxRecord:
     checked_contract_amount = _validate_u64(contract_amount, "contract_amount")
     result = _StampTaxResultStruct()
     error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
-    status = _LIB.j_law_calc_stamp_tax(
+    status = _LIB.j_law_calc_stamp_tax_with_document_kind(
         ctypes.c_uint64(checked_contract_amount),
         ctypes.c_uint16(year),
         ctypes.c_uint8(month),
         ctypes.c_uint8(day),
         ctypes.c_int(_bool_to_c_int(is_reduced_rate_applicable)),
+        ctypes.c_int(document_kind),
         ctypes.byref(result),
         error_buffer,
         ERROR_BUF_LEN,

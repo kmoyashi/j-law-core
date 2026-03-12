@@ -347,6 +347,16 @@ typedef struct {
     int      reduced_rate_applied;
 } JLawStampTaxResult;
 
+/**
+ * 印紙税の文書種別。
+ */
+typedef enum {
+    /** 不動産の譲渡に関する契約書（第1号文書）。 */
+    J_LAW_STAMP_TAX_DOCUMENT_REAL_ESTATE_TRANSFER = 0,
+    /** 建設工事の請負に関する契約書（第2号文書）。 */
+    J_LAW_STAMP_TAX_DOCUMENT_CONSTRUCTION_CONTRACT = 1
+} JLawStampTaxDocumentKind;
+
 /* ─── 印紙税 関数 ─────────────────────────────────────────────────────────── */
 
 /**
@@ -360,6 +370,7 @@ typedef struct {
  * @param day                         契約書作成日（日）
  * @param is_reduced_rate_applicable  軽減税率適用フラグ（0 = false, 非0 = true）
  *                                    WARNING: 事実認定は呼び出し元の責任。
+ *                                    この関数は不動産譲渡契約書を既定値として扱います。
  * @param out_result                  [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
  * @param error_buf                   [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
  * @param error_buf_len               error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
@@ -371,6 +382,35 @@ int j_law_calc_stamp_tax(
     uint8_t  month,
     uint8_t  day,
     int      is_reduced_rate_applicable,
+    JLawStampTaxResult *out_result,
+    char    *error_buf,
+    int      error_buf_len
+);
+
+/**
+ * 印紙税法 別表第一に基づく印紙税額を計算する（文書種別指定あり）。
+ *
+ * 法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
+ *
+ * @param contract_amount             契約金額（円）
+ * @param year                        契約書作成日（年）
+ * @param month                       契約書作成日（月）
+ * @param day                         契約書作成日（日）
+ * @param is_reduced_rate_applicable  軽減税率適用フラグ（0 = false, 非0 = true）
+ *                                    WARNING: 事実認定は呼び出し元の責任。
+ * @param document_kind               文書種別（JLawStampTaxDocumentKind）
+ * @param out_result                  [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
+ * @param error_buf                   [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
+ * @param error_buf_len               error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
+ * @return                            成功時 0、失敗時 非0
+ */
+int j_law_calc_stamp_tax_with_document_kind(
+    uint64_t contract_amount,
+    uint16_t year,
+    uint8_t  month,
+    uint8_t  day,
+    int      is_reduced_rate_applicable,
+    int      document_kind,
     JLawStampTaxResult *out_result,
     char    *error_buf,
     int      error_buf_len

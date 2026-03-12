@@ -28,6 +28,7 @@ package jlawcore
 import "C"
 import (
 	"errors"
+	"fmt"
 	"time"
 	"unsafe"
 )
@@ -562,6 +563,16 @@ func toGoConsumptionTaxResult(c *C.JLawConsumptionTaxResult) *ConsumptionTaxResu
 
 // ─── 印紙税 Go 公開型 ───────────────────────────────────────────────────────────
 
+// StampTaxDocumentKind は印紙税の文書種別を表す。
+type StampTaxDocumentKind string
+
+const (
+	// StampTaxDocumentRealEstateTransfer は不動産譲渡契約書を表す。
+	StampTaxDocumentRealEstateTransfer StampTaxDocumentKind = "real_estate_transfer"
+	// StampTaxDocumentConstructionContract は建設工事請負契約書を表す。
+	StampTaxDocumentConstructionContract StampTaxDocumentKind = "construction_contract"
+)
+
 // StampTaxResult は印紙税の計算結果を表す。
 type StampTaxResult struct {
 	// TaxAmount は印紙税額（円）。
@@ -590,6 +601,45 @@ func CalcStampTax(
 	date time.Time,
 	isReducedRateApplicable bool,
 ) (*StampTaxResult, error) {
+	return CalcStampTaxWithDocumentKind(
+		contractAmount,
+		date,
+		isReducedRateApplicable,
+		StampTaxDocumentRealEstateTransfer,
+	)
+}
+
+func stampTaxDocumentKindToC(documentKind StampTaxDocumentKind) (C.int, error) {
+	switch documentKind {
+	case StampTaxDocumentRealEstateTransfer:
+		return C.int(C.J_LAW_STAMP_TAX_DOCUMENT_REAL_ESTATE_TRANSFER), nil
+	case StampTaxDocumentConstructionContract:
+		return C.int(C.J_LAW_STAMP_TAX_DOCUMENT_CONSTRUCTION_CONTRACT), nil
+	default:
+		return 0, fmt.Errorf("unsupported stamp tax document kind: %s", documentKind)
+	}
+}
+
+// CalcStampTaxWithDocumentKind は文書種別を指定して印紙税額を計算する。
+//
+// 法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
+//
+// 引数:
+//   - contractAmount: 契約金額（円）
+//   - date: 契約書作成日
+//   - isReducedRateApplicable: 軽減税率適用フラグ
+//     WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
+//   - documentKind: 文書種別（StampTaxDocumentRealEstateTransfer または
+//     StampTaxDocumentConstructionContract）
+//
+// エラー: 契約金額が不正、対象日に有効な法令パラメータが存在しない場合、
+// または documentKind が不正な場合。
+func CalcStampTaxWithDocumentKind(
+	contractAmount uint64,
+	date time.Time,
+	isReducedRateApplicable bool,
+	documentKind StampTaxDocumentKind,
+) (*StampTaxResult, error) {
 	year := date.Year()
 	month := int(date.Month())
 	day := date.Day()
@@ -601,13 +651,18 @@ func CalcStampTax(
 	if isReducedRateApplicable {
 		isReduced = 1
 	}
+	documentKindValue, err := stampTaxDocumentKindToC(documentKind)
+	if err != nil {
+		return nil, err
+	}
 
-	ret := C.j_law_calc_stamp_tax(
+	ret := C.j_law_calc_stamp_tax_with_document_kind(
 		C.uint64_t(contractAmount),
 		C.uint16_t(year),
 		C.uint8_t(month),
 		C.uint8_t(day),
 		isReduced,
+		documentKindValue,
 		&cResult,
 		errorBuf,
 		C.J_LAW_ERROR_BUF_LEN,

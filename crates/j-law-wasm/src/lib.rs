@@ -28,7 +28,7 @@ use ::j_law_core::domains::real_estate::{
 };
 use ::j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
-    context::{StampTaxContext, StampTaxFlag},
+    context::{StampTaxContext, StampTaxDocumentKind, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
 use ::j_law_core::{InputError, JLawError, LegalDate};
@@ -1032,6 +1032,8 @@ impl StampTaxResult {
 /// @param contractAmount - 契約金額（円）
 /// @param date - 契約書作成日（JavaScript Date オブジェクト。JST で解釈される）
 /// @param isReducedRateApplicable - 軽減税率適用フラグ
+/// @param documentKind - 文書種別（`"real_estate_transfer"` または
+/// `"construction_contract"`）。省略時は `"real_estate_transfer"`。
 /// @returns StampTaxResult
 /// @throws 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合
 /// JavaScript の Number 型は 53bit 整数精度のため u64 を直接受け取れない。
@@ -1042,8 +1044,19 @@ pub fn calc_stamp_tax(
     contract_amount: f64,
     date: &js_sys::Date,
     is_reduced_rate_applicable: bool,
+    document_kind: Option<String>,
 ) -> Result<StampTaxResult, JsValue> {
     let (year, month, day) = extract_jst_date(date);
+    let document_kind = match document_kind.as_deref().unwrap_or("real_estate_transfer") {
+        "real_estate_transfer" => StampTaxDocumentKind::RealEstateTransfer,
+        "construction_contract" => StampTaxDocumentKind::ConstructionContract,
+        other => {
+            return Err(JsValue::from_str(&format!(
+                "unsupported stamp tax document kind: {}",
+                other
+            )));
+        }
+    };
 
     let params = load_stamp_tax_params(LegalDate::new(year, month, day))
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
@@ -1054,6 +1067,7 @@ pub fn calc_stamp_tax(
     }
 
     let ctx = StampTaxContext {
+        document_kind,
         contract_amount: contract_amount as u64,
         target_date: LegalDate::new(year, month, day),
         flags,

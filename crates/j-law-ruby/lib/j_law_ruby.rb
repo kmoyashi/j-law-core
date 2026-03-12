@@ -302,6 +302,11 @@ module JLawRuby
   # ── 印紙税 ──────────────────────────────────────────────────────────────────
 
   module StampTax
+    DOCUMENT_KIND_MAP = {
+      real_estate_transfer: Internal::CFFI::STAMP_TAX_DOCUMENT_KIND_REAL_ESTATE_TRANSFER,
+      construction_contract: Internal::CFFI::STAMP_TAX_DOCUMENT_KIND_CONSTRUCTION_CONTRACT
+    }.freeze
+
     # 印紙税の計算結果。
     class StampTaxResult
       attr_reader :tax_amount, :bracket_label
@@ -332,20 +337,42 @@ module JLawRuby
     # @param contract_amount [Integer] 契約金額（円）
     # @param date [Date] 契約書作成日
     # @param is_reduced_rate_applicable [true, false] 軽減税率適用フラグ
+    # @param document_kind [:real_estate_transfer, :construction_contract, String] 文書種別
     # @return [StampTaxResult]
-    # @raise [TypeError] date が Date / DateTime 以外の場合
+    # @raise [TypeError] date または document_kind の型が不正な場合
     # @raise [RuntimeError] 計算エラーが発生した場合
-    def self.calc_stamp_tax(contract_amount, date, is_reduced_rate_applicable)
+    def self.calc_stamp_tax(contract_amount, date, is_reduced_rate_applicable = false,
+                           document_kind: :real_estate_transfer)
       unless date.is_a?(::Date) || date.is_a?(::DateTime)
         raise TypeError,
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
+      document_kind_value = normalize_document_kind(document_kind)
 
       r = Internal::CFFI.calc_stamp_tax(
         contract_amount, date.year, date.month, date.day,
-        is_reduced_rate_applicable
+        is_reduced_rate_applicable, document_kind_value
       )
       StampTaxResult.new(r)
     end
+
+    def self.normalize_document_kind(document_kind)
+      key = case document_kind
+            when Symbol
+              document_kind
+            when String
+              document_kind.to_sym
+            else
+              raise TypeError,
+                    "document_kind には Symbol または String を指定してください " \
+                    "(got #{document_kind.class})"
+            end
+
+      DOCUMENT_KIND_MAP.fetch(key)
+    rescue KeyError
+      raise ArgumentError,
+            "document_kind は :real_estate_transfer または :construction_contract を指定してください"
+    end
+    private_class_method :normalize_document_kind
   end
 end

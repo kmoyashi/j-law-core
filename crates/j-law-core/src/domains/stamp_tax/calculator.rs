@@ -9,6 +9,7 @@ use crate::types::amount::FinalAmount;
 ///
 /// # 法的根拠
 /// 印紙税法 別表第一 第1号文書（不動産の譲渡に関する契約書）
+/// 印紙税法 別表第一 第2号文書（建設工事の請負に関する契約書）
 /// 租税特別措置法 第91条（軽減措置）
 #[derive(Debug, Clone)]
 pub struct StampTaxResult {
@@ -26,8 +27,8 @@ pub struct StampTaxResult {
 ///
 /// # 法的根拠
 /// 印紙税法 第2条（課税文書の作成者は印紙税を納める義務がある）
-/// 印紙税法 別表第一（課税物件表・第1号文書）
-/// 租税特別措置法 第91条（不動産の譲渡に関する契約書の印紙税の軽減措置）
+/// 印紙税法 別表第一（課税物件表・第1号文書 / 第2号文書）
+/// 租税特別措置法 第91条（不動産の譲渡・建設工事請負契約書の印紙税の軽減措置）
 ///
 /// # 計算手順
 /// 1. 契約金額が該当するブラケットを特定する
@@ -38,9 +39,10 @@ pub fn calculate_stamp_tax(
     params: &StampTaxParams,
 ) -> Result<StampTaxResult, JLawError> {
     let amount = ctx.contract_amount;
+    let document_params = params.document_params(ctx.document_kind);
 
     // --- 該当ブラケットの特定 ---
-    let bracket = params
+    let bracket = document_params
         .brackets
         .iter()
         .find(|b| {
@@ -62,8 +64,8 @@ pub fn calculate_stamp_tax(
 
     let should_reduce = ctx.policy.should_apply_reduced_rate(
         &date_str,
-        params.reduced_rate_from.as_deref(),
-        params.reduced_rate_until.as_deref(),
+        document_params.reduced_rate_from.as_deref(),
+        document_params.reduced_rate_until.as_deref(),
         &ctx.flags,
     );
 

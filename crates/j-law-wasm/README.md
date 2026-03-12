@@ -98,8 +98,10 @@ console.log(result2.totalTax);                 // 572500
 ### 印紙税ドメイン — 印紙税額（印紙税法 別表第一）
 
 ```js
+const date = new Date(Date.UTC(2024, 7, 1));
+
 // 契約金額 500万円（不動産譲渡契約書）
-const result = calcStampTax(5_000_000, 2024, 8, 1, false);
+const result = calcStampTax(5_000_000, date, false);
 
 console.log(result.taxAmount);           // 2000（印紙税額）
 console.log(result.bracketLabel);        // 適用ブラケット名
@@ -107,7 +109,8 @@ console.log(result.reducedRateApplied); // false
 
 // 軽減税率適用（租税特別措置法 第91条）
 // WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任
-const special = calcStampTax(5_000_000, 2024, 8, 1, true);
+const special = calcStampTax(1_500_000, date, true, "construction_contract");
+console.log(special.taxAmount);          // 200
 console.log(special.reducedRateApplied); // true
 ```
 
@@ -166,17 +169,16 @@ console.log(special.reducedRateApplied); // true
 
 ---
 
-### `calcStampTax(contractAmount, year, month, day, isReducedRateApplicable)`
+### `calcStampTax(contractAmount, date, isReducedRateApplicable, documentKind = "real_estate_transfer")`
 
-印紙税法 別表第一（第1号文書）に基づく印紙税額を計算する。
+印紙税法 別表第一（第1号文書・第2号文書）に基づく印紙税額を計算する。
 
 | 引数 | 型 | 説明 |
 |---|---|---|
 | `contractAmount` | `number` | 契約金額（円・`f64` で受け取り、50億円超も対応） |
-| `year` | `number` | 契約書作成日（年） |
-| `month` | `number` | 契約書作成日（月） |
-| `day` | `number` | 契約書作成日（日） |
+| `date` | `Date` | 契約書作成日（JST で解釈） |
 | `isReducedRateApplicable` | `boolean` | 軽減税率適用フラグ |
+| `documentKind` | `string` | `"real_estate_transfer"` または `"construction_contract"` |
 
 **戻り値: `StampTaxResult`**
 
