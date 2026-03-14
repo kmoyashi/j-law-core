@@ -1,7 +1,7 @@
 /**
  * 印紙税法 別表第一に基づく印紙税額計算のテスト。
  *
- * 法的根拠: 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
+ * 法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
  * テストケースは tests/fixtures/stamp_tax.json から読み込む。
  *
  * 実行方法:
@@ -29,13 +29,13 @@ const fixtures = JSON.parse(
 describe("calcStampTax - フィクスチャ駆動", () => {
   for (const c of fixtures.stamp_tax) {
     it(`${c.id}: ${c.description}`, () => {
-      const { contract_amount, is_reduced_rate_applicable } = c.input;
+      const { contract_amount, is_reduced_rate_applicable, document_kind } = c.input;
       const [year, month, day] = c.input.date.split("-").map(Number);
       const date = new Date(Date.UTC(year, month - 1, day));
-      const r = calcStampTax(contract_amount, date, is_reduced_rate_applicable);
+      const r = calcStampTax(contract_amount, date, is_reduced_rate_applicable, document_kind);
       const exp = c.expected;
 
-      assert.equal(r.taxAmount, exp.tax_amount, "taxAmount");
+      assert.equal(r.taxAmount, BigInt(exp.tax_amount), "taxAmount");
       assert.equal(r.reducedRateApplied, exp.reduced_rate_applied, "reducedRateApplied");
     });
   }
@@ -51,5 +51,11 @@ describe("calcStampTax - JS固有テスト", () => {
   it("bracket_label が返される", () => {
     const r = calcStampTax(5_000_000, new Date(Date.UTC(2024, 7, 1)), false);
     assert.ok(r.bracketLabel, "bracketLabel must not be empty");
+  });
+
+  it("不正な documentKind を拒否する", () => {
+    assert.throws(() =>
+      calcStampTax(5_000_000, new Date(Date.UTC(2024, 7, 1)), false, "invalid_kind")
+    );
   });
 });

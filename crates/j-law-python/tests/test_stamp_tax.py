@@ -1,6 +1,6 @@
 """印紙税法 別表第一に基づく印紙税額計算のテスト。
 
-法的根拠: 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
+法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
 
 テストケースは tests/fixtures/stamp_tax.json から読み込む。
 """
@@ -32,6 +32,7 @@ def test_stamp_tax(case):
         inp["contract_amount"],
         date,
         is_reduced_rate_applicable=inp["is_reduced_rate_applicable"],
+        document_kind=inp["document_kind"],
     )
 
     if "tax_amount" in exp:
@@ -60,3 +61,11 @@ class TestLanguageSpecific:
             calc_stamp_tax(5_000_000, "2024-08-01")
         with pytest.raises(TypeError):
             calc_stamp_tax(5_000_000, 20240801)
+
+    def test_invalid_document_kind(self):
+        with pytest.raises(ValueError, match="document_kind"):
+            calc_stamp_tax(
+                5_000_000,
+                datetime.date(2024, 8, 1),
+                document_kind="invalid_kind",
+            )

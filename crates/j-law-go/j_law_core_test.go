@@ -74,6 +74,7 @@ type incomeTaxFixtures struct {
 }
 
 type stampTaxInput struct {
+	DocumentKind            string `json:"document_kind"`
 	ContractAmount          uint64 `json:"contract_amount"`
 	Date                    string `json:"date"`
 	IsReducedRateApplicable bool   `json:"is_reduced_rate_applicable"`
@@ -93,6 +94,19 @@ type stampTaxCase struct {
 
 type stampTaxFixtures struct {
 	StampTax []stampTaxCase `json:"stamp_tax"`
+}
+
+func parseStampTaxDocumentKind(t *testing.T, value string) jlawcore.StampTaxDocumentKind {
+	t.Helper()
+	switch value {
+	case string(jlawcore.StampTaxDocumentRealEstateTransfer):
+		return jlawcore.StampTaxDocumentRealEstateTransfer
+	case string(jlawcore.StampTaxDocumentConstructionContract):
+		return jlawcore.StampTaxDocumentConstructionContract
+	default:
+		t.Fatalf("invalid stamp tax document kind fixture: %s", value)
+		return ""
+	}
 }
 
 type consumptionTaxInput struct {
@@ -374,10 +388,11 @@ func TestStampTax(t *testing.T) {
 
 	for _, tc := range fixtures.StampTax {
 		t.Run(tc.ID, func(t *testing.T) {
-			result, err := jlawcore.CalcStampTax(
+			result, err := jlawcore.CalcStampTaxWithDocumentKind(
 				tc.Input.ContractAmount,
 				parseDate(t, tc.Input.Date),
 				tc.Input.IsReducedRateApplicable,
+				parseStampTaxDocumentKind(t, tc.Input.DocumentKind),
 			)
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
@@ -508,6 +523,18 @@ func TestStampTax_BracketLabelPresent(t *testing.T) {
 	}
 	if result.BracketLabel == "" {
 		t.Error("BracketLabel must not be empty")
+	}
+}
+
+func TestStampTax_InvalidDocumentKind(t *testing.T) {
+	_, err := jlawcore.CalcStampTaxWithDocumentKind(
+		5_000_000,
+		time.Date(2024, time.August, 1, 0, 0, 0, 0, time.UTC),
+		false,
+		jlawcore.StampTaxDocumentKind("invalid_kind"),
+	)
+	if err == nil {
+		t.Fatal("expected error for invalid document kind, got nil")
 	}
 }
 

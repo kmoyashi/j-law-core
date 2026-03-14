@@ -103,8 +103,10 @@ fmt.Println(result2.TotalTax)                 // 572500
 ### 印紙税ドメイン — 印紙税額（印紙税法 別表第一）
 
 ```go
+date := time.Date(2024, time.August, 1, 0, 0, 0, 0, time.UTC)
+
 // 契約金額 500万円（不動産譲渡契約書）
-result, err := jlawcore.CalcStampTax(5_000_000, 2024, 8, 1, false)
+result, err := jlawcore.CalcStampTax(5_000_000, date, false)
 if err != nil {
     log.Fatal(err)
 }
@@ -115,10 +117,16 @@ fmt.Println(result.ReducedRateApplied)  // false
 
 // 軽減税率適用（租税特別措置法 第91条）
 // WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任
-special, err := jlawcore.CalcStampTax(5_000_000, 2024, 8, 1, true)
+special, err := jlawcore.CalcStampTaxWithDocumentKind(
+    1_500_000,
+    date,
+    true,
+    jlawcore.StampTaxDocumentConstructionContract,
+)
 if err != nil {
     log.Fatal(err)
 }
+fmt.Println(special.TaxAmount)          // 200
 fmt.Println(special.ReducedRateApplied) // true
 ```
 
@@ -181,16 +189,14 @@ fmt.Println(special.ReducedRateApplied) // true
 
 ---
 
-### `CalcStampTax(contractAmount uint64, year, month, day int, isReducedRateApplicable bool) (*StampTaxResult, error)`
+### `CalcStampTax(contractAmount uint64, date time.Time, isReducedRateApplicable bool) (*StampTaxResult, error)`
 
 印紙税法 別表第一（第1号文書）に基づく印紙税額を計算する。
 
 | 引数                      | 型       | 説明               |
 | ------------------------- | -------- | ------------------ |
 | `contractAmount`          | `uint64` | 契約金額（円）     |
-| `year`                    | `int`    | 契約書作成日（年） |
-| `month`                   | `int`    | 契約書作成日（月） |
-| `day`                     | `int`    | 契約書作成日（日） |
+| `date`                    | `time.Time` | 契約書作成日    |
 | `isReducedRateApplicable` | `bool`   | 軽減税率適用フラグ |
 
 **戻り値: `*StampTaxResult`**
@@ -202,6 +208,13 @@ fmt.Println(special.ReducedRateApplied) // true
 | `ReducedRateApplied` | `bool`   | 軽減税率が適用されたか       |
 
 **エラー** — 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合。
+
+### `CalcStampTaxWithDocumentKind(contractAmount uint64, date time.Time, isReducedRateApplicable bool, documentKind StampTaxDocumentKind) (*StampTaxResult, error)`
+
+印紙税法 別表第一（第1号文書・第2号文書）に基づく印紙税額を計算する。
+
+`documentKind` には `StampTaxDocumentRealEstateTransfer` または
+`StampTaxDocumentConstructionContract` を指定する。
 
 ## ビルドとテスト
 

@@ -1,9 +1,10 @@
 {
   "stamp_tax": [
     {
-      "id": "exempt_under_10k",
-      "description": "契約金額 9,999円（1万円未満・非課税）",
+      "id": "real_estate_exempt_under_10k",
+      "description": "不動産譲渡契約書 9,999円（1万円未満・非課税）",
       "input": {
+        "document_kind": "real_estate_transfer",
         "contract_amount": 9999,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": false
@@ -14,22 +15,10 @@
       }
     },
     {
-      "id": "bracket1_10k",
-      "description": "契約金額 10,000円（10万円以下・200円）",
+      "id": "real_estate_100k_normal",
+      "description": "不動産譲渡契約書 100,000円（10万円以下・200円）",
       "input": {
-        "contract_amount": 10000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": false
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "bracket1_100k",
-      "description": "契約金額 100,000円（10万円以下上限・200円）",
-      "input": {
+        "document_kind": "real_estate_transfer",
         "contract_amount": 100000,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": false
@@ -40,9 +29,10 @@
       }
     },
     {
-      "id": "bracket1_100k_reduced_no_effect",
-      "description": "契約金額 100,000円（10万円以下は軽減対象外・軽減フラグあっても200円）",
+      "id": "real_estate_100k_reduced_no_effect",
+      "description": "不動産譲渡契約書 100,000円（10万円以下は軽減対象外）",
       "input": {
+        "document_kind": "real_estate_transfer",
         "contract_amount": 100000,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": true
@@ -53,9 +43,24 @@
       }
     },
     {
-      "id": "bracket2_500k_normal",
-      "description": "契約金額 500,000円（50万円以下・本則400円）",
+      "id": "real_estate_100k_plus1_reduced",
+      "description": "不動産譲渡契約書 100,001円（軽減200円）",
       "input": {
+        "document_kind": "real_estate_transfer",
+        "contract_amount": 100001,
+        "date": "2024-08-01",
+        "is_reduced_rate_applicable": true
+      },
+      "expected": {
+        "tax_amount": 200,
+        "reduced_rate_applied": true
+      }
+    },
+    {
+      "id": "real_estate_500k_normal",
+      "description": "不動産譲渡契約書 500,000円（50万円以下・本則400円）",
+      "input": {
+        "document_kind": "real_estate_transfer",
         "contract_amount": 500000,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": false
@@ -66,61 +71,10 @@
       }
     },
     {
-      "id": "bracket2_500k_reduced",
-      "description": "契約金額 500,000円（50万円以下・軽減200円）",
+      "id": "real_estate_5m_reduced",
+      "description": "不動産譲渡契約書 5,000,000円（500万円以下・軽減1,000円）",
       "input": {
-        "contract_amount": 500000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "bracket3_1m_normal",
-      "description": "契約金額 1,000,000円（100万円以下・本則1,000円）",
-      "input": {
-        "contract_amount": 1000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": false
-      },
-      "expected": {
-        "tax_amount": 1000,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "bracket3_1m_reduced",
-      "description": "契約金額 1,000,000円（100万円以下・軽減500円）",
-      "input": {
-        "contract_amount": 1000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 500,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "bracket4_5m_normal",
-      "description": "契約金額 5,000,000円（500万円以下・本則2,000円）",
-      "input": {
-        "contract_amount": 5000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": false
-      },
-      "expected": {
-        "tax_amount": 2000,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "bracket4_5m_reduced",
-      "description": "契約金額 5,000,000円（500万円以下・軽減1,000円）",
-      "input": {
+        "document_kind": "real_estate_transfer",
         "contract_amount": 5000000,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": true
@@ -131,22 +85,10 @@
       }
     },
     {
-      "id": "bracket5_10m_reduced",
-      "description": "契約金額 10,000,000円（1,000万円以下・軽減5,000円）",
+      "id": "real_estate_50m_reduced",
+      "description": "不動産譲渡契約書 50,000,000円（5,000万円以下・軽減10,000円）",
       "input": {
-        "contract_amount": 10000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 5000,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "bracket6_50m_reduced",
-      "description": "契約金額 50,000,000円（5,000万円以下・軽減10,000円）",
-      "input": {
+        "document_kind": "real_estate_transfer",
         "contract_amount": 50000000,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": true
@@ -157,61 +99,10 @@
       }
     },
     {
-      "id": "bracket7_100m_reduced",
-      "description": "契約金額 100,000,000円（1億円以下・軽減30,000円）",
+      "id": "real_estate_over_5b_reduced",
+      "description": "不動産譲渡契約書 10,000,000,000円（50億円超・軽減480,000円）",
       "input": {
-        "contract_amount": 100000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 30000,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "bracket8_500m_reduced",
-      "description": "契約金額 500,000,000円（5億円以下・軽減60,000円）",
-      "input": {
-        "contract_amount": 500000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 60000,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "bracket9_1b_reduced",
-      "description": "契約金額 1,000,000,000円（10億円以下・軽減160,000円）",
-      "input": {
-        "contract_amount": 1000000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 160000,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "bracket10_5b_reduced",
-      "description": "契約金額 5,000,000,000円（50億円以下・軽減320,000円）",
-      "input": {
-        "contract_amount": 5000000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 320000,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "bracket11_over5b_reduced",
-      "description": "契約金額 10,000,000,000円（50億円超・軽減480,000円）",
-      "input": {
+        "document_kind": "real_estate_transfer",
         "contract_amount": 10000000000,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": true
@@ -222,9 +113,10 @@
       }
     },
     {
-      "id": "reduced_before_period",
-      "description": "軽減期間前（2014/3/31）は軽減フラグありでも本則適用",
+      "id": "real_estate_reduced_period_first_day",
+      "description": "不動産譲渡契約書 軽減期間初日（2014-04-01）は軽減適用",
       "input": {
+        "document_kind": "real_estate_transfer",
         "contract_amount": 5000000,
         "date": "2014-04-01",
         "is_reduced_rate_applicable": true
@@ -235,10 +127,53 @@
       }
     },
     {
-      "id": "edge_boundary_100k_plus1",
-      "description": "契約金額 100,001円（10万円超 → 50万円以下ブラケット）",
+      "id": "construction_1000k_normal",
+      "description": "建設工事請負契約書 1,000,000円（100万円以下・200円）",
       "input": {
-        "contract_amount": 100001,
+        "document_kind": "construction_contract",
+        "contract_amount": 1000000,
+        "date": "2024-08-01",
+        "is_reduced_rate_applicable": false
+      },
+      "expected": {
+        "tax_amount": 200,
+        "reduced_rate_applied": false
+      }
+    },
+    {
+      "id": "construction_1000k_reduced_no_effect",
+      "description": "建設工事請負契約書 1,000,000円（100万円以下は軽減対象外）",
+      "input": {
+        "document_kind": "construction_contract",
+        "contract_amount": 1000000,
+        "date": "2024-08-01",
+        "is_reduced_rate_applicable": true
+      },
+      "expected": {
+        "tax_amount": 200,
+        "reduced_rate_applied": false
+      }
+    },
+    {
+      "id": "construction_1000k_plus1_reduced",
+      "description": "建設工事請負契約書 1,000,001円（200万円以下・軽減200円）",
+      "input": {
+        "document_kind": "construction_contract",
+        "contract_amount": 1000001,
+        "date": "2024-08-01",
+        "is_reduced_rate_applicable": true
+      },
+      "expected": {
+        "tax_amount": 200,
+        "reduced_rate_applied": true
+      }
+    },
+    {
+      "id": "construction_1500k_normal",
+      "description": "建設工事請負契約書 1,500,000円（200万円以下・本則400円）",
+      "input": {
+        "document_kind": "construction_contract",
+        "contract_amount": 1500000,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": false
       },
@@ -248,15 +183,44 @@
       }
     },
     {
-      "id": "edge_boundary_100k_plus1_reduced",
-      "description": "契約金額 100,001円（10万円超 → 軽減200円）",
+      "id": "construction_1500k_reduced",
+      "description": "建設工事請負契約書 1,500,000円（200万円以下・軽減200円）",
       "input": {
-        "contract_amount": 100001,
+        "document_kind": "construction_contract",
+        "contract_amount": 1500000,
         "date": "2024-08-01",
         "is_reduced_rate_applicable": true
       },
       "expected": {
         "tax_amount": 200,
+        "reduced_rate_applied": true
+      }
+    },
+    {
+      "id": "construction_2500k_reduced",
+      "description": "建設工事請負契約書 2,500,000円（300万円以下・軽減500円）",
+      "input": {
+        "document_kind": "construction_contract",
+        "contract_amount": 2500000,
+        "date": "2024-08-01",
+        "is_reduced_rate_applicable": true
+      },
+      "expected": {
+        "tax_amount": 500,
+        "reduced_rate_applied": true
+      }
+    },
+    {
+      "id": "construction_5m_reduced",
+      "description": "建設工事請負契約書 5,000,000円（500万円以下・軽減1,000円）",
+      "input": {
+        "document_kind": "construction_contract",
+        "contract_amount": 5000000,
+        "date": "2024-08-01",
+        "is_reduced_rate_applicable": true
+      },
+      "expected": {
+        "tax_amount": 1000,
         "reduced_rate_applied": true
       }
     }

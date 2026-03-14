@@ -7,7 +7,7 @@ require "j_law_ruby"
 
 # 印紙税法 別表第一に基づく印紙税額計算のテスト。
 #
-# 法的根拠: 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
+# 法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
 # テストケースは tests/fixtures/stamp_tax.json から読み込む。
 class TestStampTax < Minitest::Test
   FIXTURES = JSON.parse(File.read(File.join(__dir__, "../../../tests/fixtures/stamp_tax.json")))
@@ -23,7 +23,8 @@ class TestStampTax < Minitest::Test
       result = JLawRuby::StampTax.calc_stamp_tax(
         inp["contract_amount"],
         date,
-        inp["is_reduced_rate_applicable"]
+        inp["is_reduced_rate_applicable"],
+        document_kind: inp["document_kind"]
       )
 
       assert_equal exp["tax_amount"], result.tax_amount, "#{tc['id']}: tax_amount"
@@ -56,6 +57,17 @@ class TestStampTax < Minitest::Test
     end
     assert_raises(TypeError) do
       JLawRuby::StampTax.calc_stamp_tax(5_000_000, 20_240_801, false)
+    end
+  end
+
+  def test_invalid_document_kind
+    assert_raises(ArgumentError) do
+      JLawRuby::StampTax.calc_stamp_tax(
+        5_000_000,
+        Date.new(2024, 8, 1),
+        false,
+        document_kind: :invalid_kind
+      )
     end
   end
 end
