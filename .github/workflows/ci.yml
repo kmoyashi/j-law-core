@@ -86,22 +86,142 @@ jobs:
       - name: Security audit
         run: cargo audit
 
-  test-bindings:
-    name: Test Bindings (${{ matrix.service }})
+  test-python-bindings:
+    name: Test Binding (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     needs: test-rust
     strategy:
+      # Officially supported CPython branches:
+      # https://devguide.python.org/versions/
       matrix:
-        service: [test-python, test-wasm, test-ruby, test-go]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            crates/j-law-python/pyproject.toml
+            crates/j-law-python/setup.py
+      - uses: dtolnay/rust-toolchain@1.94.0
       - uses: actions/cache@v4
         with:
-          path: /tmp/.buildx-cache-${{ matrix.service }}
-          key: ${{ runner.os }}-buildx-${{ matrix.service }}-${{ hashFiles('**/Dockerfile*', '**/Cargo.lock') }}
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          key: ${{ runner.os }}-cargo-python-${{ matrix.python-version }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-buildx-${{ matrix.service }}-
-      - name: "Build and test (${{ matrix.service }})"
-        run: docker compose up ${{ matrix.service }} --build --exit-code-from ${{ matrix.service }}
+            ${{ runner.os }}-cargo-python-
+            ${{ runner.os }}-cargo-
+      - name: Install Python binding and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest ./crates/j-law-python
+      - name: Run Python binding tests
+        run: pytest crates/j-law-python/tests/ -v
+
+  test-wasm-bindings:
+    name: Test Binding (Node.js ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    needs: test-rust
+    strategy:
+      # Currently supported Node.js release lines:
+      # https://nodejs.org/en/about/previous-releases
+      matrix:
+        node-version: ["20", "22", "24", "25"]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+      - uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          targets: wasm32-unknown-unknown
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          key: ${{ runner.os }}-cargo-wasm-${{ matrix.node-version }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-wasm-
+            ${{ runner.os }}-cargo-
+      - name: Install wasm-pack
+        run: curl -fsSL https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
+      - name: Build WASM package
+        run: wasm-pack build --target nodejs crates/j-law-wasm
+      - name: Run WASM binding tests
+        run: node --test crates/j-law-wasm/tests/*.test.mjs
+
+  test-ruby-bindings:
+    name: Test Binding (Ruby ${{ matrix.ruby-version }})
+    runs-on: ubuntu-latest
+    needs: test-rust
+    strategy:
+      # Officially supported Ruby branches:
+      # https://www.ruby-lang.org/en/downloads/branches/
+      matrix:
+        ruby-version: ["3.2", "3.3", "3.4", "4.0"]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby-version }}
+      - uses: dtolnay/rust-toolchain@1.94.0
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          key: ${{ runner.os }}-cargo-ruby-${{ matrix.ruby-version }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-ruby-
+            ${{ runner.os }}-cargo-
+      - name: Install Ruby dependencies
+        working-directory: crates/j-law-ruby
+        run: bundle install
+      - name: Run Ruby binding tests
+        working-directory: crates/j-law-ruby
+        run: bundle exec rake test
+
+  test-go-bindings:
+    name: Test Binding (Go ${{ matrix.go-version }})
+    runs-on: ubuntu-latest
+    needs: test-rust
+    strategy:
+      # Go supports the current release and the previous two major releases:
+      # https://go.dev/doc/devel/release
+      matrix:
+        go-version: ["1.24", "1.25", "1.26"]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache-dependency-path: crates/j-law-go/go.mod
+      - uses: dtolnay/rust-toolchain@1.94.0
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          key: ${{ runner.os }}-cargo-go-${{ matrix.go-version }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-go-
+            ${{ runner.os }}-cargo-
+      - name: Run Go binding tests
+        working-directory: crates/j-law-go
+        run: make test
