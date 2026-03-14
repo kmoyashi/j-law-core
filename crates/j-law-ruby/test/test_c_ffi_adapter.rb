@@ -23,6 +23,9 @@ class TestCFFIAdapter < Minitest::Test
 
     stamp = JLawRuby::Internal::CFFI.calc_stamp_tax(5_000_000, 2024, 8, 1, false)
     refute_empty stamp.bracket_label
+
+    withholding = JLawRuby::Internal::CFFI.calc_withholding_tax(1_500_000, 0, 2026, 1, 1, 2, false)
+    assert_equal 2, withholding.breakdown.length
   end
 
   def test_error_path_raises_runtime_error

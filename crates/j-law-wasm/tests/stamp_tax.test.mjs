@@ -35,7 +35,7 @@ describe("calcStampTax - フィクスチャ駆動", () => {
       const r = calcStampTax(contract_amount, date, is_reduced_rate_applicable, document_kind);
       const exp = c.expected;
 
-      assert.equal(r.taxAmount, exp.tax_amount, "taxAmount");
+      assert.equal(r.taxAmount, BigInt(exp.tax_amount), "taxAmount");
       assert.equal(r.reducedRateApplied, exp.reduced_rate_applied, "reducedRateApplied");
     });
   }

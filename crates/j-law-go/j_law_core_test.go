@@ -135,6 +135,32 @@ type consumptionTaxFixtures struct {
 	ConsumptionTax []consumptionTaxCase `json:"consumption_tax"`
 }
 
+type withholdingTaxInput struct {
+	PaymentAmount                  uint64 `json:"payment_amount"`
+	SeparatedConsumptionTaxAmount  uint64 `json:"separated_consumption_tax_amount"`
+	Date                           string `json:"date"`
+	Category                       string `json:"category"`
+	IsSubmissionPrize              bool   `json:"is_submission_prize"`
+}
+
+type withholdingTaxExpected struct {
+	TaxablePaymentAmount    uint64 `json:"taxable_payment_amount"`
+	TaxAmount               uint64 `json:"tax_amount"`
+	NetPaymentAmount        uint64 `json:"net_payment_amount"`
+	SubmissionPrizeExempted bool   `json:"submission_prize_exempted"`
+}
+
+type withholdingTaxCase struct {
+	ID          string                 `json:"id"`
+	Description string                 `json:"description"`
+	Input       withholdingTaxInput    `json:"input"`
+	Expected    withholdingTaxExpected `json:"expected"`
+}
+
+type withholdingTaxFixtures struct {
+	WithholdingTax []withholdingTaxCase `json:"withholding_tax"`
+}
+
 // ─── フィクスチャ読み込み ────────────────────────────────────────────────────
 
 func loadRealEstateFixtures(t *testing.T) realEstateFixtures {
@@ -187,6 +213,34 @@ func loadConsumptionTaxFixtures(t *testing.T) consumptionTaxFixtures {
 		t.Fatalf("failed to parse consumption_tax.json: %v", err)
 	}
 	return f
+}
+
+func loadWithholdingTaxFixtures(t *testing.T) withholdingTaxFixtures {
+	t.Helper()
+	data, err := os.ReadFile("../../tests/fixtures/withholding_tax.json")
+	if err != nil {
+		t.Fatalf("failed to read withholding_tax.json: %v", err)
+	}
+	var f withholdingTaxFixtures
+	if err := json.Unmarshal(data, &f); err != nil {
+		t.Fatalf("failed to parse withholding_tax.json: %v", err)
+	}
+	return f
+}
+
+func parseWithholdingTaxCategory(t *testing.T, category string) jlawcore.WithholdingTaxCategory {
+	t.Helper()
+	switch category {
+	case "manuscript_and_lecture":
+		return jlawcore.WithholdingTaxCategoryManuscriptAndLecture
+	case "professional_fee":
+		return jlawcore.WithholdingTaxCategoryProfessionalFee
+	case "exclusive_contract_fee":
+		return jlawcore.WithholdingTaxCategoryExclusiveContractFee
+	default:
+		t.Fatalf("unknown withholding tax category: %s", category)
+		return 0
+	}
 }
 
 // ─── 不動産: データ駆動テスト ─────────────────────────────────────────────────
@@ -418,6 +472,41 @@ func TestConsumptionTax_BeforeIntroductionNoTax(t *testing.T) {
 	}
 }
 
+// ─── 源泉徴収: データ駆動テスト ───────────────────────────────────────────────
+
+func TestWithholdingTax(t *testing.T) {
+	fixtures := loadWithholdingTaxFixtures(t)
+
+	for _, tc := range fixtures.WithholdingTax {
+		t.Run(tc.ID, func(t *testing.T) {
+			result, err := jlawcore.CalcWithholdingTax(
+				tc.Input.PaymentAmount,
+				parseDate(t, tc.Input.Date),
+				parseWithholdingTaxCategory(t, tc.Input.Category),
+				tc.Input.IsSubmissionPrize,
+				tc.Input.SeparatedConsumptionTaxAmount,
+			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+
+			exp := tc.Expected
+			if result.TaxablePaymentAmount != exp.TaxablePaymentAmount {
+				t.Errorf("TaxablePaymentAmount: got %d, want %d", result.TaxablePaymentAmount, exp.TaxablePaymentAmount)
+			}
+			if result.TaxAmount != exp.TaxAmount {
+				t.Errorf("TaxAmount: got %d, want %d", result.TaxAmount, exp.TaxAmount)
+			}
+			if result.NetPaymentAmount != exp.NetPaymentAmount {
+				t.Errorf("NetPaymentAmount: got %d, want %d", result.NetPaymentAmount, exp.NetPaymentAmount)
+			}
+			if result.SubmissionPrizeExempted != exp.SubmissionPrizeExempted {
+				t.Errorf("SubmissionPrizeExempted: got %v, want %v", result.SubmissionPrizeExempted, exp.SubmissionPrizeExempted)
+			}
+		})
+	}
+}
+
 // ─── 印紙税: 言語固有テスト ────────────────────────────────────────────────────
 
 func TestStampTax_ErrorDateOutOfRange(t *testing.T) {
@@ -446,5 +535,37 @@ func TestStampTax_InvalidDocumentKind(t *testing.T) {
 	)
 	if err == nil {
 		t.Fatal("expected error for invalid document kind, got nil")
+	}
+}
+
+func TestWithholdingTax_ErrorDateOutOfRange(t *testing.T) {
+	_, err := jlawcore.CalcWithholdingTax(
+		100_000,
+		time.Date(2012, time.December, 31, 0, 0, 0, 0, time.UTC),
+		jlawcore.WithholdingTaxCategoryManuscriptAndLecture,
+		false,
+		0,
+	)
+	if err == nil {
+		t.Fatal("expected error for date out of range, got nil")
+	}
+}
+
+func TestWithholdingTax_BreakdownFields(t *testing.T) {
+	result, err := jlawcore.CalcWithholdingTax(
+		1_500_000,
+		time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		jlawcore.WithholdingTaxCategoryProfessionalFee,
+		false,
+		0,
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result.Breakdown) != 2 {
+		t.Fatalf("Breakdown length: got %d, want 2", len(result.Breakdown))
+	}
+	if result.Breakdown[0].Label == "" {
+		t.Error("BreakdownStep.Label must not be empty")
 	}
 }

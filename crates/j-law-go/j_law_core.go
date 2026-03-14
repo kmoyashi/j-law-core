@@ -484,6 +484,95 @@ func toGoResult(c *C.JLawBrokerageFeeResult) *BrokerageFeeResult {
 	}
 }
 
+// ─── 源泉徴収 Go 公開型 ─────────────────────────────────────────────────────────
+
+// WithholdingTaxCategory は報酬・料金等の源泉徴収カテゴリを表す。
+type WithholdingTaxCategory uint32
+
+const (
+	// WithholdingTaxCategoryManuscriptAndLecture は原稿料・講演料等。
+	WithholdingTaxCategoryManuscriptAndLecture WithholdingTaxCategory = C.J_LAW_WITHHOLDING_TAX_CATEGORY_MANUSCRIPT_AND_LECTURE
+	// WithholdingTaxCategoryProfessionalFee は税理士等の報酬・料金。
+	WithholdingTaxCategoryProfessionalFee WithholdingTaxCategory = C.J_LAW_WITHHOLDING_TAX_CATEGORY_PROFESSIONAL_FEE
+	// WithholdingTaxCategoryExclusiveContractFee は専属契約金。
+	WithholdingTaxCategoryExclusiveContractFee WithholdingTaxCategory = C.J_LAW_WITHHOLDING_TAX_CATEGORY_EXCLUSIVE_CONTRACT_FEE
+)
+
+// WithholdingTaxResult は源泉徴収税額の計算結果を表す。
+type WithholdingTaxResult struct {
+	GrossPaymentAmount      uint64
+	TaxablePaymentAmount    uint64
+	TaxAmount               uint64
+	NetPaymentAmount        uint64
+	Category                WithholdingTaxCategory
+	SubmissionPrizeExempted bool
+	Breakdown               []BreakdownStep
+}
+
+// CalcWithholdingTax は所得税法第204条第1項に基づく報酬・料金等の源泉徴収税額を計算する。
+func CalcWithholdingTax(
+	paymentAmount uint64,
+	date time.Time,
+	category WithholdingTaxCategory,
+	isSubmissionPrize bool,
+	separatedConsumptionTaxAmount uint64,
+) (*WithholdingTaxResult, error) {
+	year := date.Year()
+	month := int(date.Month())
+	day := date.Day()
+	var cResult C.JLawWithholdingTaxResult
+	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
+	defer C.free(unsafe.Pointer(errorBuf))
+
+	submissionPrize := C.int(0)
+	if isSubmissionPrize {
+		submissionPrize = 1
+	}
+
+	ret := C.j_law_calc_withholding_tax(
+		C.uint64_t(paymentAmount),
+		C.uint64_t(separatedConsumptionTaxAmount),
+		C.uint16_t(year),
+		C.uint8_t(month),
+		C.uint8_t(day),
+		C.uint32_t(category),
+		submissionPrize,
+		&cResult,
+		errorBuf,
+		C.J_LAW_ERROR_BUF_LEN,
+	)
+	if ret != 0 {
+		return nil, errors.New(C.GoString(errorBuf))
+	}
+
+	return toGoWithholdingTaxResult(&cResult), nil
+}
+
+func toGoWithholdingTaxResult(c *C.JLawWithholdingTaxResult) *WithholdingTaxResult {
+	breakdownLen := int(c.breakdown_len)
+	breakdown := make([]BreakdownStep, breakdownLen)
+	for i := 0; i < breakdownLen; i++ {
+		step := &c.breakdown[i]
+		breakdown[i] = BreakdownStep{
+			Label:      C.GoString(&step.label[0]),
+			BaseAmount: uint64(step.base_amount),
+			RateNumer:  uint64(step.rate_numer),
+			RateDenom:  uint64(step.rate_denom),
+			Result:     uint64(step.result),
+		}
+	}
+
+	return &WithholdingTaxResult{
+		GrossPaymentAmount:      uint64(c.gross_payment_amount),
+		TaxablePaymentAmount:    uint64(c.taxable_payment_amount),
+		TaxAmount:               uint64(c.tax_amount),
+		NetPaymentAmount:        uint64(c.net_payment_amount),
+		Category:                WithholdingTaxCategory(c.category),
+		SubmissionPrizeExempted: c.submission_prize_exempted != 0,
+		Breakdown:               breakdown,
+	}
+}
+
 // ─── 消費税 Go 公開型 ───────────────────────────────────────────────────────────
 
 // ConsumptionTaxResult は消費税の計算結果を表す。

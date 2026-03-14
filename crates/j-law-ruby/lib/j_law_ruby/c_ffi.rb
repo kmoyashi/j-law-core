@@ -56,6 +56,11 @@ module JLawRuby
         :tax_amount, :bracket_label, :reduced_rate_applied,
         keyword_init: true
       )
+      WithholdingTaxRecord = Struct.new(
+        :gross_payment_amount, :taxable_payment_amount, :tax_amount, :net_payment_amount,
+        :category, :submission_prize_exempted, :breakdown,
+        keyword_init: true
+      )
 
       unless LIBRARY_PATH
         raise LoadError,
@@ -175,6 +180,17 @@ module JLawRuby
                :reduced_rate_applied, :int
       end
 
+      class WithholdingTaxStruct < FFI::Struct
+        layout :gross_payment_amount, :uint64,
+               :taxable_payment_amount, :uint64,
+               :tax_amount, :uint64,
+               :net_payment_amount, :uint64,
+               :category, :uint32,
+               :submission_prize_exempted, :int,
+               :breakdown_storage, [:char, BreakdownStepStruct.size * MAX_TIERS],
+               :breakdown_len, :int
+      end
+
       attach_function :j_law_c_ffi_version, [], :uint32
       attach_function :j_law_calc_brokerage_fee,
                       [:uint64, :uint16, :uint8, :uint8, :int, :int,
@@ -203,6 +219,10 @@ module JLawRuby
       attach_function :j_law_calc_stamp_tax_with_document_kind,
                       [:uint64, :uint16, :uint8, :uint8, :int, :int,
                        StampTaxStruct.by_ref, :pointer, :int],
+                      :int
+      attach_function :j_law_calc_withholding_tax,
+                      [:uint64, :uint64, :uint16, :uint8, :uint8, :uint32, :int,
+                       WithholdingTaxStruct.by_ref, :pointer, :int],
                       :int
 
       actual_ffi_version = j_law_c_ffi_version
@@ -437,6 +457,55 @@ module JLawRuby
           tax_amount: result[:tax_amount],
           bracket_label: read_fixed_string(result, :bracket_label, LABEL_LEN),
           reduced_rate_applied: c_int_to_bool(result[:reduced_rate_applied])
+        )
+      end
+
+      def calc_withholding_tax(
+        payment_amount,
+        separated_consumption_tax_amount,
+        year,
+        month,
+        day,
+        category,
+        is_submission_prize
+      )
+        result = WithholdingTaxStruct.new
+
+        call_with_error do |error_buf|
+          j_law_calc_withholding_tax(
+            payment_amount,
+            separated_consumption_tax_amount,
+            year,
+            month,
+            day,
+            category,
+            bool_to_c_int(is_submission_prize),
+            result,
+            error_buf,
+            ERROR_BUF_LEN
+          )
+        end
+
+        WithholdingTaxRecord.new(
+          gross_payment_amount: result[:gross_payment_amount],
+          taxable_payment_amount: result[:taxable_payment_amount],
+          tax_amount: result[:tax_amount],
+          net_payment_amount: result[:net_payment_amount],
+          category: result[:category],
+          submission_prize_exempted: c_int_to_bool(result[:submission_prize_exempted]),
+          breakdown: read_struct_array(
+            result.pointer + WithholdingTaxStruct.offset_of(:breakdown_storage),
+            BreakdownStepStruct,
+            result[:breakdown_len]
+          ).map do |step|
+            BreakdownStepRecord.new(
+              label: read_fixed_string(step, :label, LABEL_LEN),
+              base_amount: step[:base_amount],
+              rate_numer: step[:rate_numer],
+              rate_denom: step[:rate_denom],
+              result: step[:result]
+            )
+          end
         )
       end
 

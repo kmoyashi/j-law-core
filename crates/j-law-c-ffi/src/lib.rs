@@ -28,12 +28,18 @@ use j_law_core::domains::stamp_tax::{
     context::{StampTaxContext, StampTaxDocumentKind, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
+use j_law_core::domains::withholding_tax::{
+    calculator::calculate_withholding_tax,
+    context::{WithholdingTaxCategory, WithholdingTaxContext, WithholdingTaxFlag},
+    policy::StandardWithholdingTaxPolicy,
+};
 use j_law_core::{JLawError, LegalDate};
 use j_law_registry::load_brokerage_fee_params;
 use j_law_registry::load_consumption_tax_params;
 use j_law_registry::load_income_tax_deduction_params;
 use j_law_registry::load_income_tax_params;
 use j_law_registry::load_stamp_tax_params;
+use j_law_registry::load_withholding_tax_params;
 
 // ─── 定数 ─────────────────────────────────────────────────────────────────────
 
@@ -57,6 +63,12 @@ pub const J_LAW_STAMP_TAX_DOCUMENT_REAL_ESTATE_TRANSFER: c_int = 0;
 
 /// 印紙税: 建設工事請負契約書。
 pub const J_LAW_STAMP_TAX_DOCUMENT_CONSTRUCTION_CONTRACT: c_int = 1;
+/// 源泉徴収カテゴリ: 原稿料・講演料等。
+pub const J_LAW_WITHHOLDING_TAX_CATEGORY_MANUSCRIPT_AND_LECTURE: u32 = 1;
+/// 源泉徴収カテゴリ: 税理士等の報酬・料金。
+pub const J_LAW_WITHHOLDING_TAX_CATEGORY_PROFESSIONAL_FEE: u32 = 2;
+/// 源泉徴収カテゴリ: 専属契約金。
+pub const J_LAW_WITHHOLDING_TAX_CATEGORY_EXCLUSIVE_CONTRACT_FEE: u32 = 3;
 
 // ─── C 互換型定義 ──────────────────────────────────────────────────────────────
 
@@ -253,6 +265,21 @@ fn stamp_tax_document_kind_from_c(value: c_int) -> Result<StampTaxDocumentKind, 
     }
 }
 
+fn write_breakdown(
+    breakdown: &[j_law_core::domains::withholding_tax::WithholdingTaxStep],
+    out_breakdown: &mut [JLawBreakdownStep; J_LAW_MAX_TIERS],
+) -> c_int {
+    let len = breakdown.len().min(J_LAW_MAX_TIERS);
+    for (i, step) in breakdown.iter().take(J_LAW_MAX_TIERS).enumerate() {
+        out_breakdown[i].base_amount = step.base_amount;
+        out_breakdown[i].rate_numer = step.rate_numer;
+        out_breakdown[i].rate_denom = step.rate_denom;
+        out_breakdown[i].result = step.result.as_yen();
+        copy_str_to_fixed_buf(&step.label, &mut out_breakdown[i].label);
+    }
+    len as c_int
+}
+
 // ─── C FFI 公開関数 ────────────────────────────────────────────────────────────
 
 /// j-law-c-ffi の FFI バージョンを返す。
@@ -358,6 +385,118 @@ pub unsafe extern "C" fn j_law_calc_brokerage_fee(
         out.breakdown[i].result = step.result.as_yen();
         copy_str_to_fixed_buf(&step.label, &mut out.breakdown[i].label);
     }
+
+    0
+}
+
+// ─── 源泉徴収 C 互換型定義 ──────────────────────────────────────────────────────
+
+/// 源泉徴収税額の計算結果（C 互換）。
+#[repr(C)]
+pub struct JLawWithholdingTaxResult {
+    /// 支払総額（円）。
+    pub gross_payment_amount: u64,
+    /// 源泉徴収税額の計算対象額（円）。
+    pub taxable_payment_amount: u64,
+    /// 源泉徴収税額（円）。
+    pub tax_amount: u64,
+    /// 源泉徴収後の支払額（円）。
+    pub net_payment_amount: u64,
+    /// カテゴリコード。
+    pub category: u32,
+    /// 応募作品等の入選賞金・謝金の非課税特例を適用したか。
+    pub submission_prize_exempted: c_int,
+    /// 計算内訳。
+    pub breakdown: [JLawBreakdownStep; J_LAW_MAX_TIERS],
+    /// breakdown の有効件数。
+    pub breakdown_len: c_int,
+}
+
+/// 所得税法第204条第1項に基づく報酬・料金等の源泉徴収税額を計算する。
+///
+/// # 法的根拠
+/// 所得税法 第204条第1項 / 国税庁タックスアンサー No.2795 / No.2798 / No.2810
+///
+/// # 引数
+/// - `payment_amount`: 支払総額（円）
+/// - `separated_consumption_tax_amount`: 区分表示された消費税額（円）
+/// - `year`, `month`, `day`: 基準日
+/// - `category`: カテゴリコード（`J_LAW_WITHHOLDING_TAX_CATEGORY_*`）
+/// - `is_submission_prize`: 応募作品等の入選賞金・謝金として扱うか
+/// - `out_result`: [OUT] 計算結果の書き込み先
+/// - `error_buf`: [OUT] エラーメッセージの書き込み先
+/// - `error_buf_len`: `error_buf` のバイト長
+///
+/// # Safety
+/// - `out_result` は呼び出し元が所有する有効なポインタであること。
+/// - `error_buf` は `error_buf_len` バイト以上の領域を指していること。
+#[no_mangle]
+pub unsafe extern "C" fn j_law_calc_withholding_tax(
+    payment_amount: u64,
+    separated_consumption_tax_amount: u64,
+    year: u16,
+    month: u8,
+    day: u8,
+    category: u32,
+    is_submission_prize: c_int,
+    out_result: *mut JLawWithholdingTaxResult,
+    error_buf: *mut c_char,
+    error_buf_len: c_int,
+) -> c_int {
+    if out_result.is_null() || error_buf.is_null() || error_buf_len <= 0 {
+        return -1;
+    }
+
+    let category = match WithholdingTaxCategory::from_ffi_code(category) {
+        Ok(category) => category,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    let params = match load_withholding_tax_params(LegalDate::new(year, month, day)) {
+        Ok(params) => params,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    let mut flags = HashSet::new();
+    if is_submission_prize != 0 {
+        flags.insert(WithholdingTaxFlag::IsSubmissionPrize);
+    }
+
+    let ctx = WithholdingTaxContext {
+        payment_amount,
+        separated_consumption_tax_amount,
+        category,
+        target_date: LegalDate::new(year, month, day),
+        flags,
+        policy: Box::new(StandardWithholdingTaxPolicy),
+    };
+
+    let result = match calculate_withholding_tax(&ctx, &params) {
+        Ok(result) => result,
+        Err(e) => {
+            write_error_msg(&e.to_string(), error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
+    let out = &mut *out_result;
+    out.gross_payment_amount = result.gross_payment_amount.as_yen();
+    out.taxable_payment_amount = result.taxable_payment_amount.as_yen();
+    out.tax_amount = result.tax_amount.as_yen();
+    out.net_payment_amount = result.net_payment_amount.as_yen();
+    out.category = u32::from(result.category);
+    out.submission_prize_exempted = if result.submission_prize_exempted {
+        1
+    } else {
+        0
+    };
+    out.breakdown_len = write_breakdown(&result.breakdown, &mut out.breakdown);
 
     0
 }
@@ -1119,6 +1258,68 @@ mod tests {
 
         assert_eq!(status, 1);
         assert!(error_buf_to_string(&error_buf).contains("1970-11-30"));
+    }
+
+    #[test]
+    fn withholding_tax_writes_expected_c_result() {
+        let mut result = unsafe { std::mem::zeroed::<JLawWithholdingTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_withholding_tax(
+                1_500_000,
+                0,
+                2026,
+                1,
+                1,
+                J_LAW_WITHHOLDING_TAX_CATEGORY_PROFESSIONAL_FEE,
+                0,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0);
+        assert_eq!(error_buf_to_string(&error_buf), "");
+        assert_eq!(result.gross_payment_amount, 1_500_000);
+        assert_eq!(result.taxable_payment_amount, 1_500_000);
+        assert_eq!(result.tax_amount, 204_200);
+        assert_eq!(result.net_payment_amount, 1_295_800);
+        assert_eq!(
+            result.category,
+            J_LAW_WITHHOLDING_TAX_CATEGORY_PROFESSIONAL_FEE
+        );
+        assert_eq!(result.submission_prize_exempted, 0);
+        assert_eq!(result.breakdown_len, 2);
+        assert_eq!(
+            fixed_buf_to_string(&result.breakdown[0].label),
+            "1000000円以下の部分"
+        );
+    }
+
+    #[test]
+    fn withholding_tax_propagates_errors() {
+        let mut result = unsafe { std::mem::zeroed::<JLawWithholdingTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_withholding_tax(
+                100_000,
+                100_001,
+                2026,
+                1,
+                1,
+                J_LAW_WITHHOLDING_TAX_CATEGORY_MANUSCRIPT_AND_LECTURE,
+                0,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 1);
+        assert!(error_buf_to_string(&error_buf).contains("separated_consumption_tax_amount"));
     }
 
     #[test]
