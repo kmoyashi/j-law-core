@@ -23,7 +23,11 @@ class TestStampTax < Minitest::Test
 
       assert_equal exp["tax_amount"], result.tax_amount, "#{tc['id']}: tax_amount"
       assert_equal exp["rule_label"], result.rule_label, "#{tc['id']}: rule_label"
-      assert_equal exp["applied_special_rule"], result.applied_special_rule, "#{tc['id']}: applied_special_rule"
+      if exp["applied_special_rule"].nil?
+        assert_nil result.applied_special_rule, "#{tc['id']}: applied_special_rule"
+      else
+        assert_equal exp["applied_special_rule"], result.applied_special_rule, "#{tc['id']}: applied_special_rule"
+      end
     end
   end
 
