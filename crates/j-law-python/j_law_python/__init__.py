@@ -8,4 +8,5 @@ datetime.date を受け取るインターフェースを提供する。
     j_law_python.real_estate     — 不動産（宅地建物取引業法 第46条）
     j_law_python.income_tax      — 所得税（所得税法 第89条）
     j_law_python.stamp_tax       — 印紙税（印紙税法 別表第一）
+    j_law_python.withholding_tax — 報酬・料金等の源泉徴収（所得税法 第204条）
 """

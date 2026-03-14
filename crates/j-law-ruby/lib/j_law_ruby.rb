@@ -348,4 +348,97 @@ module JLawRuby
       StampTaxResult.new(r)
     end
   end
+
+  # ── 源泉徴収 ────────────────────────────────────────────────────────────────
+
+  module WithholdingTax
+    MANUSCRIPT_AND_LECTURE = 1
+    PROFESSIONAL_FEE = 2
+    EXCLUSIVE_CONTRACT_FEE = 3
+
+    # 源泉徴収税額の計算結果。
+    class WithholdingTaxResult
+      attr_reader :gross_payment_amount, :taxable_payment_amount, :tax_amount,
+                  :net_payment_amount, :category, :breakdown
+
+      def initialize(r)
+        @gross_payment_amount = r.gross_payment_amount
+        @taxable_payment_amount = r.taxable_payment_amount
+        @tax_amount = r.tax_amount
+        @net_payment_amount = r.net_payment_amount
+        @category = self.class.category_to_symbol(r.category)
+        @submission_prize_exempted = r.submission_prize_exempted
+        @breakdown = r.breakdown.map do |step|
+          {
+            label: step.label,
+            base_amount: step.base_amount,
+            rate_numer: step.rate_numer,
+            rate_denom: step.rate_denom,
+            result: step.result,
+          }
+        end
+      end
+
+      def self.category_to_symbol(category)
+        case category
+        when MANUSCRIPT_AND_LECTURE then :manuscript_and_lecture
+        when PROFESSIONAL_FEE then :professional_fee
+        when EXCLUSIVE_CONTRACT_FEE then :exclusive_contract_fee
+        else category
+        end
+      end
+
+      def submission_prize_exempted?
+        @submission_prize_exempted
+      end
+
+      def inspect
+        "#<JLawRuby::WithholdingTax::WithholdingTaxResult " \
+          "gross_payment_amount=#{@gross_payment_amount} " \
+          "taxable_payment_amount=#{@taxable_payment_amount} " \
+          "tax_amount=#{@tax_amount} " \
+          "net_payment_amount=#{@net_payment_amount} " \
+          "category=#{@category.inspect} " \
+          "submission_prize_exempted=#{@submission_prize_exempted}>"
+      end
+
+      alias to_s inspect
+    end
+
+    def self.calc_withholding_tax(
+      payment_amount,
+      date,
+      category,
+      is_submission_prize: false,
+      separated_consumption_tax_amount: 0
+    )
+      unless date.is_a?(::Date) || date.is_a?(::DateTime)
+        raise TypeError,
+              "date には Date または DateTime を指定してください (got #{date.class})"
+      end
+
+      r = Internal::CFFI.calc_withholding_tax(
+        payment_amount,
+        separated_consumption_tax_amount,
+        date.year,
+        date.month,
+        date.day,
+        normalize_category(category),
+        is_submission_prize
+      )
+      WithholdingTaxResult.new(r)
+    end
+
+    def self.normalize_category(category)
+      case category
+      when Integer then category
+      when String then normalize_category(category.to_sym)
+      when :manuscript_and_lecture then MANUSCRIPT_AND_LECTURE
+      when :professional_fee then PROFESSIONAL_FEE
+      when :exclusive_contract_fee then EXCLUSIVE_CONTRACT_FEE
+      else
+        raise ArgumentError, "unknown withholding tax category: #{category.inspect}"
+      end
+    end
+  end
 end

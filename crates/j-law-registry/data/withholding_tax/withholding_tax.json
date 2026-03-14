@@ -1,0 +1,70 @@
+{
+  "domain": "withholding_tax",
+  "history": [
+    {
+      "effective_from": "2013-01-01",
+      "effective_until": "2037-12-31",
+      "status": "active",
+      "citation": {
+        "law_name": "所得税法",
+        "article": 204,
+        "paragraph": 1
+      },
+      "params": {
+        "categories": [
+          {
+            "code": "manuscript_and_lecture",
+            "label": "原稿料・講演料等",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": {
+                "numer": 1021,
+                "denom": 10000
+              },
+              "excess_rate": {
+                "numer": 2042,
+                "denom": 10000
+              }
+            },
+            "submission_prize_exemption_threshold": 50000
+          },
+          {
+            "code": "professional_fee",
+            "label": "税理士等の報酬・料金",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": {
+                "numer": 1021,
+                "denom": 10000
+              },
+              "excess_rate": {
+                "numer": 2042,
+                "denom": 10000
+              }
+            },
+            "submission_prize_exemption_threshold": null
+          },
+          {
+            "code": "exclusive_contract_fee",
+            "label": "専属契約金",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": {
+                "numer": 1021,
+                "denom": 10000
+              },
+              "excess_rate": {
+                "numer": 2042,
+                "denom": 10000
+              }
+            },
+            "submission_prize_exemption_threshold": null
+          }
+        ]
+      }
+    }
+  ]
+}

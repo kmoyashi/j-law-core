@@ -1,0 +1,89 @@
+{
+  "withholding_tax": [
+    {
+      "id": "manuscript_100k",
+      "description": "原稿料・講演料等 100,000円（10.21%）",
+      "input": {
+        "payment_amount": 100000,
+        "separated_consumption_tax_amount": 0,
+        "date": "2026-01-01",
+        "category": "manuscript_and_lecture",
+        "is_submission_prize": false
+      },
+      "expected": {
+        "taxable_payment_amount": 100000,
+        "tax_amount": 10210,
+        "net_payment_amount": 89790,
+        "submission_prize_exempted": false
+      }
+    },
+    {
+      "id": "professional_1_5m",
+      "description": "税理士等の報酬 1,500,000円（100万円超部分は20.42%）",
+      "input": {
+        "payment_amount": 1500000,
+        "separated_consumption_tax_amount": 0,
+        "date": "2026-01-01",
+        "category": "professional_fee",
+        "is_submission_prize": false
+      },
+      "expected": {
+        "taxable_payment_amount": 1500000,
+        "tax_amount": 204200,
+        "net_payment_amount": 1295800,
+        "submission_prize_exempted": false
+      }
+    },
+    {
+      "id": "exclusive_contract_1m",
+      "description": "専属契約金 1,000,000円（10.21%）",
+      "input": {
+        "payment_amount": 1000000,
+        "separated_consumption_tax_amount": 0,
+        "date": "2026-01-01",
+        "category": "exclusive_contract_fee",
+        "is_submission_prize": false
+      },
+      "expected": {
+        "taxable_payment_amount": 1000000,
+        "tax_amount": 102100,
+        "net_payment_amount": 897900,
+        "submission_prize_exempted": false
+      }
+    },
+    {
+      "id": "submission_prize_50k_exempt",
+      "description": "応募作品の入選賞金 50,000円（非課税）",
+      "input": {
+        "payment_amount": 50000,
+        "separated_consumption_tax_amount": 0,
+        "date": "2026-01-01",
+        "category": "manuscript_and_lecture",
+        "is_submission_prize": true
+      },
+      "expected": {
+        "taxable_payment_amount": 50000,
+        "tax_amount": 0,
+        "net_payment_amount": 50000,
+        "submission_prize_exempted": true
+      }
+    },
+    {
+      "id": "manuscript_with_separated_consumption_tax",
+      "description": "原稿料 110,000円のうち消費税 10,000円が明示されている場合",
+      "input": {
+        "payment_amount": 110000,
+        "separated_consumption_tax_amount": 10000,
+        "date": "2026-01-01",
+        "category": "manuscript_and_lecture",
+        "is_submission_prize": false
+      },
+      "expected": {
+        "taxable_payment_amount": 100000,
+        "tax_amount": 10210,
+        "net_payment_amount": 99790,
+        "submission_prize_exempted": false
+      }
+    }
+  ]
+}

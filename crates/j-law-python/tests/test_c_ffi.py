@@ -10,6 +10,7 @@ import pytest
 from j_law_python import build_support
 from j_law_python import consumption_tax
 from j_law_python import real_estate
+from j_law_python import withholding_tax
 from j_law_python import _c_ffi
 
 
@@ -99,11 +100,22 @@ def test_bool_flags_are_restored_as_bool():
         1,
         True,
     )
+    withholding = _c_ffi.calc_withholding_tax(
+        50_000,
+        0,
+        2026,
+        1,
+        1,
+        1,
+        True,
+    )
 
     assert isinstance(brokerage.low_cost_special_applied, bool)
     assert brokerage.low_cost_special_applied is True
     assert isinstance(tax.is_reduced_rate, bool)
     assert tax.is_reduced_rate is True
+    assert isinstance(withholding.submission_prize_exempted, bool)
+    assert withholding.submission_prize_exempted is True
 
 
 def test_error_buffer_is_raised_as_value_error():
@@ -122,6 +134,7 @@ def test_error_buffer_is_raised_as_value_error():
         (_c_ffi.calc_income_tax, (-1, 2024, 1, 1, True), "taxable_income"),
         (_c_ffi.calc_consumption_tax, (-1, 2024, 1, 1, False), "amount"),
         (_c_ffi.calc_stamp_tax, (-1, 2024, 8, 1, False), "contract_amount"),
+        (_c_ffi.calc_withholding_tax, (-1, 0, 2026, 1, 1, 1, False), "payment_amount"),
     ],
 )
 def test_negative_unsigned_inputs_are_rejected(call, args, field_name):
@@ -160,3 +173,13 @@ def test_public_api_still_uses_ctypes_backed_result():
     )
 
     assert result.total_with_tax == 231_000
+
+
+def test_withholding_public_api_uses_ctypes_backed_result():
+    result = withholding_tax.calc_withholding_tax(
+        100_000,
+        datetime.date(2026, 1, 1),
+        "manuscript_and_lecture",
+    )
+
+    assert result.tax_amount == 10_210
