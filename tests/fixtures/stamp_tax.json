@@ -1,11 +1,356 @@
 {
   "stamp_tax": [
     {
-      "id": "article1_under_10k_non_taxable",
-      "description": "第1号文書（その他譲渡）9,999円は非課税",
+      "id": "article1_real_estate_transfer__base_bracket_01",
+      "description": "article1_real_estate_transfer の基本税額表 01 (1万円未満のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 0,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "1万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_02",
+      "description": "article1_real_estate_transfer の基本税額表 02 (10万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 10000,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "10万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_03",
+      "description": "article1_real_estate_transfer の基本税額表 03 (10万円を超え50万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 100001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "10万円を超え50万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_04",
+      "description": "article1_real_estate_transfer の基本税額表 04 (50万円を超え100万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 500001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "50万円を超え100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_05",
+      "description": "article1_real_estate_transfer の基本税額表 05 (100万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 1000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "100万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_06",
+      "description": "article1_real_estate_transfer の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 5000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_07",
+      "description": "article1_real_estate_transfer の基本税額表 07 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 10000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_08",
+      "description": "article1_real_estate_transfer の基本税額表 08 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 50000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_09",
+      "description": "article1_real_estate_transfer の基本税額表 09 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 100000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_10",
+      "description": "article1_real_estate_transfer の基本税額表 10 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 500000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_11",
+      "description": "article1_real_estate_transfer の基本税額表 11 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 1000000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_bracket_12",
+      "description": "article1_real_estate_transfer の基本税額表 12 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 5000000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__base_no_amount",
+      "description": "article1_real_estate_transfer の記載金額なし",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": null,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "契約金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__01",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 01 (50万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 100001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "50万円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__02",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 02 (50万円を超え100万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 500001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 500,
+        "rule_label": "50万円を超え100万円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__03",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 03 (100万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 1000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "100万円を超え500万円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__04",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 04 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 5000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 5000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__05",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 05 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 10000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__06",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 06 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 50000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 30000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__07",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 07 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 100000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__08",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 08 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 500000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 160000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__09",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 09 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 1000000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 320000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_real_estate_transfer__special__article1_real_estate_transfer_reduced__10",
+      "description": "article1_real_estate_transfer の特例 article1_real_estate_transfer_reduced 10 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 5000000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 480000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_01",
+      "description": "article1_other_transfer の基本税額表 01 (1万円未満のもの)",
       "input": {
         "document_code": "article1_other_transfer",
-        "stated_amount": 9999,
+        "stated_amount": 0,
         "date": "2024-08-01",
         "flags": []
       },
@@ -16,27 +361,987 @@
       }
     },
     {
-      "id": "article1_real_estate_reduced",
-      "description": "第1号文書（不動産譲渡）5,000万円は軽減1万円",
+      "id": "article1_other_transfer__base_bracket_02",
+      "description": "article1_other_transfer の基本税額表 02 (10万円以下のもの)",
       "input": {
-        "document_code": "article1_real_estate_transfer",
-        "stated_amount": 50000000,
+        "document_code": "article1_other_transfer",
+        "stated_amount": 10000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "10万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_03",
+      "description": "article1_other_transfer の基本税額表 03 (10万円を超え50万円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 100001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "10万円を超え50万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_04",
+      "description": "article1_other_transfer の基本税額表 04 (50万円を超え100万円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 500001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "50万円を超え100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_05",
+      "description": "article1_other_transfer の基本税額表 05 (100万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 1000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "100万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_06",
+      "description": "article1_other_transfer の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 5000001,
         "date": "2024-08-01",
         "flags": []
       },
       "expected": {
         "tax_amount": 10000,
-        "rule_label": "1千万円を超え5千万円以下のもの",
-        "applied_special_rule": "article1_real_estate_transfer_reduced"
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
       }
     },
     {
-      "id": "article2_construction_reduced",
-      "description": "第2号文書（建設工事）250万円は軽減500円",
+      "id": "article1_other_transfer__base_bracket_07",
+      "description": "article1_other_transfer の基本税額表 07 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 10000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_08",
+      "description": "article1_other_transfer の基本税額表 08 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 50000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_09",
+      "description": "article1_other_transfer の基本税額表 09 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 100000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_10",
+      "description": "article1_other_transfer の基本税額表 10 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 500000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_11",
+      "description": "article1_other_transfer の基本税額表 11 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 1000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_bracket_12",
+      "description": "article1_other_transfer の基本税額表 12 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": 5000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_other_transfer__base_no_amount",
+      "description": "article1_other_transfer の記載金額なし",
+      "input": {
+        "document_code": "article1_other_transfer",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "契約金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_01",
+      "description": "article1_land_lease_or_surface_right の基本税額表 01 (1万円未満のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "1万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_02",
+      "description": "article1_land_lease_or_surface_right の基本税額表 02 (10万円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 10000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "10万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_03",
+      "description": "article1_land_lease_or_surface_right の基本税額表 03 (10万円を超え50万円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 100001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "10万円を超え50万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_04",
+      "description": "article1_land_lease_or_surface_right の基本税額表 04 (50万円を超え100万円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 500001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "50万円を超え100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_05",
+      "description": "article1_land_lease_or_surface_right の基本税額表 05 (100万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 1000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "100万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_06",
+      "description": "article1_land_lease_or_surface_right の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 5000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_07",
+      "description": "article1_land_lease_or_surface_right の基本税額表 07 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 10000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_08",
+      "description": "article1_land_lease_or_surface_right の基本税額表 08 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 50000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_09",
+      "description": "article1_land_lease_or_surface_right の基本税額表 09 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 100000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_10",
+      "description": "article1_land_lease_or_surface_right の基本税額表 10 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 500000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_11",
+      "description": "article1_land_lease_or_surface_right の基本税額表 11 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 1000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_bracket_12",
+      "description": "article1_land_lease_or_surface_right の基本税額表 12 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": 5000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_land_lease_or_surface_right__base_no_amount",
+      "description": "article1_land_lease_or_surface_right の記載金額なし",
+      "input": {
+        "document_code": "article1_land_lease_or_surface_right",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "契約金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_01",
+      "description": "article1_consumption_loan の基本税額表 01 (1万円未満のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "1万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_02",
+      "description": "article1_consumption_loan の基本税額表 02 (10万円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 10000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "10万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_03",
+      "description": "article1_consumption_loan の基本税額表 03 (10万円を超え50万円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 100001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "10万円を超え50万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_04",
+      "description": "article1_consumption_loan の基本税額表 04 (50万円を超え100万円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 500001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "50万円を超え100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_05",
+      "description": "article1_consumption_loan の基本税額表 05 (100万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 1000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "100万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_06",
+      "description": "article1_consumption_loan の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 5000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_07",
+      "description": "article1_consumption_loan の基本税額表 07 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 10000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_08",
+      "description": "article1_consumption_loan の基本税額表 08 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 50000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_09",
+      "description": "article1_consumption_loan の基本税額表 09 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 100000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_10",
+      "description": "article1_consumption_loan の基本税額表 10 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 500000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_11",
+      "description": "article1_consumption_loan の基本税額表 11 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 1000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_bracket_12",
+      "description": "article1_consumption_loan の基本税額表 12 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": 5000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_consumption_loan__base_no_amount",
+      "description": "article1_consumption_loan の記載金額なし",
+      "input": {
+        "document_code": "article1_consumption_loan",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "契約金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_01",
+      "description": "article1_transportation の基本税額表 01 (1万円未満のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "1万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_02",
+      "description": "article1_transportation の基本税額表 02 (10万円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 10000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "10万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_03",
+      "description": "article1_transportation の基本税額表 03 (10万円を超え50万円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 100001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "10万円を超え50万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_04",
+      "description": "article1_transportation の基本税額表 04 (50万円を超え100万円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 500001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "50万円を超え100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_05",
+      "description": "article1_transportation の基本税額表 05 (100万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 1000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "100万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_06",
+      "description": "article1_transportation の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 5000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_07",
+      "description": "article1_transportation の基本税額表 07 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 10000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_08",
+      "description": "article1_transportation の基本税額表 08 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 50000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_09",
+      "description": "article1_transportation の基本税額表 09 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 100000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_10",
+      "description": "article1_transportation の基本税額表 10 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 500000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_11",
+      "description": "article1_transportation の基本税額表 11 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 1000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_bracket_12",
+      "description": "article1_transportation の基本税額表 12 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": 5000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article1_transportation__base_no_amount",
+      "description": "article1_transportation の記載金額なし",
+      "input": {
+        "document_code": "article1_transportation",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "契約金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_01",
+      "description": "article2_construction_work の基本税額表 01 (1万円未満のもの)",
       "input": {
         "document_code": "article2_construction_work",
-        "stated_amount": 2500000,
-        "date": "2024-08-01",
+        "stated_amount": 0,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "1万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_02",
+      "description": "article2_construction_work の基本税額表 02 (100万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 10000,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_03",
+      "description": "article2_construction_work の基本税額表 03 (100万円を超え200万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 1000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "100万円を超え200万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_04",
+      "description": "article2_construction_work の基本税額表 04 (200万円を超え300万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 2000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "200万円を超え300万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_05",
+      "description": "article2_construction_work の基本税額表 05 (300万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 3000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "300万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_06",
+      "description": "article2_construction_work の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 5000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_07",
+      "description": "article2_construction_work の基本税額表 07 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 10000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_08",
+      "description": "article2_construction_work の基本税額表 08 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 50000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_09",
+      "description": "article2_construction_work の基本税額表 09 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 100000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_10",
+      "description": "article2_construction_work の基本税額表 10 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 500000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_11",
+      "description": "article2_construction_work の基本税額表 11 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 1000000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_bracket_12",
+      "description": "article2_construction_work の基本税額表 12 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 5000000001,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__base_no_amount",
+      "description": "article2_construction_work の記載金額なし",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": null,
+        "date": "2027-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "契約金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__01",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 01 (200万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 1000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200万円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__02",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 02 (200万円を超え300万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 2000001,
+        "date": "2014-04-01",
         "flags": []
       },
       "expected": {
@@ -46,8 +1351,580 @@
       }
     },
     {
-      "id": "article3_special_flat_200",
-      "description": "第3号文書（一覧払等）は固定200円",
+      "id": "article2_construction_work__special__article2_construction_work_reduced__03",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 03 (300万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 3000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "300万円を超え500万円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__04",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 04 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 5000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 5000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__05",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 05 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 10000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__06",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 06 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 50000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 30000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__07",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 07 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 100000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__08",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 08 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 500000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 160000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__09",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 09 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 1000000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 320000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_construction_work__special__article2_construction_work_reduced__10",
+      "description": "article2_construction_work の特例 article2_construction_work_reduced 10 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article2_construction_work",
+        "stated_amount": 5000000001,
+        "date": "2014-04-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 480000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": "article2_construction_work_reduced"
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_01",
+      "description": "article2_general_contract の基本税額表 01 (1万円未満のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "1万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_02",
+      "description": "article2_general_contract の基本税額表 02 (100万円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 10000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_03",
+      "description": "article2_general_contract の基本税額表 03 (100万円を超え200万円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 1000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "100万円を超え200万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_04",
+      "description": "article2_general_contract の基本税額表 04 (200万円を超え300万円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 2000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "200万円を超え300万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_05",
+      "description": "article2_general_contract の基本税額表 05 (300万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 3000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "300万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_06",
+      "description": "article2_general_contract の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 5000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_07",
+      "description": "article2_general_contract の基本税額表 07 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 10000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_08",
+      "description": "article2_general_contract の基本税額表 08 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 50000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_09",
+      "description": "article2_general_contract の基本税額表 09 (1億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 100000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "1億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_10",
+      "description": "article2_general_contract の基本税額表 10 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 500000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_11",
+      "description": "article2_general_contract の基本税額表 11 (10億円を超え50億円以下のもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 1000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400000,
+        "rule_label": "10億円を超え50億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_bracket_12",
+      "description": "article2_general_contract の基本税額表 12 (50億円を超えるもの)",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": 5000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600000,
+        "rule_label": "50億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article2_general_contract__base_no_amount",
+      "description": "article2_general_contract の記載金額なし",
+      "input": {
+        "document_code": "article2_general_contract",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "契約金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_01",
+      "description": "article3_bill_amount_table の基本税額表 01 (10万円未満のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "10万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_02",
+      "description": "article3_bill_amount_table の基本税額表 02 (10万円以上100万円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 100000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "10万円以上100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_03",
+      "description": "article3_bill_amount_table の基本税額表 03 (100万円を超え200万円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 1000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "100万円を超え200万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_04",
+      "description": "article3_bill_amount_table の基本税額表 04 (200万円を超え300万円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 2000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600,
+        "rule_label": "200万円を超え300万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_05",
+      "description": "article3_bill_amount_table の基本税額表 05 (300万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 3000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "300万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_06",
+      "description": "article3_bill_amount_table の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 5000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_07",
+      "description": "article3_bill_amount_table の基本税額表 07 (1千万円を超え2千万円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 10000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 4000,
+        "rule_label": "1千万円を超え2千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_08",
+      "description": "article3_bill_amount_table の基本税額表 08 (2千万円を超え3千万円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 20000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 6000,
+        "rule_label": "2千万円を超え3千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_09",
+      "description": "article3_bill_amount_table の基本税額表 09 (3千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 30000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "3千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_10",
+      "description": "article3_bill_amount_table の基本税額表 10 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 50000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_11",
+      "description": "article3_bill_amount_table の基本税額表 11 (1億円を超え2億円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 100000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 40000,
+        "rule_label": "1億円を超え2億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_12",
+      "description": "article3_bill_amount_table の基本税額表 12 (2億円を超え3億円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 200000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "2億円を超え3億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_13",
+      "description": "article3_bill_amount_table の基本税額表 13 (3億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 300000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "3億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_14",
+      "description": "article3_bill_amount_table の基本税額表 14 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 500000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 150000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_bracket_15",
+      "description": "article3_bill_amount_table の基本税額表 15 (10億円を超えるもの)",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 1000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "10億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__base_no_amount",
+      "description": "article3_bill_amount_table の記載金額なし",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "手形金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article3_bill_amount_table__special__article3_copy_or_transcript_exempt",
+      "description": "article3_bill_amount_table の特例 article3_copy_or_transcript_exempt",
+      "input": {
+        "document_code": "article3_bill_amount_table",
+        "stated_amount": 100000,
+        "date": "2024-08-01",
+        "flags": [
+          "article3_copy_or_transcript_exempt"
+        ]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "手形の複本又は謄本",
+        "applied_special_rule": "article3_copy_or_transcript_exempt"
+      }
+    },
+    {
+      "id": "article3_bill_special_flat_200__base_fixed",
+      "description": "article3_bill_special_flat_200 の基本税額",
       "input": {
         "document_code": "article3_bill_special_flat_200",
         "stated_amount": null,
@@ -61,13 +1938,201 @@
       }
     },
     {
-      "id": "article8_small_deposit_exempt",
-      "description": "第8号文書の特定金融機関1万円未満預入は非課税",
+      "id": "article4_security_certificate__base_bracket_01",
+      "description": "article4_security_certificate の基本税額表 01 (500万円以下のもの)",
+      "input": {
+        "document_code": "article4_security_certificate",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article4_security_certificate__base_bracket_02",
+      "description": "article4_security_certificate の基本税額表 02 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article4_security_certificate",
+        "stated_amount": 5000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article4_security_certificate__base_bracket_03",
+      "description": "article4_security_certificate の基本税額表 03 (1千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article4_security_certificate",
+        "stated_amount": 10000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article4_security_certificate__base_bracket_04",
+      "description": "article4_security_certificate の基本税額表 04 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article4_security_certificate",
+        "stated_amount": 50000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article4_security_certificate__base_bracket_05",
+      "description": "article4_security_certificate の基本税額表 05 (1億円を超えるもの)",
+      "input": {
+        "document_code": "article4_security_certificate",
+        "stated_amount": 100000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "1億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article4_security_certificate__special__article4_specified_issuer_exempt",
+      "description": "article4_security_certificate の特例 article4_specified_issuer_exempt",
+      "input": {
+        "document_code": "article4_security_certificate",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": [
+          "article4_specified_issuer_exempt"
+        ]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "日本銀行その他特定の法人の作成する出資証券",
+        "applied_special_rule": "article4_specified_issuer_exempt"
+      }
+    },
+    {
+      "id": "article4_security_certificate__special__article4_restricted_beneficiary_certificate_exempt",
+      "description": "article4_security_certificate の特例 article4_restricted_beneficiary_certificate_exempt",
+      "input": {
+        "document_code": "article4_security_certificate",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": [
+          "article4_restricted_beneficiary_certificate_exempt"
+        ]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "譲渡が禁止されている特定の受益証券",
+        "applied_special_rule": "article4_restricted_beneficiary_certificate_exempt"
+      }
+    },
+    {
+      "id": "article5_merger_or_split__base_fixed",
+      "description": "article5_merger_or_split の基本税額",
+      "input": {
+        "document_code": "article5_merger_or_split",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 40000,
+        "rule_label": "4万円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article6_articles_of_incorporation__base_fixed",
+      "description": "article6_articles_of_incorporation の基本税額",
+      "input": {
+        "document_code": "article6_articles_of_incorporation",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 40000,
+        "rule_label": "4万円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article6_articles_of_incorporation__special__article6_notary_copy_exempt",
+      "description": "article6_articles_of_incorporation の特例 article6_notary_copy_exempt",
+      "input": {
+        "document_code": "article6_articles_of_incorporation",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": [
+          "article6_notary_copy_exempt"
+        ]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "公証人の保存するもの以外の定款",
+        "applied_special_rule": "article6_notary_copy_exempt"
+      }
+    },
+    {
+      "id": "article7_continuing_transaction_basic__base_fixed",
+      "description": "article7_continuing_transaction_basic の基本税額",
+      "input": {
+        "document_code": "article7_continuing_transaction_basic",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 4000,
+        "rule_label": "4千円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article8_deposit_certificate__base_fixed",
+      "description": "article8_deposit_certificate の基本税額",
       "input": {
         "document_code": "article8_deposit_certificate",
-        "stated_amount": 9999,
+        "stated_amount": null,
         "date": "2024-08-01",
-        "flags": ["article8_small_deposit_exempt"]
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article8_deposit_certificate__special__article8_small_deposit_exempt__01",
+      "description": "article8_deposit_certificate の特例 article8_small_deposit_exempt 01 (預入額1万円未満のもの)",
+      "input": {
+        "document_code": "article8_deposit_certificate",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": [
+          "article8_small_deposit_exempt"
+        ]
       },
       "expected": {
         "tax_amount": 0,
@@ -76,8 +2141,145 @@
       }
     },
     {
-      "id": "article15_no_amount_200",
-      "description": "第15号文書の記載金額なしは200円",
+      "id": "article9_transport_certificate__base_fixed",
+      "description": "article9_transport_certificate の基本税額",
+      "input": {
+        "document_code": "article9_transport_certificate",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article10_insurance_certificate__base_fixed",
+      "description": "article10_insurance_certificate の基本税額",
+      "input": {
+        "document_code": "article10_insurance_certificate",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article11_letter_of_credit__base_fixed",
+      "description": "article11_letter_of_credit の基本税額",
+      "input": {
+        "document_code": "article11_letter_of_credit",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article12_trust_contract__base_fixed",
+      "description": "article12_trust_contract の基本税額",
+      "input": {
+        "document_code": "article12_trust_contract",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article13_debt_guarantee__base_fixed",
+      "description": "article13_debt_guarantee の基本税額",
+      "input": {
+        "document_code": "article13_debt_guarantee",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article13_debt_guarantee__special__article13_identity_guarantee_exempt",
+      "description": "article13_debt_guarantee の特例 article13_identity_guarantee_exempt",
+      "input": {
+        "document_code": "article13_debt_guarantee",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": [
+          "article13_identity_guarantee_exempt"
+        ]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "身元保証ニ関スル法律に定める身元保証",
+        "applied_special_rule": "article13_identity_guarantee_exempt"
+      }
+    },
+    {
+      "id": "article14_deposit_contract__base_fixed",
+      "description": "article14_deposit_contract の基本税額",
+      "input": {
+        "document_code": "article14_deposit_contract",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article15_assignment_or_assumption__base_bracket_01",
+      "description": "article15_assignment_or_assumption の基本税額表 01 (1万円未満のもの)",
+      "input": {
+        "document_code": "article15_assignment_or_assumption",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "1万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article15_assignment_or_assumption__base_bracket_02",
+      "description": "article15_assignment_or_assumption の基本税額表 02 (1万円以上のもの)",
+      "input": {
+        "document_code": "article15_assignment_or_assumption",
+        "stated_amount": 10000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "1万円以上のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article15_assignment_or_assumption__base_no_amount",
+      "description": "article15_assignment_or_assumption の記載金額なし",
       "input": {
         "document_code": "article15_assignment_or_assumption",
         "stated_amount": null,
@@ -91,11 +2293,11 @@
       }
     },
     {
-      "id": "article16_under_3000_non_taxable",
-      "description": "第16号文書の2,999円は非課税",
+      "id": "article16_dividend_receipt__base_bracket_01",
+      "description": "article16_dividend_receipt の基本税額表 01 (3千円未満のもの)",
       "input": {
         "document_code": "article16_dividend_receipt",
-        "stated_amount": 2999,
+        "stated_amount": 0,
         "date": "2024-08-01",
         "flags": []
       },
@@ -106,8 +2308,53 @@
       }
     },
     {
-      "id": "article17_sales_receipt_threshold",
-      "description": "第17号文書（売上代金）50,000円は200円",
+      "id": "article16_dividend_receipt__base_bracket_02",
+      "description": "article16_dividend_receipt の基本税額表 02 (3千円以上のもの)",
+      "input": {
+        "document_code": "article16_dividend_receipt",
+        "stated_amount": 3000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "3千円以上のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article16_dividend_receipt__base_no_amount",
+      "description": "article16_dividend_receipt の記載金額なし",
+      "input": {
+        "document_code": "article16_dividend_receipt",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "配当金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_01",
+      "description": "article17_sales_receipt の基本税額表 01 (5万円未満のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 0,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "5万円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_02",
+      "description": "article17_sales_receipt の基本税額表 02 (100万円以下のもの)",
       "input": {
         "document_code": "article17_sales_receipt",
         "stated_amount": 50000,
@@ -121,13 +2368,225 @@
       }
     },
     {
-      "id": "article17_non_business_exempt",
-      "description": "第17号文書（売上代金）営業外は非課税",
+      "id": "article17_sales_receipt__base_bracket_03",
+      "description": "article17_sales_receipt の基本税額表 03 (100万円を超え200万円以下のもの)",
       "input": {
         "document_code": "article17_sales_receipt",
-        "stated_amount": 70000,
+        "stated_amount": 1000001,
         "date": "2024-08-01",
-        "flags": ["article17_non_business_exempt"]
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "100万円を超え200万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_04",
+      "description": "article17_sales_receipt の基本税額表 04 (200万円を超え300万円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 2000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 600,
+        "rule_label": "200万円を超え300万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_05",
+      "description": "article17_sales_receipt の基本税額表 05 (300万円を超え500万円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 3000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 1000,
+        "rule_label": "300万円を超え500万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_06",
+      "description": "article17_sales_receipt の基本税額表 06 (500万円を超え1千万円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 5000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 2000,
+        "rule_label": "500万円を超え1千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_07",
+      "description": "article17_sales_receipt の基本税額表 07 (1千万円を超え2千万円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 10000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 4000,
+        "rule_label": "1千万円を超え2千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_08",
+      "description": "article17_sales_receipt の基本税額表 08 (2千万円を超え3千万円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 20000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 6000,
+        "rule_label": "2千万円を超え3千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_09",
+      "description": "article17_sales_receipt の基本税額表 09 (3千万円を超え5千万円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 30000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 10000,
+        "rule_label": "3千万円を超え5千万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_10",
+      "description": "article17_sales_receipt の基本税額表 10 (5千万円を超え1億円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 50000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 20000,
+        "rule_label": "5千万円を超え1億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_11",
+      "description": "article17_sales_receipt の基本税額表 11 (1億円を超え2億円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 100000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 40000,
+        "rule_label": "1億円を超え2億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_12",
+      "description": "article17_sales_receipt の基本税額表 12 (2億円を超え3億円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 200000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 60000,
+        "rule_label": "2億円を超え3億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_13",
+      "description": "article17_sales_receipt の基本税額表 13 (3億円を超え5億円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 300000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 100000,
+        "rule_label": "3億円を超え5億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_14",
+      "description": "article17_sales_receipt の基本税額表 14 (5億円を超え10億円以下のもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 500000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 150000,
+        "rule_label": "5億円を超え10億円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_bracket_15",
+      "description": "article17_sales_receipt の基本税額表 15 (10億円を超えるもの)",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 1000000001,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200000,
+        "rule_label": "10億円を超えるもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__base_no_amount",
+      "description": "article17_sales_receipt の記載金額なし",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "受取金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt__special__article17_non_business_exempt",
+      "description": "article17_sales_receipt の特例 article17_non_business_exempt",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 50000,
+        "date": "2024-08-01",
+        "flags": [
+          "article17_non_business_exempt"
+        ]
       },
       "expected": {
         "tax_amount": 0,
@@ -136,18 +2595,131 @@
       }
     },
     {
-      "id": "article18_tax_reserve_exempt",
-      "description": "第18号文書の納税準備預金通帳は非課税",
+      "id": "article17_sales_receipt__special__article17_appended_receipt_exempt",
+      "description": "article17_sales_receipt の特例 article17_appended_receipt_exempt",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 50000,
+        "date": "2024-08-01",
+        "flags": [
+          "article17_appended_receipt_exempt"
+        ]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "特定の文書に追記した受取書",
+        "applied_special_rule": "article17_appended_receipt_exempt"
+      }
+    },
+    {
+      "id": "article17_other_receipt__base_fixed",
+      "description": "article17_other_receipt の基本税額",
+      "input": {
+        "document_code": "article17_other_receipt",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article18_passbook__base_fixed",
+      "description": "article18_passbook の基本税額",
       "input": {
         "document_code": "article18_passbook",
         "stated_amount": null,
         "date": "2024-08-01",
-        "flags": ["article18_tax_reserve_deposit_passbook"]
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "1年ごとに200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article18_passbook__special__article18_specified_financial_institution_exempt",
+      "description": "article18_passbook の特例 article18_specified_financial_institution_exempt",
+      "input": {
+        "document_code": "article18_passbook",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": [
+          "article18_specified_financial_institution_exempt"
+        ]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "特定金融機関の預貯金通帳",
+        "applied_special_rule": "article18_specified_financial_institution_exempt"
+      }
+    },
+    {
+      "id": "article18_passbook__special__article18_income_tax_exempt_passbook",
+      "description": "article18_passbook の特例 article18_income_tax_exempt_passbook",
+      "input": {
+        "document_code": "article18_passbook",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": [
+          "article18_income_tax_exempt_passbook"
+        ]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "所得税が非課税となる普通預金通帳など",
+        "applied_special_rule": "article18_income_tax_exempt_passbook"
+      }
+    },
+    {
+      "id": "article18_passbook__special__article18_tax_reserve_deposit_passbook",
+      "description": "article18_passbook の特例 article18_tax_reserve_deposit_passbook",
+      "input": {
+        "document_code": "article18_passbook",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": [
+          "article18_tax_reserve_deposit_passbook"
+        ]
       },
       "expected": {
         "tax_amount": 0,
         "rule_label": "納税準備預金通帳",
         "applied_special_rule": "article18_tax_reserve_deposit_passbook"
+      }
+    },
+    {
+      "id": "article19_misc_passbook__base_fixed",
+      "description": "article19_misc_passbook の基本税額",
+      "input": {
+        "document_code": "article19_misc_passbook",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 400,
+        "rule_label": "1年ごとに400円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article20_seal_book__base_fixed",
+      "description": "article20_seal_book の基本税額",
+      "input": {
+        "document_code": "article20_seal_book",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 4000,
+        "rule_label": "1年ごとに4千円",
+        "applied_special_rule": null
       }
     }
   ]
