@@ -77,20 +77,19 @@ puts result.reconstruction_tax_applied?  # true
 
 ```ruby
 result = JLawRuby::StampTax.calc_stamp_tax(
+  :article1_real_estate_transfer,
   5_000_000,
-  Date.new(2024, 8, 1),
-  true
+  Date.new(2024, 8, 1)
 )
 
 puts result.tax_amount             # 1000
-puts result.bracket_label          # "500万円以下"
-puts result.reduced_rate_applied?  # true
+puts result.rule_label             # "500万円以下"
+puts result.applied_special_rule   # "article1_real_estate_transfer_reduced"
 
 construction = JLawRuby::StampTax.calc_stamp_tax(
+  :article2_construction_work,
   1_500_000,
-  Date.new(2024, 8, 1),
-  true,
-  document_kind: :construction_contract
+  Date.new(2024, 8, 1)
 )
 
 puts construction.tax_amount       # 200
@@ -101,7 +100,7 @@ puts construction.tax_amount       # 200
 - `JLawRuby::ConsumptionTax.calc_consumption_tax(amount, date, is_reduced_rate = false)`
 - `JLawRuby::RealEstate.calc_brokerage_fee(price, date, is_low_cost_vacant_house, is_seller)`
 - `JLawRuby::IncomeTax.calc_income_tax(taxable_income, date, apply_reconstruction_tax)`
-- `JLawRuby::StampTax.calc_stamp_tax(contract_amount, date, is_reduced_rate_applicable = false, document_kind: :real_estate_transfer)`
+- `JLawRuby::StampTax.calc_stamp_tax(document_code, stated_amount, date, flags: [])`
 
 すべての API は `Date` または `DateTime` を受け取り、日付型以外が渡された場合は `TypeError` を送出します。法令パラメータの適用外日付や入力不正は `RuntimeError` を送出します。
 

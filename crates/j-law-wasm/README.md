@@ -16,8 +16,7 @@ Rust コアライブラリ（j-law-core）を [wasm-bindgen](https://rustwasm.gi
 > **数値精度について**
 >
 > JavaScript の `Number` 型は 53bit 整数精度のため、`u64` を直接扱えません。
-> `calcBrokerageFee` / `calcIncomeTax` の金額引数は `number`（最大約42.9億円）です。
-> 印紙税の `contractAmount` は50億円超のブラケットに対応するため `number`（`f64`）を使用します。
+> `calcBrokerageFee` / `calcIncomeTax` / `calcStampTax` の金額引数は `number` です。
 
 ## インストール
 
@@ -101,17 +100,23 @@ console.log(result2.totalTax);                 // 572500
 const date = new Date(Date.UTC(2024, 7, 1));
 
 // 契約金額 500万円（不動産譲渡契約書）
-const result = calcStampTax(5_000_000, date, false);
+const result = calcStampTax(
+  "article1_real_estate_transfer",
+  5_000_000,
+  date
+);
 
-console.log(result.taxAmount);           // 2000（印紙税額）
-console.log(result.bracketLabel);        // 適用ブラケット名
-console.log(result.reducedRateApplied); // false
+console.log(result.taxAmount);          // 1000（印紙税額）
+console.log(result.ruleLabel);          // 適用税額表ラベル
+console.log(result.appliedSpecialRule); // "article1_real_estate_transfer_reduced"
 
-// 軽減税率適用（租税特別措置法 第91条）
-// WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任
-const special = calcStampTax(1_500_000, date, true, "construction_contract");
+const special = calcStampTax(
+  "article2_construction_work",
+  1_500_000,
+  date
+);
 console.log(special.taxAmount);          // 200
-console.log(special.reducedRateApplied); // true
+console.log(special.appliedSpecialRule); // "article2_construction_work_reduced"
 ```
 
 ## API リファレンス
@@ -169,24 +174,24 @@ console.log(special.reducedRateApplied); // true
 
 ---
 
-### `calcStampTax(contractAmount, date, isReducedRateApplicable, documentKind = "real_estate_transfer")`
+### `calcStampTax(documentCode, statedAmount, date, flags = [])`
 
-印紙税法 別表第一（第1号文書・第2号文書）に基づく印紙税額を計算する。
+印紙税法 別表第一に基づく印紙税額を計算する。
 
 | 引数 | 型 | 説明 |
 |---|---|---|
-| `contractAmount` | `number` | 契約金額（円・`f64` で受け取り、50億円超も対応） |
-| `date` | `Date` | 契約書作成日（JST で解釈） |
-| `isReducedRateApplicable` | `boolean` | 軽減税率適用フラグ |
-| `documentKind` | `string` | `"real_estate_transfer"` または `"construction_contract"` |
+| `documentCode` | `string` | 文書コード |
+| `statedAmount` | `number \| null` | 記載金額（円）。記載がない文書は `null` |
+| `date` | `Date` | 文書作成日（JST で解釈） |
+| `flags` | `string[]` | 主な非課税文書などの明示フラグ |
 
 **戻り値: `StampTaxResult`**
 
 | プロパティ | 型 | 説明 |
 |---|---|---|
 | `taxAmount` | `number` | 印紙税額（円） |
-| `bracketLabel` | `string` | 適用されたブラケットの表示名 |
-| `reducedRateApplied` | `boolean` | 軽減税率が適用されたか |
+| `ruleLabel` | `string` | 適用された税額表ラベル |
+| `appliedSpecialRule` | `string \| null` | 適用された特例ルールコード |
 
 **例外** — 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合に `Error` をスロー。
 

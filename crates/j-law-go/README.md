@@ -106,28 +106,35 @@ fmt.Println(result2.TotalTax)                 // 572500
 date := time.Date(2024, time.August, 1, 0, 0, 0, 0, time.UTC)
 
 // 契約金額 500万円（不動産譲渡契約書）
-result, err := jlawcore.CalcStampTax(5_000_000, date, false)
+amount := uint64(5_000_000)
+result, err := jlawcore.CalcStampTax(
+    jlawcore.StampTaxDocumentCodeArticle1RealEstateTransfer,
+    &amount,
+    date,
+    nil,
+)
 if err != nil {
     log.Fatal(err)
 }
 
-fmt.Println(result.TaxAmount)           // 2000（印紙税額）
-fmt.Println(result.BracketLabel)        // 適用ブラケット名
-fmt.Println(result.ReducedRateApplied)  // false
+fmt.Println(result.TaxAmount)           // 1000（印紙税額）
+fmt.Println(result.RuleLabel)           // 適用税額表ラベル
+if result.AppliedSpecialRule != nil {
+    fmt.Println(*result.AppliedSpecialRule) // "article1_real_estate_transfer_reduced"
+}
 
-// 軽減税率適用（租税特別措置法 第91条）
-// WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任
-special, err := jlawcore.CalcStampTaxWithDocumentKind(
-    1_500_000,
+specialAmount := uint64(1_500_000)
+special, err := jlawcore.CalcStampTax(
+    jlawcore.StampTaxDocumentCodeArticle2ConstructionWork,
+    &specialAmount,
     date,
-    true,
-    jlawcore.StampTaxDocumentConstructionContract,
+    nil,
 )
 if err != nil {
     log.Fatal(err)
 }
 fmt.Println(special.TaxAmount)          // 200
-fmt.Println(special.ReducedRateApplied) // true
+fmt.Println(*special.AppliedSpecialRule) // "article2_construction_work_reduced"
 ```
 
 ## API リファレンス
@@ -189,32 +196,26 @@ fmt.Println(special.ReducedRateApplied) // true
 
 ---
 
-### `CalcStampTax(contractAmount uint64, date time.Time, isReducedRateApplicable bool) (*StampTaxResult, error)`
+### `CalcStampTax(documentCode StampTaxDocumentCode, statedAmount *uint64, date time.Time, flags []StampTaxFlag) (*StampTaxResult, error)`
 
-印紙税法 別表第一（第1号文書）に基づく印紙税額を計算する。
+印紙税法 別表第一に基づく印紙税額を計算する。
 
-| 引数                      | 型       | 説明               |
-| ------------------------- | -------- | ------------------ |
-| `contractAmount`          | `uint64` | 契約金額（円）     |
-| `date`                    | `time.Time` | 契約書作成日    |
-| `isReducedRateApplicable` | `bool`   | 軽減税率適用フラグ |
+| 引数           | 型                     | 説明                                            |
+| -------------- | ---------------------- | ----------------------------------------------- |
+| `documentCode` | `StampTaxDocumentCode` | 文書コード                                      |
+| `statedAmount` | `*uint64`              | 記載金額。記載がない文書は `nil`                |
+| `date`         | `time.Time`            | 文書作成日                                      |
+| `flags`        | `[]StampTaxFlag`       | 主な非課税文書などの明示フラグ                  |
 
 **戻り値: `*StampTaxResult`**
 
-| フィールド           | 型       | 説明                         |
-| -------------------- | -------- | ---------------------------- |
-| `TaxAmount`          | `uint64` | 印紙税額（円）               |
-| `BracketLabel`       | `string` | 適用されたブラケットの表示名 |
-| `ReducedRateApplied` | `bool`   | 軽減税率が適用されたか       |
+| フィールド            | 型        | 説明                                  |
+| --------------------- | --------- | ------------------------------------- |
+| `TaxAmount`           | `uint64`  | 印紙税額（円）                        |
+| `RuleLabel`           | `string`  | 適用された税額表ラベル                |
+| `AppliedSpecialRule`  | `*string` | 適用された特例ルール名。なければ `nil` |
 
 **エラー** — 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合。
-
-### `CalcStampTaxWithDocumentKind(contractAmount uint64, date time.Time, isReducedRateApplicable bool, documentKind StampTaxDocumentKind) (*StampTaxResult, error)`
-
-印紙税法 別表第一（第1号文書・第2号文書）に基づく印紙税額を計算する。
-
-`documentKind` には `StampTaxDocumentRealEstateTransfer` または
-`StampTaxDocumentConstructionContract` を指定する。
 
 ## ビルドとテスト
 

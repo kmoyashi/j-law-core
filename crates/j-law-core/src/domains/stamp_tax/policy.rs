@@ -1,109 +1,105 @@
-use std::collections::HashSet;
-
-use super::context::StampTaxFlag;
+use crate::domains::stamp_tax::context::StampTaxContext;
+use crate::domains::stamp_tax::params::{StampTaxDocumentParams, StampTaxSpecialRule};
 
 /// 印紙税の計算ポリシー。
-///
-/// 軽減措置の適用判定ロジックを抽象化する。
 pub trait StampTaxPolicy: std::fmt::Debug {
-    /// 軽減税率を適用すべきか判定する。
+    /// 適用すべき特例ルールを選択する。
     ///
     /// # 法的根拠
-    /// 租税特別措置法 第91条（軽減措置の適用要件）
-    ///
-    /// # 引数
-    /// - `date_str`: 対象日（ISO 8601形式、例: "2024-08-01"）
-    /// - `reduced_from`: 軽減措置の適用開始日
-    /// - `reduced_until`: 軽減措置の適用終了日
-    /// - `flags`: 適用フラグ
-    fn should_apply_reduced_rate(
+    /// 印紙税法 別表第一 / 租税特別措置法 第91条
+    fn select_special_rule<'a>(
         &self,
-        date_str: &str,
-        reduced_from: Option<&str>,
-        reduced_until: Option<&str>,
-        flags: &HashSet<StampTaxFlag>,
-    ) -> bool;
+        ctx: &StampTaxContext,
+        document: &'a StampTaxDocumentParams,
+    ) -> Option<&'a StampTaxSpecialRule>;
 }
 
 /// 国税庁の標準ポリシー。
-///
-/// 軽減措置の適用条件:
-/// 1. `IsReducedTaxRateApplicable` フラグが指定されていること
-/// 2. 対象日が軽減措置の適用期間内であること
 #[derive(Debug, Clone, Copy)]
 pub struct StandardNtaPolicy;
 
 impl StampTaxPolicy for StandardNtaPolicy {
-    fn should_apply_reduced_rate(
+    fn select_special_rule<'a>(
         &self,
-        date_str: &str,
-        reduced_from: Option<&str>,
-        reduced_until: Option<&str>,
-        flags: &HashSet<StampTaxFlag>,
-    ) -> bool {
-        if !flags.contains(&StampTaxFlag::IsReducedTaxRateApplicable) {
-            return false;
-        }
-        match (reduced_from, reduced_until) {
-            (Some(from), Some(until)) => date_str >= from && date_str <= until,
-            (Some(from), None) => date_str >= from,
-            (None, Some(until)) => date_str <= until,
-            (None, None) => false,
-        }
+        ctx: &StampTaxContext,
+        document: &'a StampTaxDocumentParams,
+    ) -> Option<&'a StampTaxSpecialRule> {
+        let date_str = ctx.target_date.to_date_str();
+        document
+            .special_rules
+            .iter()
+            .filter(|rule| rule.matches_date(&date_str))
+            .filter(|rule| {
+                rule.required_flags
+                    .iter()
+                    .all(|flag| ctx.flags.contains(flag))
+            })
+            .filter(|rule| rule.matches_amount(ctx.stated_amount))
+            .min_by_key(|rule| rule.priority)
     }
 }
 
 #[cfg(test)]
+#[allow(clippy::disallowed_methods)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
+    use crate::domains::stamp_tax::context::{StampTaxDocumentCode, StampTaxFlag};
+    use crate::domains::stamp_tax::params::{
+        StampTaxAmountUsage, StampTaxBracket, StampTaxChargeMode, StampTaxCitation,
+    };
+    use crate::types::date::LegalDate;
 
-    fn flags_with_reduced() -> HashSet<StampTaxFlag> {
+    #[test]
+    fn standard_policy_selects_matching_rule() {
+        let document = StampTaxDocumentParams {
+            code: StampTaxDocumentCode::Article1RealEstateTransfer,
+            label: "第1号".into(),
+            citation: StampTaxCitation {
+                law_name: "印紙税法".into(),
+                article: "別表第一 第1号文書".into(),
+            },
+            charge_mode: StampTaxChargeMode::AmountBrackets,
+            amount_usage: StampTaxAmountUsage::Optional,
+            base_rule_label: "通常".into(),
+            base_tax_amount: None,
+            brackets: vec![],
+            no_amount_tax_amount: Some(200),
+            no_amount_rule_label: Some("記載なし".into()),
+            special_rules: vec![StampTaxSpecialRule {
+                code: "reduced".into(),
+                label: "軽減".into(),
+                priority: 1,
+                effective_from: Some("2014-04-01".into()),
+                effective_until: Some("2027-03-31".into()),
+                required_flags: vec![StampTaxFlag::Article17NonBusinessExempt],
+                tax_amount: Some(0),
+                rule_label: Some("非課税".into()),
+                brackets: vec![StampTaxBracket {
+                    label: "50万円以下".into(),
+                    amount_from: 0,
+                    amount_to_inclusive: Some(500_000),
+                    tax_amount: 0,
+                }],
+                no_amount_tax_amount: None,
+                no_amount_rule_label: None,
+            }],
+        };
+
         let mut flags = HashSet::new();
-        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
-        flags
-    }
+        flags.insert(StampTaxFlag::Article17NonBusinessExempt);
+        let ctx = StampTaxContext {
+            document_code: StampTaxDocumentCode::Article1RealEstateTransfer,
+            stated_amount: Some(100_000),
+            target_date: LegalDate::new(2024, 1, 1),
+            flags,
+            policy: Box::new(StandardNtaPolicy),
+        };
 
-    #[test]
-    fn standard_policy_applies_within_period() {
-        let policy = StandardNtaPolicy;
-        assert!(policy.should_apply_reduced_rate(
-            "2024-08-01",
-            Some("2014-04-01"),
-            Some("2027-03-31"),
-            &flags_with_reduced(),
-        ));
-    }
-
-    #[test]
-    fn standard_policy_rejects_before_period() {
-        let policy = StandardNtaPolicy;
-        assert!(!policy.should_apply_reduced_rate(
-            "2014-03-31",
-            Some("2014-04-01"),
-            Some("2027-03-31"),
-            &flags_with_reduced(),
-        ));
-    }
-
-    #[test]
-    fn standard_policy_rejects_after_period() {
-        let policy = StandardNtaPolicy;
-        assert!(!policy.should_apply_reduced_rate(
-            "2027-04-01",
-            Some("2014-04-01"),
-            Some("2027-03-31"),
-            &flags_with_reduced(),
-        ));
-    }
-
-    #[test]
-    fn standard_policy_rejects_without_flag() {
-        let policy = StandardNtaPolicy;
-        assert!(!policy.should_apply_reduced_rate(
-            "2024-08-01",
-            Some("2014-04-01"),
-            Some("2027-03-31"),
-            &HashSet::new(),
-        ));
+        let rule = StandardNtaPolicy
+            .select_special_rule(&ctx, &document)
+            .unwrap();
+        assert_eq!(rule.code, "reduced");
     }
 }

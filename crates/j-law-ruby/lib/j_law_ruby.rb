@@ -302,31 +302,65 @@ module JLawRuby
   # ── 印紙税 ──────────────────────────────────────────────────────────────────
 
   module StampTax
-    DOCUMENT_KIND_MAP = {
-      real_estate_transfer: Internal::CFFI::STAMP_TAX_DOCUMENT_KIND_REAL_ESTATE_TRANSFER,
-      construction_contract: Internal::CFFI::STAMP_TAX_DOCUMENT_KIND_CONSTRUCTION_CONTRACT
+    DOCUMENT_CODE_MAP = {
+      article1_real_estate_transfer: 1,
+      article1_other_transfer: 2,
+      article1_land_lease_or_surface_right: 3,
+      article1_consumption_loan: 4,
+      article1_transportation: 5,
+      article2_construction_work: 6,
+      article2_general_contract: 7,
+      article3_bill_amount_table: 8,
+      article3_bill_special_flat_200: 9,
+      article4_security_certificate: 10,
+      article5_merger_or_split: 11,
+      article6_articles_of_incorporation: 12,
+      article7_continuing_transaction_basic: 13,
+      article8_deposit_certificate: 14,
+      article9_transport_certificate: 15,
+      article10_insurance_certificate: 16,
+      article11_letter_of_credit: 17,
+      article12_trust_contract: 18,
+      article13_debt_guarantee: 19,
+      article14_deposit_contract: 20,
+      article15_assignment_or_assumption: 21,
+      article16_dividend_receipt: 22,
+      article17_sales_receipt: 23,
+      article17_other_receipt: 24,
+      article18_passbook: 25,
+      article19_misc_passbook: 26,
+      article20_seal_book: 27
+    }.freeze
+
+    FLAG_BIT_MAP = {
+      article3_copy_or_transcript_exempt: 1 << 0,
+      article4_specified_issuer_exempt: 1 << 1,
+      article4_restricted_beneficiary_certificate_exempt: 1 << 2,
+      article6_notary_copy_exempt: 1 << 3,
+      article8_small_deposit_exempt: 1 << 4,
+      article13_identity_guarantee_exempt: 1 << 5,
+      article17_non_business_exempt: 1 << 6,
+      article17_appended_receipt_exempt: 1 << 7,
+      article18_specified_financial_institution_exempt: 1 << 8,
+      article18_income_tax_exempt_passbook: 1 << 9,
+      article18_tax_reserve_deposit_passbook: 1 << 10
     }.freeze
 
     # 印紙税の計算結果。
     class StampTaxResult
-      attr_reader :tax_amount, :bracket_label
+      attr_reader :tax_amount, :rule_label, :applied_special_rule
 
       def initialize(r)
         @tax_amount = r.tax_amount
-        @bracket_label = r.bracket_label
-        @reduced_rate_applied = r.reduced_rate_applied
-      end
-
-      # 軽減税率が適用されたか。
-      def reduced_rate_applied?
-        @reduced_rate_applied
+        @rule_label = r.rule_label
+        @applied_special_rule = r.applied_special_rule
       end
 
       def inspect
         "#<JLawRuby::StampTax::StampTaxResult " \
           "tax_amount=#{@tax_amount} " \
-          "bracket_label=#{@bracket_label.inspect} " \
-          "reduced_rate_applied=#{@reduced_rate_applied}>"
+          "rule_label=#{@rule_label.inspect} " \
+          "applied_special_rule=#{@applied_special_rule.inspect}>"
       end
 
       alias to_s inspect
@@ -334,46 +368,73 @@ module JLawRuby
 
     # 印紙税法 別表第一に基づく印紙税額を計算する。
     #
-    # @param contract_amount [Integer] 契約金額（円）
+    # @param document_code [Symbol, String] 文書コード
+    # @param stated_amount [Integer, nil] 記載金額。記載がない場合は nil
     # @param date [Date] 契約書作成日
-    # @param is_reduced_rate_applicable [true, false] 軽減税率適用フラグ
-    # @param document_kind [:real_estate_transfer, :construction_contract, String] 文書種別
+    # @param flags [Array<Symbol,String>] 主な非課税文書フラグ
     # @return [StampTaxResult]
-    # @raise [TypeError] date または document_kind の型が不正な場合
+    # @raise [TypeError] date / document_code / flags の型が不正な場合
     # @raise [RuntimeError] 計算エラーが発生した場合
-    def self.calc_stamp_tax(contract_amount, date, is_reduced_rate_applicable = false,
-                           document_kind: :real_estate_transfer)
+    def self.calc_stamp_tax(document_code, stated_amount, date, flags: [])
       unless date.is_a?(::Date) || date.is_a?(::DateTime)
         raise TypeError,
               "date には Date または DateTime を指定してください (got #{date.class})"
       end
-      document_kind_value = normalize_document_kind(document_kind)
+      document_code_value = normalize_document_code(document_code)
+      flags_bitset = normalize_flags(flags)
 
       r = Internal::CFFI.calc_stamp_tax(
-        contract_amount, date.year, date.month, date.day,
-        is_reduced_rate_applicable, document_kind_value
+        document_code_value,
+        stated_amount,
+        date.year,
+        date.month,
+        date.day,
+        flags_bitset
       )
       StampTaxResult.new(r)
     end
 
-    def self.normalize_document_kind(document_kind)
-      key = case document_kind
+    def self.normalize_document_code(document_code)
+      key = case document_code
             when Symbol
-              document_kind
+              document_code
             when String
-              document_kind.to_sym
+              document_code.to_sym
             else
               raise TypeError,
-                    "document_kind には Symbol または String を指定してください " \
-                    "(got #{document_kind.class})"
+                    "document_code には Symbol または String を指定してください " \
+                    "(got #{document_code.class})"
             end
 
-      DOCUMENT_KIND_MAP.fetch(key)
+      DOCUMENT_CODE_MAP.fetch(key)
     rescue KeyError
       raise ArgumentError,
-            "document_kind は :real_estate_transfer または :construction_contract を指定してください"
+            "unsupported stamp tax document_code: #{document_code}"
     end
-    private_class_method :normalize_document_kind
+
+    def self.normalize_flags(flags)
+      unless flags.is_a?(Array)
+        raise TypeError, "flags には Array を指定してください (got #{flags.class})"
+      end
+
+      flags.reduce(0) do |mask, flag|
+        key = case flag
+              when Symbol
+                flag
+              when String
+                flag.to_sym
+              else
+                raise TypeError,
+                      "flags の各要素には Symbol または String を指定してください " \
+                      "(got #{flag.class})"
+              end
+        mask | FLAG_BIT_MAP.fetch(key)
+      rescue KeyError
+        raise ArgumentError, "unsupported stamp tax flag: #{flag}"
+      end
+    end
+
+    private_class_method :normalize_document_code, :normalize_flags
   end
 
   # ── 源泉徴収 ────────────────────────────────────────────────────────────────

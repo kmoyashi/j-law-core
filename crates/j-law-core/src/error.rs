@@ -51,6 +51,9 @@ pub enum InputError {
     #[error("源泉徴収入力が無効です: field={field}, reason={reason}")]
     InvalidWithholdingInput { field: String, reason: String },
 
+    #[error("印紙税入力が無効です: field={field}, reason={reason}")]
+    InvalidStampTaxInput { field: String, reason: String },
+
     #[error("分母にゼロが指定されました")]
     ZeroDenominator,
 }
@@ -116,6 +119,16 @@ mod tests {
             reason: "unknown".into(),
         };
         assert!(e.to_string().contains("category"));
+        assert!(e.to_string().contains("unknown"));
+    }
+
+    #[test]
+    fn invalid_stamp_tax_input_display() {
+        let e = InputError::InvalidStampTaxInput {
+            field: "document_code".into(),
+            reason: "unknown".into(),
+        };
+        assert!(e.to_string().contains("document_code"));
         assert!(e.to_string().contains("unknown"));
     }
 
