@@ -34,6 +34,7 @@ audit:
 ## .github/workflows/ci.yml の lint + test-rust ジョブに相当する。
 ci: fmt-check clippy test
 
-## 全言語バインディングテストを Docker で実行する（CI の test-bindings ジョブに相当）
+## 全言語バインディングテストを Docker で実行する
+## GitHub Actions では .github/workflows/ci.yml の言語別マトリクスで直接実行する
 docker-test:
 	docker compose up test-all --build
