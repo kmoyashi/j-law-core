@@ -652,82 +652,74 @@ func toGoConsumptionTaxResult(c *C.JLawConsumptionTaxResult) *ConsumptionTaxResu
 
 // ─── 印紙税 Go 公開型 ───────────────────────────────────────────────────────────
 
-// StampTaxDocumentKind は印紙税の文書種別を表す。
-type StampTaxDocumentKind string
+// StampTaxDocumentCode は印紙税の文書コードを表す。
+type StampTaxDocumentCode string
 
 const (
-	// StampTaxDocumentRealEstateTransfer は不動産譲渡契約書を表す。
-	StampTaxDocumentRealEstateTransfer StampTaxDocumentKind = "real_estate_transfer"
-	// StampTaxDocumentConstructionContract は建設工事請負契約書を表す。
-	StampTaxDocumentConstructionContract StampTaxDocumentKind = "construction_contract"
+	StampTaxDocumentArticle1RealEstateTransfer      StampTaxDocumentCode = "article1_real_estate_transfer"
+	StampTaxDocumentArticle1OtherTransfer           StampTaxDocumentCode = "article1_other_transfer"
+	StampTaxDocumentArticle1LandLeaseOrSurfaceRight StampTaxDocumentCode = "article1_land_lease_or_surface_right"
+	StampTaxDocumentArticle1ConsumptionLoan         StampTaxDocumentCode = "article1_consumption_loan"
+	StampTaxDocumentArticle1Transportation          StampTaxDocumentCode = "article1_transportation"
+	StampTaxDocumentArticle2ConstructionWork        StampTaxDocumentCode = "article2_construction_work"
+	StampTaxDocumentArticle2GeneralContract         StampTaxDocumentCode = "article2_general_contract"
+	StampTaxDocumentArticle3BillAmountTable         StampTaxDocumentCode = "article3_bill_amount_table"
+	StampTaxDocumentArticle3BillSpecialFlat200      StampTaxDocumentCode = "article3_bill_special_flat_200"
+	StampTaxDocumentArticle4SecurityCertificate     StampTaxDocumentCode = "article4_security_certificate"
+	StampTaxDocumentArticle5MergerOrSplit           StampTaxDocumentCode = "article5_merger_or_split"
+	StampTaxDocumentArticle6ArticlesOfIncorporation StampTaxDocumentCode = "article6_articles_of_incorporation"
+	StampTaxDocumentArticle7ContinuingTransaction   StampTaxDocumentCode = "article7_continuing_transaction_basic"
+	StampTaxDocumentArticle8DepositCertificate      StampTaxDocumentCode = "article8_deposit_certificate"
+	StampTaxDocumentArticle9TransportCertificate    StampTaxDocumentCode = "article9_transport_certificate"
+	StampTaxDocumentArticle10InsuranceCertificate   StampTaxDocumentCode = "article10_insurance_certificate"
+	StampTaxDocumentArticle11LetterOfCredit         StampTaxDocumentCode = "article11_letter_of_credit"
+	StampTaxDocumentArticle12TrustContract          StampTaxDocumentCode = "article12_trust_contract"
+	StampTaxDocumentArticle13DebtGuarantee          StampTaxDocumentCode = "article13_debt_guarantee"
+	StampTaxDocumentArticle14DepositContract        StampTaxDocumentCode = "article14_deposit_contract"
+	StampTaxDocumentArticle15AssignmentOrAssumption StampTaxDocumentCode = "article15_assignment_or_assumption"
+	StampTaxDocumentArticle16DividendReceipt        StampTaxDocumentCode = "article16_dividend_receipt"
+	StampTaxDocumentArticle17SalesReceipt           StampTaxDocumentCode = "article17_sales_receipt"
+	StampTaxDocumentArticle17OtherReceipt           StampTaxDocumentCode = "article17_other_receipt"
+	StampTaxDocumentArticle18Passbook               StampTaxDocumentCode = "article18_passbook"
+	StampTaxDocumentArticle19MiscPassbook           StampTaxDocumentCode = "article19_misc_passbook"
+	StampTaxDocumentArticle20SealBook               StampTaxDocumentCode = "article20_seal_book"
+)
+
+// StampTaxFlag は印紙税の特例フラグを表す。
+type StampTaxFlag string
+
+const (
+	StampTaxFlagArticle3CopyOrTranscriptExempt                 StampTaxFlag = "article3_copy_or_transcript_exempt"
+	StampTaxFlagArticle4SpecifiedIssuerExempt                  StampTaxFlag = "article4_specified_issuer_exempt"
+	StampTaxFlagArticle4RestrictedBeneficiaryCertificateExempt StampTaxFlag = "article4_restricted_beneficiary_certificate_exempt"
+	StampTaxFlagArticle6NotaryCopyExempt                       StampTaxFlag = "article6_notary_copy_exempt"
+	StampTaxFlagArticle8SmallDepositExempt                     StampTaxFlag = "article8_small_deposit_exempt"
+	StampTaxFlagArticle13IdentityGuaranteeExempt               StampTaxFlag = "article13_identity_guarantee_exempt"
+	StampTaxFlagArticle17NonBusinessExempt                     StampTaxFlag = "article17_non_business_exempt"
+	StampTaxFlagArticle17AppendedReceiptExempt                 StampTaxFlag = "article17_appended_receipt_exempt"
+	StampTaxFlagArticle18SpecifiedFinancialInstitutionExempt   StampTaxFlag = "article18_specified_financial_institution_exempt"
+	StampTaxFlagArticle18IncomeTaxExemptPassbook               StampTaxFlag = "article18_income_tax_exempt_passbook"
+	StampTaxFlagArticle18TaxReserveDepositPassbook             StampTaxFlag = "article18_tax_reserve_deposit_passbook"
 )
 
 // StampTaxResult は印紙税の計算結果を表す。
 type StampTaxResult struct {
 	// TaxAmount は印紙税額（円）。
 	TaxAmount uint64
-	// BracketLabel は適用されたブラケットの表示名。
-	BracketLabel string
-	// ReducedRateApplied は軽減税率が適用されたかを示す。
-	ReducedRateApplied bool
+	// RuleLabel は適用された税額ルールの表示名。
+	RuleLabel string
+	// AppliedSpecialRule は適用された特例ルールコード。未適用時は nil。
+	AppliedSpecialRule *string
 }
 
 // ─── 印紙税 Go 公開関数 ─────────────────────────────────────────────────────────
 
 // CalcStampTax は印紙税法 別表第一に基づく印紙税額を計算する。
-//
-// 法的根拠: 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
-//
-// 引数:
-//   - contractAmount: 契約金額（円）
-//   - date: 契約書作成日
-//   - isReducedRateApplicable: 軽減税率適用フラグ
-//     WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
-//
-// エラー: 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合。
 func CalcStampTax(
-	contractAmount uint64,
+	documentCode StampTaxDocumentCode,
+	statedAmount *uint64,
 	date time.Time,
-	isReducedRateApplicable bool,
-) (*StampTaxResult, error) {
-	return CalcStampTaxWithDocumentKind(
-		contractAmount,
-		date,
-		isReducedRateApplicable,
-		StampTaxDocumentRealEstateTransfer,
-	)
-}
-
-func stampTaxDocumentKindToC(documentKind StampTaxDocumentKind) (C.int, error) {
-	switch documentKind {
-	case StampTaxDocumentRealEstateTransfer:
-		return C.int(C.J_LAW_STAMP_TAX_DOCUMENT_REAL_ESTATE_TRANSFER), nil
-	case StampTaxDocumentConstructionContract:
-		return C.int(C.J_LAW_STAMP_TAX_DOCUMENT_CONSTRUCTION_CONTRACT), nil
-	default:
-		return 0, fmt.Errorf("unsupported stamp tax document kind: %s", documentKind)
-	}
-}
-
-// CalcStampTaxWithDocumentKind は文書種別を指定して印紙税額を計算する。
-//
-// 法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
-//
-// 引数:
-//   - contractAmount: 契約金額（円）
-//   - date: 契約書作成日
-//   - isReducedRateApplicable: 軽減税率適用フラグ
-//     WARNING: 対象文書が軽減措置の適用要件を満たすかの事実認定は呼び出し元の責任。
-//   - documentKind: 文書種別（StampTaxDocumentRealEstateTransfer または
-//     StampTaxDocumentConstructionContract）
-//
-// エラー: 契約金額が不正、対象日に有効な法令パラメータが存在しない場合、
-// または documentKind が不正な場合。
-func CalcStampTaxWithDocumentKind(
-	contractAmount uint64,
-	date time.Time,
-	isReducedRateApplicable bool,
-	documentKind StampTaxDocumentKind,
+	flags []StampTaxFlag,
 ) (*StampTaxResult, error) {
 	year := date.Year()
 	month := int(date.Month())
@@ -736,22 +728,29 @@ func CalcStampTaxWithDocumentKind(
 	errorBuf := (*C.char)(C.malloc(C.J_LAW_ERROR_BUF_LEN))
 	defer C.free(unsafe.Pointer(errorBuf))
 
-	isReduced := C.int(0)
-	if isReducedRateApplicable {
-		isReduced = 1
-	}
-	documentKindValue, err := stampTaxDocumentKindToC(documentKind)
+	documentCodeValue, err := stampTaxDocumentCodeToC(documentCode)
 	if err != nil {
 		return nil, err
 	}
+	flagsValue, err := stampTaxFlagsToC(flags)
+	if err != nil {
+		return nil, err
+	}
+	statedAmountValue := C.uint64_t(0)
+	hasStatedAmount := C.int(0)
+	if statedAmount != nil {
+		statedAmountValue = C.uint64_t(*statedAmount)
+		hasStatedAmount = 1
+	}
 
-	ret := C.j_law_calc_stamp_tax_with_document_kind(
-		C.uint64_t(contractAmount),
+	ret := C.j_law_calc_stamp_tax(
+		documentCodeValue,
+		statedAmountValue,
+		hasStatedAmount,
 		C.uint16_t(year),
 		C.uint8_t(month),
 		C.uint8_t(day),
-		isReduced,
-		documentKindValue,
+		flagsValue,
 		&cResult,
 		errorBuf,
 		C.J_LAW_ERROR_BUF_LEN,
@@ -760,9 +759,108 @@ func CalcStampTaxWithDocumentKind(
 		return nil, errors.New(C.GoString(errorBuf))
 	}
 
+	var appliedSpecialRule *string
+	if value := C.GoString(&cResult.applied_special_rule[0]); value != "" {
+		appliedSpecialRule = &value
+	}
+
 	return &StampTaxResult{
 		TaxAmount:          uint64(cResult.tax_amount),
-		BracketLabel:       C.GoString(&cResult.bracket_label[0]),
-		ReducedRateApplied: cResult.reduced_rate_applied != 0,
+		RuleLabel:          C.GoString(&cResult.rule_label[0]),
+		AppliedSpecialRule: appliedSpecialRule,
 	}, nil
+}
+
+func stampTaxDocumentCodeToC(documentCode StampTaxDocumentCode) (C.uint32_t, error) {
+	switch documentCode {
+	case StampTaxDocumentArticle1RealEstateTransfer:
+		return 1, nil
+	case StampTaxDocumentArticle1OtherTransfer:
+		return 2, nil
+	case StampTaxDocumentArticle1LandLeaseOrSurfaceRight:
+		return 3, nil
+	case StampTaxDocumentArticle1ConsumptionLoan:
+		return 4, nil
+	case StampTaxDocumentArticle1Transportation:
+		return 5, nil
+	case StampTaxDocumentArticle2ConstructionWork:
+		return 6, nil
+	case StampTaxDocumentArticle2GeneralContract:
+		return 7, nil
+	case StampTaxDocumentArticle3BillAmountTable:
+		return 8, nil
+	case StampTaxDocumentArticle3BillSpecialFlat200:
+		return 9, nil
+	case StampTaxDocumentArticle4SecurityCertificate:
+		return 10, nil
+	case StampTaxDocumentArticle5MergerOrSplit:
+		return 11, nil
+	case StampTaxDocumentArticle6ArticlesOfIncorporation:
+		return 12, nil
+	case StampTaxDocumentArticle7ContinuingTransaction:
+		return 13, nil
+	case StampTaxDocumentArticle8DepositCertificate:
+		return 14, nil
+	case StampTaxDocumentArticle9TransportCertificate:
+		return 15, nil
+	case StampTaxDocumentArticle10InsuranceCertificate:
+		return 16, nil
+	case StampTaxDocumentArticle11LetterOfCredit:
+		return 17, nil
+	case StampTaxDocumentArticle12TrustContract:
+		return 18, nil
+	case StampTaxDocumentArticle13DebtGuarantee:
+		return 19, nil
+	case StampTaxDocumentArticle14DepositContract:
+		return 20, nil
+	case StampTaxDocumentArticle15AssignmentOrAssumption:
+		return 21, nil
+	case StampTaxDocumentArticle16DividendReceipt:
+		return 22, nil
+	case StampTaxDocumentArticle17SalesReceipt:
+		return 23, nil
+	case StampTaxDocumentArticle17OtherReceipt:
+		return 24, nil
+	case StampTaxDocumentArticle18Passbook:
+		return 25, nil
+	case StampTaxDocumentArticle19MiscPassbook:
+		return 26, nil
+	case StampTaxDocumentArticle20SealBook:
+		return 27, nil
+	default:
+		return 0, fmt.Errorf("unsupported stamp tax document code: %s", documentCode)
+	}
+}
+
+func stampTaxFlagsToC(flags []StampTaxFlag) (C.uint64_t, error) {
+	var bitset uint64
+	for _, flag := range flags {
+		switch flag {
+		case StampTaxFlagArticle3CopyOrTranscriptExempt:
+			bitset |= 1 << 0
+		case StampTaxFlagArticle4SpecifiedIssuerExempt:
+			bitset |= 1 << 1
+		case StampTaxFlagArticle4RestrictedBeneficiaryCertificateExempt:
+			bitset |= 1 << 2
+		case StampTaxFlagArticle6NotaryCopyExempt:
+			bitset |= 1 << 3
+		case StampTaxFlagArticle8SmallDepositExempt:
+			bitset |= 1 << 4
+		case StampTaxFlagArticle13IdentityGuaranteeExempt:
+			bitset |= 1 << 5
+		case StampTaxFlagArticle17NonBusinessExempt:
+			bitset |= 1 << 6
+		case StampTaxFlagArticle17AppendedReceiptExempt:
+			bitset |= 1 << 7
+		case StampTaxFlagArticle18SpecifiedFinancialInstitutionExempt:
+			bitset |= 1 << 8
+		case StampTaxFlagArticle18IncomeTaxExemptPassbook:
+			bitset |= 1 << 9
+		case StampTaxFlagArticle18TaxReserveDepositPassbook:
+			bitset |= 1 << 10
+		default:
+			return 0, fmt.Errorf("unsupported stamp tax flag: %s", flag)
+		}
+	}
+	return C.uint64_t(bitset), nil
 }

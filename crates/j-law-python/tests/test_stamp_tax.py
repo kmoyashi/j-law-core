@@ -1,9 +1,4 @@
-"""印紙税法 別表第一に基づく印紙税額計算のテスト。
-
-法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
-
-テストケースは tests/fixtures/stamp_tax.json から読み込む。
-"""
+"""印紙税法 別表第一に基づく印紙税額計算のテスト。"""
 
 import datetime
 import json
@@ -13,13 +8,8 @@ import pytest
 
 from j_law_python.stamp_tax import calc_stamp_tax
 
-# ─── フィクスチャ読み込み ─────────────────────────────────────────────────────
-
 _FIXTURE_PATH = pathlib.Path(__file__).resolve().parents[3] / "tests" / "fixtures" / "stamp_tax.json"
 _FIXTURES = json.loads(_FIXTURE_PATH.read_text(encoding="utf-8"))
-
-
-# ─── データ駆動テスト ─────────────────────────────────────────────────────────
 
 
 @pytest.mark.parametrize("case", _FIXTURES["stamp_tax"], ids=lambda c: c["id"])
@@ -29,43 +19,47 @@ def test_stamp_tax(case):
 
     date = datetime.date.fromisoformat(inp["date"])
     r = calc_stamp_tax(
-        inp["contract_amount"],
+        inp["document_code"],
+        inp["stated_amount"],
         date,
-        is_reduced_rate_applicable=inp["is_reduced_rate_applicable"],
-        document_kind=inp["document_kind"],
+        flags=inp["flags"],
     )
 
-    if "tax_amount" in exp:
-        assert r.tax_amount == exp["tax_amount"], f"{case['id']}: tax_amount"
-    if "reduced_rate_applied" in exp:
-        assert r.reduced_rate_applied is exp["reduced_rate_applied"], f"{case['id']}: reduced_rate_applied"
-
-
-# ─── 言語固有テスト（JSON の外） ──────────────────────────────────────────────
+    assert r.tax_amount == exp["tax_amount"], f"{case['id']}: tax_amount"
+    assert r.rule_label == exp["rule_label"], f"{case['id']}: rule_label"
+    assert r.applied_special_rule == exp["applied_special_rule"], f"{case['id']}: applied_special_rule"
 
 
 class TestLanguageSpecific:
-    """Python 固有の振る舞い検証。"""
-
     def test_error_date_out_of_range(self):
         with pytest.raises(ValueError, match="2014-03-31"):
-            calc_stamp_tax(5_000_000, datetime.date(2014, 3, 31))
+            calc_stamp_tax(
+                "article1_real_estate_transfer",
+                5_000_000,
+                datetime.date(2014, 3, 31),
+            )
 
     def test_repr(self):
-        r = calc_stamp_tax(5_000_000, datetime.date(2024, 8, 1))
+        r = calc_stamp_tax(
+            "article1_real_estate_transfer",
+            5_000_000,
+            datetime.date(2024, 8, 1),
+        )
         assert "StampTaxResult" in repr(r)
 
     def test_type_error_invalid_date(self):
-        """date に datetime.date 以外を渡すと TypeError。"""
         with pytest.raises(TypeError):
-            calc_stamp_tax(5_000_000, "2024-08-01")
-        with pytest.raises(TypeError):
-            calc_stamp_tax(5_000_000, 20240801)
+            calc_stamp_tax("article1_real_estate_transfer", 5_000_000, "2024-08-01")
 
-    def test_invalid_document_kind(self):
-        with pytest.raises(ValueError, match="document_kind"):
+    def test_invalid_document_code(self):
+        with pytest.raises(ValueError, match="document_code"):
+            calc_stamp_tax("invalid_code", 5_000_000, datetime.date(2024, 8, 1))
+
+    def test_invalid_flag(self):
+        with pytest.raises(ValueError, match="flag"):
             calc_stamp_tax(
-                5_000_000,
+                "article17_sales_receipt",
+                70_000,
                 datetime.date(2024, 8, 1),
-                document_kind="invalid_kind",
+                flags=["invalid_flag"],
             )

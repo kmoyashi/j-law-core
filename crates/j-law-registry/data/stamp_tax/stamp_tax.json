@@ -1,197 +1,672 @@
 {
   "domain": "stamp_tax",
-  "description": "印紙税法 別表第一 第1号文書・第2号文書のうち軽減措置対象契約書の印紙税額",
   "history": [
     {
       "effective_from": "2014-04-01",
       "effective_until": null,
-      "status": "active",
-      "citation": {
-        "law_id": "stamp-tax-schedule1-2-special-91",
-        "law_name": "印紙税法 / 租税特別措置法",
-        "article": "別表第一 第1号・第2号 / 第91条",
-        "ministry": "国税庁"
-      },
       "params": {
-        "real_estate_transfer": {
-          "brackets": [
-            {
-              "label": "1万円未満（非課税）",
-              "amount_from": 0,
-              "amount_to_inclusive": 9999,
-              "tax_amount": 0,
-              "reduced_tax_amount": null
-            },
-            {
-              "label": "10万円以下",
-              "amount_from": 10000,
-              "amount_to_inclusive": 100000,
-              "tax_amount": 200,
-              "reduced_tax_amount": null
-            },
-            {
-              "label": "50万円以下",
-              "amount_from": 100001,
-              "amount_to_inclusive": 500000,
-              "tax_amount": 400,
-              "reduced_tax_amount": 200
-            },
-            {
-              "label": "100万円以下",
-              "amount_from": 500001,
-              "amount_to_inclusive": 1000000,
-              "tax_amount": 1000,
-              "reduced_tax_amount": 500
-            },
-            {
-              "label": "500万円以下",
-              "amount_from": 1000001,
-              "amount_to_inclusive": 5000000,
-              "tax_amount": 2000,
-              "reduced_tax_amount": 1000
-            },
-            {
-              "label": "1,000万円以下",
-              "amount_from": 5000001,
-              "amount_to_inclusive": 10000000,
-              "tax_amount": 10000,
-              "reduced_tax_amount": 5000
-            },
-            {
-              "label": "5,000万円以下",
-              "amount_from": 10000001,
-              "amount_to_inclusive": 50000000,
-              "tax_amount": 20000,
-              "reduced_tax_amount": 10000
-            },
-            {
-              "label": "1億円以下",
-              "amount_from": 50000001,
-              "amount_to_inclusive": 100000000,
-              "tax_amount": 60000,
-              "reduced_tax_amount": 30000
-            },
-            {
-              "label": "5億円以下",
-              "amount_from": 100000001,
-              "amount_to_inclusive": 500000000,
-              "tax_amount": 100000,
-              "reduced_tax_amount": 60000
-            },
-            {
-              "label": "10億円以下",
-              "amount_from": 500000001,
-              "amount_to_inclusive": 1000000000,
-              "tax_amount": 200000,
-              "reduced_tax_amount": 160000
-            },
-            {
-              "label": "50億円以下",
-              "amount_from": 1000000001,
-              "amount_to_inclusive": 5000000000,
-              "tax_amount": 400000,
-              "reduced_tax_amount": 320000
-            },
-            {
-              "label": "50億円超",
-              "amount_from": 5000000001,
-              "amount_to_inclusive": null,
-              "tax_amount": 600000,
-              "reduced_tax_amount": 480000
-            }
-          ],
-          "reduced_rate_from": "2014-04-01",
-          "reduced_rate_until": "2027-03-31"
-        },
-        "construction_contract": {
-          "brackets": [
-            {
-              "label": "1万円未満（非課税）",
-              "amount_from": 0,
-              "amount_to_inclusive": 9999,
-              "tax_amount": 0,
-              "reduced_tax_amount": null
-            },
-            {
-              "label": "100万円以下",
-              "amount_from": 10000,
-              "amount_to_inclusive": 1000000,
-              "tax_amount": 200,
-              "reduced_tax_amount": null
-            },
-            {
-              "label": "200万円以下",
-              "amount_from": 1000001,
-              "amount_to_inclusive": 2000000,
-              "tax_amount": 400,
-              "reduced_tax_amount": 200
-            },
-            {
-              "label": "300万円以下",
-              "amount_from": 2000001,
-              "amount_to_inclusive": 3000000,
-              "tax_amount": 1000,
-              "reduced_tax_amount": 500
-            },
-            {
-              "label": "500万円以下",
-              "amount_from": 3000001,
-              "amount_to_inclusive": 5000000,
-              "tax_amount": 2000,
-              "reduced_tax_amount": 1000
-            },
-            {
-              "label": "1,000万円以下",
-              "amount_from": 5000001,
-              "amount_to_inclusive": 10000000,
-              "tax_amount": 10000,
-              "reduced_tax_amount": 5000
-            },
-            {
-              "label": "5,000万円以下",
-              "amount_from": 10000001,
-              "amount_to_inclusive": 50000000,
-              "tax_amount": 20000,
-              "reduced_tax_amount": 10000
-            },
-            {
-              "label": "1億円以下",
-              "amount_from": 50000001,
-              "amount_to_inclusive": 100000000,
-              "tax_amount": 60000,
-              "reduced_tax_amount": 30000
-            },
-            {
-              "label": "5億円以下",
-              "amount_from": 100000001,
-              "amount_to_inclusive": 500000000,
-              "tax_amount": 100000,
-              "reduced_tax_amount": 60000
-            },
-            {
-              "label": "10億円以下",
-              "amount_from": 500000001,
-              "amount_to_inclusive": 1000000000,
-              "tax_amount": 200000,
-              "reduced_tax_amount": 160000
-            },
-            {
-              "label": "50億円以下",
-              "amount_from": 1000000001,
-              "amount_to_inclusive": 5000000000,
-              "tax_amount": 400000,
-              "reduced_tax_amount": 320000
-            },
-            {
-              "label": "50億円超",
-              "amount_from": 5000000001,
-              "amount_to_inclusive": null,
-              "tax_amount": 600000,
-              "reduced_tax_amount": 480000
-            }
-          ],
-          "reduced_rate_from": "2014-04-01",
-          "reduced_rate_until": "2027-03-31"
+        "documents": {
+          "article1_real_estate_transfer": {
+            "label": "第1号文書1 不動産の譲渡に関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第1号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 },
+              { "label": "10万円以下のもの", "amount_from": 10000, "amount_to_inclusive": 100000, "tax_amount": 200 },
+              { "label": "10万円を超え50万円以下のもの", "amount_from": 100001, "amount_to_inclusive": 500000, "tax_amount": 400 },
+              { "label": "50万円を超え100万円以下のもの", "amount_from": 500001, "amount_to_inclusive": 1000000, "tax_amount": 1000 },
+              { "label": "100万円を超え500万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 5000000, "tax_amount": 2000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 10000 },
+              { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 20000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 60000 },
+              { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 200000 },
+              { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 400000 },
+              { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 600000 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "契約金額の記載のないもの",
+            "special_rules": [
+              {
+                "code": "article1_real_estate_transfer_reduced",
+                "label": "不動産譲渡契約書軽減措置",
+                "priority": 1,
+                "effective_from": "2014-04-01",
+                "effective_until": "2027-03-31",
+                "required_flags": [],
+                "tax_amount": null,
+                "rule_label": null,
+                "brackets": [
+                  { "label": "50万円以下のもの", "amount_from": 100001, "amount_to_inclusive": 500000, "tax_amount": 200 },
+                  { "label": "50万円を超え100万円以下のもの", "amount_from": 500001, "amount_to_inclusive": 1000000, "tax_amount": 500 },
+                  { "label": "100万円を超え500万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 5000000, "tax_amount": 1000 },
+                  { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 5000 },
+                  { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 10000 },
+                  { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 30000 },
+                  { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 60000 },
+                  { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 160000 },
+                  { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 320000 },
+                  { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 480000 }
+                ],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article1_other_transfer": {
+            "label": "第1号文書1 不動産以外の譲渡契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第1号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 },
+              { "label": "10万円以下のもの", "amount_from": 10000, "amount_to_inclusive": 100000, "tax_amount": 200 },
+              { "label": "10万円を超え50万円以下のもの", "amount_from": 100001, "amount_to_inclusive": 500000, "tax_amount": 400 },
+              { "label": "50万円を超え100万円以下のもの", "amount_from": 500001, "amount_to_inclusive": 1000000, "tax_amount": 1000 },
+              { "label": "100万円を超え500万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 5000000, "tax_amount": 2000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 10000 },
+              { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 20000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 60000 },
+              { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 200000 },
+              { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 400000 },
+              { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 600000 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "契約金額の記載のないもの",
+            "special_rules": []
+          },
+          "article1_land_lease_or_surface_right": {
+            "label": "第1号文書2 地上権又は土地賃借権の設定又は譲渡",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第1号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 },
+              { "label": "10万円以下のもの", "amount_from": 10000, "amount_to_inclusive": 100000, "tax_amount": 200 },
+              { "label": "10万円を超え50万円以下のもの", "amount_from": 100001, "amount_to_inclusive": 500000, "tax_amount": 400 },
+              { "label": "50万円を超え100万円以下のもの", "amount_from": 500001, "amount_to_inclusive": 1000000, "tax_amount": 1000 },
+              { "label": "100万円を超え500万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 5000000, "tax_amount": 2000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 10000 },
+              { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 20000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 60000 },
+              { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 200000 },
+              { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 400000 },
+              { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 600000 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "契約金額の記載のないもの",
+            "special_rules": []
+          },
+          "article1_consumption_loan": {
+            "label": "第1号文書3 消費貸借に関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第1号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 },
+              { "label": "10万円以下のもの", "amount_from": 10000, "amount_to_inclusive": 100000, "tax_amount": 200 },
+              { "label": "10万円を超え50万円以下のもの", "amount_from": 100001, "amount_to_inclusive": 500000, "tax_amount": 400 },
+              { "label": "50万円を超え100万円以下のもの", "amount_from": 500001, "amount_to_inclusive": 1000000, "tax_amount": 1000 },
+              { "label": "100万円を超え500万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 5000000, "tax_amount": 2000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 10000 },
+              { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 20000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 60000 },
+              { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 200000 },
+              { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 400000 },
+              { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 600000 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "契約金額の記載のないもの",
+            "special_rules": []
+          },
+          "article1_transportation": {
+            "label": "第1号文書4 運送に関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第1号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 },
+              { "label": "10万円以下のもの", "amount_from": 10000, "amount_to_inclusive": 100000, "tax_amount": 200 },
+              { "label": "10万円を超え50万円以下のもの", "amount_from": 100001, "amount_to_inclusive": 500000, "tax_amount": 400 },
+              { "label": "50万円を超え100万円以下のもの", "amount_from": 500001, "amount_to_inclusive": 1000000, "tax_amount": 1000 },
+              { "label": "100万円を超え500万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 5000000, "tax_amount": 2000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 10000 },
+              { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 20000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 60000 },
+              { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 200000 },
+              { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 400000 },
+              { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 600000 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "契約金額の記載のないもの",
+            "special_rules": []
+          },
+          "article2_construction_work": {
+            "label": "第2号文書 建設工事の請負に関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第2号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 },
+              { "label": "100万円以下のもの", "amount_from": 10000, "amount_to_inclusive": 1000000, "tax_amount": 200 },
+              { "label": "100万円を超え200万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 2000000, "tax_amount": 400 },
+              { "label": "200万円を超え300万円以下のもの", "amount_from": 2000001, "amount_to_inclusive": 3000000, "tax_amount": 1000 },
+              { "label": "300万円を超え500万円以下のもの", "amount_from": 3000001, "amount_to_inclusive": 5000000, "tax_amount": 2000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 10000 },
+              { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 20000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 60000 },
+              { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 200000 },
+              { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 400000 },
+              { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 600000 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "契約金額の記載のないもの",
+            "special_rules": [
+              {
+                "code": "article2_construction_work_reduced",
+                "label": "建設工事請負契約書軽減措置",
+                "priority": 1,
+                "effective_from": "2014-04-01",
+                "effective_until": "2027-03-31",
+                "required_flags": [],
+                "tax_amount": null,
+                "rule_label": null,
+                "brackets": [
+                  { "label": "200万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 2000000, "tax_amount": 200 },
+                  { "label": "200万円を超え300万円以下のもの", "amount_from": 2000001, "amount_to_inclusive": 3000000, "tax_amount": 500 },
+                  { "label": "300万円を超え500万円以下のもの", "amount_from": 3000001, "amount_to_inclusive": 5000000, "tax_amount": 1000 },
+                  { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 5000 },
+                  { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 10000 },
+                  { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 30000 },
+                  { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 60000 },
+                  { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 160000 },
+                  { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 320000 },
+                  { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 480000 }
+                ],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article2_general_contract": {
+            "label": "第2号文書 一般の請負に関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第2号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 },
+              { "label": "100万円以下のもの", "amount_from": 10000, "amount_to_inclusive": 1000000, "tax_amount": 200 },
+              { "label": "100万円を超え200万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 2000000, "tax_amount": 400 },
+              { "label": "200万円を超え300万円以下のもの", "amount_from": 2000001, "amount_to_inclusive": 3000000, "tax_amount": 1000 },
+              { "label": "300万円を超え500万円以下のもの", "amount_from": 3000001, "amount_to_inclusive": 5000000, "tax_amount": 2000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 10000 },
+              { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 20000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 60000 },
+              { "label": "1億円を超え5億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 200000 },
+              { "label": "10億円を超え50億円以下のもの", "amount_from": 1000000001, "amount_to_inclusive": 5000000000, "tax_amount": 400000 },
+              { "label": "50億円を超えるもの", "amount_from": 5000000001, "amount_to_inclusive": null, "tax_amount": 600000 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "契約金額の記載のないもの",
+            "special_rules": []
+          },
+          "article3_bill_amount_table": {
+            "label": "第3号文書 約束手形・為替手形",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第3号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "10万円未満のもの", "amount_from": 0, "amount_to_inclusive": 99999, "tax_amount": 0 },
+              { "label": "10万円以上100万円以下のもの", "amount_from": 100000, "amount_to_inclusive": 1000000, "tax_amount": 200 },
+              { "label": "100万円を超え200万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 2000000, "tax_amount": 400 },
+              { "label": "200万円を超え300万円以下のもの", "amount_from": 2000001, "amount_to_inclusive": 3000000, "tax_amount": 600 },
+              { "label": "300万円を超え500万円以下のもの", "amount_from": 3000001, "amount_to_inclusive": 5000000, "tax_amount": 1000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 2000 },
+              { "label": "1千万円を超え2千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 20000000, "tax_amount": 4000 },
+              { "label": "2千万円を超え3千万円以下のもの", "amount_from": 20000001, "amount_to_inclusive": 30000000, "tax_amount": 6000 },
+              { "label": "3千万円を超え5千万円以下のもの", "amount_from": 30000001, "amount_to_inclusive": 50000000, "tax_amount": 10000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 20000 },
+              { "label": "1億円を超え2億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 200000000, "tax_amount": 40000 },
+              { "label": "2億円を超え3億円以下のもの", "amount_from": 200000001, "amount_to_inclusive": 300000000, "tax_amount": 60000 },
+              { "label": "3億円を超え5億円以下のもの", "amount_from": 300000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 150000 },
+              { "label": "10億円を超えるもの", "amount_from": 1000000001, "amount_to_inclusive": null, "tax_amount": 200000 }
+            ],
+            "no_amount_tax_amount": 0,
+            "no_amount_rule_label": "手形金額の記載のないもの",
+            "special_rules": [
+              {
+                "code": "article3_copy_or_transcript_exempt",
+                "label": "手形の複本又は謄本",
+                "priority": 1,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article3_copy_or_transcript_exempt"],
+                "tax_amount": 0,
+                "rule_label": "手形の複本又は謄本",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article3_bill_special_flat_200": {
+            "label": "第3号文書 一覧払等の手形",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第3号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article4_security_certificate": {
+            "label": "第4号文書 株券・出資証券等",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第4号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "required",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "500万円以下のもの", "amount_from": 0, "amount_to_inclusive": 5000000, "tax_amount": 200 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 1000 },
+              { "label": "1千万円を超え5千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 50000000, "tax_amount": 2000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 10000 },
+              { "label": "1億円を超えるもの", "amount_from": 100000001, "amount_to_inclusive": null, "tax_amount": 20000 }
+            ],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": [
+              {
+                "code": "article4_specified_issuer_exempt",
+                "label": "特定法人の作成する出資証券",
+                "priority": 1,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article4_specified_issuer_exempt"],
+                "tax_amount": 0,
+                "rule_label": "日本銀行その他特定の法人の作成する出資証券",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              },
+              {
+                "code": "article4_restricted_beneficiary_certificate_exempt",
+                "label": "譲渡禁止の特定受益証券",
+                "priority": 2,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article4_restricted_beneficiary_certificate_exempt"],
+                "tax_amount": 0,
+                "rule_label": "譲渡が禁止されている特定の受益証券",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article5_merger_or_split": {
+            "label": "第5号文書 合併契約書等",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第5号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "4万円",
+            "base_tax_amount": 40000,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article6_articles_of_incorporation": {
+            "label": "第6号文書 定款",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第6号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "4万円",
+            "base_tax_amount": 40000,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": [
+              {
+                "code": "article6_notary_copy_exempt",
+                "label": "公証人保存対象外の定款",
+                "priority": 1,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article6_notary_copy_exempt"],
+                "tax_amount": 0,
+                "rule_label": "公証人の保存するもの以外の定款",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article7_continuing_transaction_basic": {
+            "label": "第7号文書 継続的取引の基本となる契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第7号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "4千円",
+            "base_tax_amount": 4000,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article8_deposit_certificate": {
+            "label": "第8号文書 預金証書・貯金証書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第8号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "optional",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": [
+              {
+                "code": "article8_small_deposit_exempt",
+                "label": "特定金融機関の1万円未満預入",
+                "priority": 1,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article8_small_deposit_exempt"],
+                "tax_amount": null,
+                "rule_label": null,
+                "brackets": [
+                  { "label": "預入額1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 }
+                ],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article9_transport_certificate": {
+            "label": "第9号文書 倉荷証券等",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第9号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article10_insurance_certificate": {
+            "label": "第10号文書 保険証券",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第10号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article11_letter_of_credit": {
+            "label": "第11号文書 信用状",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第11号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article12_trust_contract": {
+            "label": "第12号文書 信託行為に関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第12号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article13_debt_guarantee": {
+            "label": "第13号文書 債務の保証に関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第13号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": [
+              {
+                "code": "article13_identity_guarantee_exempt",
+                "label": "身元保証",
+                "priority": 1,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article13_identity_guarantee_exempt"],
+                "tax_amount": 0,
+                "rule_label": "身元保証ニ関スル法律に定める身元保証",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article14_deposit_contract": {
+            "label": "第14号文書 金銭又は有価証券の寄託に関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第14号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article15_assignment_or_assumption": {
+            "label": "第15号文書 債権譲渡又は債務引受けに関する契約書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第15号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "1万円未満のもの", "amount_from": 0, "amount_to_inclusive": 9999, "tax_amount": 0 },
+              { "label": "1万円以上のもの", "amount_from": 10000, "amount_to_inclusive": null, "tax_amount": 200 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "契約金額の記載のないもの",
+            "special_rules": []
+          },
+          "article16_dividend_receipt": {
+            "label": "第16号文書 配当金領収証・配当金振込通知書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第16号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "3千円未満のもの", "amount_from": 0, "amount_to_inclusive": 2999, "tax_amount": 0 },
+              { "label": "3千円以上のもの", "amount_from": 3000, "amount_to_inclusive": null, "tax_amount": 200 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "配当金額の記載のないもの",
+            "special_rules": []
+          },
+          "article17_sales_receipt": {
+            "label": "第17号文書1 売上代金に係る受取書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第17号文書" },
+            "charge_mode": "amount_brackets",
+            "amount_usage": "optional",
+            "base_rule_label": "通常税率",
+            "base_tax_amount": null,
+            "brackets": [
+              { "label": "5万円未満のもの", "amount_from": 0, "amount_to_inclusive": 49999, "tax_amount": 0 },
+              { "label": "100万円以下のもの", "amount_from": 50000, "amount_to_inclusive": 1000000, "tax_amount": 200 },
+              { "label": "100万円を超え200万円以下のもの", "amount_from": 1000001, "amount_to_inclusive": 2000000, "tax_amount": 400 },
+              { "label": "200万円を超え300万円以下のもの", "amount_from": 2000001, "amount_to_inclusive": 3000000, "tax_amount": 600 },
+              { "label": "300万円を超え500万円以下のもの", "amount_from": 3000001, "amount_to_inclusive": 5000000, "tax_amount": 1000 },
+              { "label": "500万円を超え1千万円以下のもの", "amount_from": 5000001, "amount_to_inclusive": 10000000, "tax_amount": 2000 },
+              { "label": "1千万円を超え2千万円以下のもの", "amount_from": 10000001, "amount_to_inclusive": 20000000, "tax_amount": 4000 },
+              { "label": "2千万円を超え3千万円以下のもの", "amount_from": 20000001, "amount_to_inclusive": 30000000, "tax_amount": 6000 },
+              { "label": "3千万円を超え5千万円以下のもの", "amount_from": 30000001, "amount_to_inclusive": 50000000, "tax_amount": 10000 },
+              { "label": "5千万円を超え1億円以下のもの", "amount_from": 50000001, "amount_to_inclusive": 100000000, "tax_amount": 20000 },
+              { "label": "1億円を超え2億円以下のもの", "amount_from": 100000001, "amount_to_inclusive": 200000000, "tax_amount": 40000 },
+              { "label": "2億円を超え3億円以下のもの", "amount_from": 200000001, "amount_to_inclusive": 300000000, "tax_amount": 60000 },
+              { "label": "3億円を超え5億円以下のもの", "amount_from": 300000001, "amount_to_inclusive": 500000000, "tax_amount": 100000 },
+              { "label": "5億円を超え10億円以下のもの", "amount_from": 500000001, "amount_to_inclusive": 1000000000, "tax_amount": 150000 },
+              { "label": "10億円を超えるもの", "amount_from": 1000000001, "amount_to_inclusive": null, "tax_amount": 200000 }
+            ],
+            "no_amount_tax_amount": 200,
+            "no_amount_rule_label": "受取金額の記載のないもの",
+            "special_rules": [
+              {
+                "code": "article17_non_business_exempt",
+                "label": "営業に関しない受取書",
+                "priority": 1,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article17_non_business_exempt"],
+                "tax_amount": 0,
+                "rule_label": "営業に関しないもの",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              },
+              {
+                "code": "article17_appended_receipt_exempt",
+                "label": "追記した受取書",
+                "priority": 2,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article17_appended_receipt_exempt"],
+                "tax_amount": 0,
+                "rule_label": "特定の文書に追記した受取書",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article17_other_receipt": {
+            "label": "第17号文書2 売上代金以外の受取書",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第17号文書" },
+            "charge_mode": "fixed_per_document",
+            "amount_usage": "unsupported",
+            "base_rule_label": "200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article18_passbook": {
+            "label": "第18号文書 預金通帳等",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第18号文書" },
+            "charge_mode": "fixed_per_year",
+            "amount_usage": "unsupported",
+            "base_rule_label": "1年ごとに200円",
+            "base_tax_amount": 200,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": [
+              {
+                "code": "article18_specified_financial_institution_exempt",
+                "label": "特定金融機関の預貯金通帳",
+                "priority": 1,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article18_specified_financial_institution_exempt"],
+                "tax_amount": 0,
+                "rule_label": "特定金融機関の預貯金通帳",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              },
+              {
+                "code": "article18_income_tax_exempt_passbook",
+                "label": "所得税非課税通帳",
+                "priority": 2,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article18_income_tax_exempt_passbook"],
+                "tax_amount": 0,
+                "rule_label": "所得税が非課税となる普通預金通帳など",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              },
+              {
+                "code": "article18_tax_reserve_deposit_passbook",
+                "label": "納税準備預金通帳",
+                "priority": 3,
+                "effective_from": null,
+                "effective_until": null,
+                "required_flags": ["article18_tax_reserve_deposit_passbook"],
+                "tax_amount": 0,
+                "rule_label": "納税準備預金通帳",
+                "brackets": [],
+                "no_amount_tax_amount": null,
+                "no_amount_rule_label": null
+              }
+            ]
+          },
+          "article19_misc_passbook": {
+            "label": "第19号文書 消費貸借通帳等",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第19号文書" },
+            "charge_mode": "fixed_per_year",
+            "amount_usage": "unsupported",
+            "base_rule_label": "1年ごとに400円",
+            "base_tax_amount": 400,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          },
+          "article20_seal_book": {
+            "label": "第20号文書 判取帳",
+            "citation": { "law_name": "印紙税法", "article": "別表第一 第20号文書" },
+            "charge_mode": "fixed_per_year",
+            "amount_usage": "unsupported",
+            "base_rule_label": "1年ごとに4千円",
+            "base_tax_amount": 4000,
+            "brackets": [],
+            "no_amount_tax_amount": null,
+            "no_amount_rule_label": null,
+            "special_rules": []
+          }
         }
       }
     }

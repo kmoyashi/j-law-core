@@ -1,268 +1,214 @@
-#![allow(clippy::disallowed_methods)] // テストコードでは unwrap() 使用可能
+#![allow(clippy::disallowed_methods)]
 
 use std::collections::HashSet;
 
 use j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
-    context::{StampTaxContext, StampTaxDocumentKind, StampTaxFlag},
+    context::{StampTaxContext, StampTaxDocumentCode, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
 use j_law_core::LegalDate;
 use j_law_registry::load_stamp_tax_params;
 
 fn ctx(
-    document_kind: StampTaxDocumentKind,
-    amount: u64,
+    document_code: StampTaxDocumentCode,
+    stated_amount: Option<u64>,
     date: LegalDate,
-    reduced: bool,
+    flags: &[StampTaxFlag],
 ) -> StampTaxContext {
-    let mut flags = HashSet::new();
-    if reduced {
-        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
+    let mut set = HashSet::new();
+    for flag in flags {
+        set.insert(*flag);
     }
+
     StampTaxContext {
-        document_kind,
-        contract_amount: amount,
+        document_code,
+        stated_amount,
         target_date: date,
-        flags,
+        flags: set,
         policy: Box::new(StandardNtaPolicy),
     }
 }
 
-// ─── 非課税 ────────────────────────────────────────────────────────────────
-
-/// 契約金額 9,999円（1万円未満・非課税）
 #[test]
-fn exempt_under_10k() {
+fn article1_real_estate_base_rate() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            9_999,
+            StampTaxDocumentCode::Article1OtherTransfer,
+            Some(5_000_000),
             LegalDate::new(2024, 8, 1),
-            false,
+            &[],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 0);
-    assert!(!result.reduced_rate_applied);
-}
 
-// ─── 本則税額 ──────────────────────────────────────────────────────────────
-
-/// 契約金額 50,000円（10万円以下・200円）
-#[test]
-fn bracket1_normal() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            50_000,
-            LegalDate::new(2024, 8, 1),
-            false,
-        ),
-        &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 200);
-}
-
-/// 契約金額 300,000円（50万円以下・本則400円）
-#[test]
-fn bracket2_normal() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            300_000,
-            LegalDate::new(2024, 8, 1),
-            false,
-        ),
-        &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 400);
-}
-
-/// 契約金額 800,000円（100万円以下・本則1,000円）
-#[test]
-fn bracket3_normal() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            800_000,
-            LegalDate::new(2024, 8, 1),
-            false,
-        ),
-        &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 1_000);
-}
-
-/// 契約金額 3,000,000円（500万円以下・本則2,000円）
-#[test]
-fn bracket4_normal() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            3_000_000,
-            LegalDate::new(2024, 8, 1),
-            false,
-        ),
-        &params,
-    )
-    .unwrap();
     assert_eq!(result.tax_amount.as_yen(), 2_000);
+    assert_eq!(result.rule_label, "100万円を超え500万円以下のもの");
+    assert!(result.applied_special_rule.is_none());
 }
 
-// ─── 軽減税額 ──────────────────────────────────────────────────────────────
-
-/// 契約金額 300,000円（50万円以下・軽減200円）
 #[test]
-fn bracket2_reduced() {
+fn article1_real_estate_reduced_rate() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
+    let reduced = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            300_000,
+            StampTaxDocumentCode::Article1RealEstateTransfer,
+            Some(50_000_000),
             LegalDate::new(2024, 8, 1),
-            true,
+            &[],
         ),
         &params,
     )
     .unwrap();
+    assert_eq!(reduced.tax_amount.as_yen(), 10_000);
+    assert_eq!(
+        reduced.applied_special_rule.as_deref(),
+        Some("article1_real_estate_transfer_reduced")
+    );
+}
+
+#[test]
+fn article2_construction_reduced_rate() {
+    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
+    let result = calculate_stamp_tax(
+        &ctx(
+            StampTaxDocumentCode::Article2ConstructionWork,
+            Some(2_500_000),
+            LegalDate::new(2024, 8, 1),
+            &[],
+        ),
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(result.tax_amount.as_yen(), 500);
+    assert_eq!(
+        result.applied_special_rule.as_deref(),
+        Some("article2_construction_work_reduced")
+    );
+}
+
+#[test]
+fn article3_special_flat_rate() {
+    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
+    let result = calculate_stamp_tax(
+        &ctx(
+            StampTaxDocumentCode::Article3BillSpecialFlat200,
+            None,
+            LegalDate::new(2024, 8, 1),
+            &[],
+        ),
+        &params,
+    )
+    .unwrap();
+
     assert_eq!(result.tax_amount.as_yen(), 200);
-    assert!(result.reduced_rate_applied);
+    assert_eq!(result.rule_label, "200円");
 }
 
-/// 契約金額 5,000,000円（500万円以下・軽減1,000円）
 #[test]
-fn bracket4_reduced() {
+fn article5_fixed_document_tax() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            5_000_000,
+            StampTaxDocumentCode::Article5MergerOrSplit,
+            None,
             LegalDate::new(2024, 8, 1),
-            true,
+            &[],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 1_000);
-    assert!(result.reduced_rate_applied);
+
+    assert_eq!(result.tax_amount.as_yen(), 40_000);
 }
 
-/// 契約金額 50,000,000円（5,000万円以下・軽減10,000円）
 #[test]
-fn bracket6_reduced() {
+fn article15_assignment_amount_and_no_amount() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
+    let amount_result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            50_000_000,
+            StampTaxDocumentCode::Article15AssignmentOrAssumption,
+            Some(10_000),
             LegalDate::new(2024, 8, 1),
-            true,
+            &[],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 10_000);
-    assert!(result.reduced_rate_applied);
-}
+    assert_eq!(amount_result.tax_amount.as_yen(), 200);
 
-/// 契約金額 100,000,000円（1億円以下・軽減30,000円）
-#[test]
-fn bracket7_reduced() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
+    let no_amount_result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            100_000_000,
+            StampTaxDocumentCode::Article15AssignmentOrAssumption,
+            None,
             LegalDate::new(2024, 8, 1),
-            true,
+            &[],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 30_000);
-    assert!(result.reduced_rate_applied);
+    assert_eq!(no_amount_result.tax_amount.as_yen(), 200);
+    assert_eq!(no_amount_result.rule_label, "契約金額の記載のないもの");
 }
 
-/// 契約金額 10,000,000,000円（50億円超・軽減480,000円）
 #[test]
-fn bracket11_reduced() {
+fn article16_dividend_threshold() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            10_000_000_000,
+            StampTaxDocumentCode::Article16DividendReceipt,
+            Some(3_000),
             LegalDate::new(2024, 8, 1),
-            true,
+            &[],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 480_000);
-    assert!(result.reduced_rate_applied);
-}
 
-// ─── 建設工事請負契約書 ──────────────────────────────────────────────────────
-
-/// 契約金額 1,500,000円（200万円以下・本則400円）
-#[test]
-fn construction_contract_1500k_normal() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::ConstructionContract,
-            1_500_000,
-            LegalDate::new(2024, 8, 1),
-            false,
-        ),
-        &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 400);
-    assert!(!result.reduced_rate_applied);
-}
-
-/// 契約金額 1,500,000円（200万円以下・軽減200円）
-#[test]
-fn construction_contract_1500k_reduced() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::ConstructionContract,
-            1_500_000,
-            LegalDate::new(2024, 8, 1),
-            true,
-        ),
-        &params,
-    )
-    .unwrap();
     assert_eq!(result.tax_amount.as_yen(), 200);
-    assert!(result.reduced_rate_applied);
 }
 
-/// 契約金額 100,000円（100万円以下・軽減措置の対象外のため200円）
 #[test]
-fn construction_contract_1000k_reduced_has_no_effect() {
+fn article17_non_business_exempt() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::ConstructionContract,
-            100_000,
+            StampTaxDocumentCode::Article17SalesReceipt,
+            Some(70_000),
             LegalDate::new(2024, 8, 1),
-            true,
+            &[StampTaxFlag::Article17NonBusinessExempt],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 200);
-    assert!(!result.reduced_rate_applied);
+
+    assert_eq!(result.tax_amount.as_yen(), 0);
+    assert_eq!(
+        result.applied_special_rule.as_deref(),
+        Some("article17_non_business_exempt")
+    );
+}
+
+#[test]
+fn article18_passbook_exempt() {
+    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
+    let result = calculate_stamp_tax(
+        &ctx(
+            StampTaxDocumentCode::Article18Passbook,
+            None,
+            LegalDate::new(2024, 8, 1),
+            &[StampTaxFlag::Article18TaxReserveDepositPassbook],
+        ),
+        &params,
+    )
+    .unwrap();
+
+    assert_eq!(result.tax_amount.as_yen(), 0);
+    assert_eq!(
+        result.applied_special_rule.as_deref(),
+        Some("article18_tax_reserve_deposit_passbook")
+    );
 }

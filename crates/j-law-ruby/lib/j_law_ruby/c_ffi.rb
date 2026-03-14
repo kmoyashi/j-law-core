@@ -8,13 +8,11 @@ module JLawRuby
     module CFFI
       extend FFI::Library
 
-      FFI_VERSION = 3
+      FFI_VERSION = 4
       MAX_TIERS = 8
       MAX_DEDUCTION_LINES = 8
       LABEL_LEN = 64
       ERROR_BUF_LEN = 256
-      STAMP_TAX_DOCUMENT_KIND_REAL_ESTATE_TRANSFER = 0
-      STAMP_TAX_DOCUMENT_KIND_CONSTRUCTION_CONTRACT = 1
       GEM_ROOT = File.expand_path("../..", __dir__)
       LIBRARY_PATH = BuildSupport.resolve_shared_library_path(GEM_ROOT)
 
@@ -53,7 +51,7 @@ module JLawRuby
         keyword_init: true
       )
       StampTaxRecord = Struct.new(
-        :tax_amount, :bracket_label, :reduced_rate_applied,
+        :tax_amount, :rule_label, :applied_special_rule,
         keyword_init: true
       )
       WithholdingTaxRecord = Struct.new(
@@ -176,8 +174,8 @@ module JLawRuby
 
       class StampTaxStruct < FFI::Struct
         layout :tax_amount, :uint64,
-               :bracket_label, [:char, LABEL_LEN],
-               :reduced_rate_applied, :int
+               :rule_label, [:char, LABEL_LEN],
+               :applied_special_rule, [:char, LABEL_LEN]
       end
 
       class WithholdingTaxStruct < FFI::Struct
@@ -213,11 +211,7 @@ module JLawRuby
                        ConsumptionTaxStruct.by_ref, :pointer, :int],
                       :int
       attach_function :j_law_calc_stamp_tax,
-                      [:uint64, :uint16, :uint8, :uint8, :int,
-                       StampTaxStruct.by_ref, :pointer, :int],
-                      :int
-      attach_function :j_law_calc_stamp_tax_with_document_kind,
-                      [:uint64, :uint16, :uint8, :uint8, :int, :int,
+                      [:uint32, :uint64, :int, :uint16, :uint8, :uint8, :uint64,
                        StampTaxStruct.by_ref, :pointer, :int],
                       :int
       attach_function :j_law_calc_withholding_tax,
@@ -435,18 +429,18 @@ module JLawRuby
         )
       end
 
-      def calc_stamp_tax(contract_amount, year, month, day, is_reduced_rate_applicable,
-                         document_kind = STAMP_TAX_DOCUMENT_KIND_REAL_ESTATE_TRANSFER)
+      def calc_stamp_tax(document_code, stated_amount, year, month, day, flags_bitset = 0)
         result = StampTaxStruct.new
 
         call_with_error do |error_buf|
-          j_law_calc_stamp_tax_with_document_kind(
-            contract_amount,
+          j_law_calc_stamp_tax(
+            document_code,
+            stated_amount || 0,
+            stated_amount.nil? ? 0 : 1,
             year,
             month,
             day,
-            bool_to_c_int(is_reduced_rate_applicable),
-            document_kind,
+            flags_bitset,
             result,
             error_buf,
             ERROR_BUF_LEN
@@ -455,8 +449,11 @@ module JLawRuby
 
         StampTaxRecord.new(
           tax_amount: result[:tax_amount],
-          bracket_label: read_fixed_string(result, :bracket_label, LABEL_LEN),
-          reduced_rate_applied: c_int_to_bool(result[:reduced_rate_applied])
+          rule_label: read_fixed_string(result, :rule_label, LABEL_LEN),
+          applied_special_rule: begin
+            value = read_fixed_string(result, :applied_special_rule, LABEL_LEN)
+            value.empty? ? nil : value
+          end
         )
       end
 

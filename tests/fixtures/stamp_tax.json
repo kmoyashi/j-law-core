@@ -1,227 +1,153 @@
 {
   "stamp_tax": [
     {
-      "id": "real_estate_exempt_under_10k",
-      "description": "不動産譲渡契約書 9,999円（1万円未満・非課税）",
+      "id": "article1_under_10k_non_taxable",
+      "description": "第1号文書（その他譲渡）9,999円は非課税",
       "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 9999,
+        "document_code": "article1_other_transfer",
+        "stated_amount": 9999,
         "date": "2024-08-01",
-        "is_reduced_rate_applicable": false
+        "flags": []
       },
       "expected": {
         "tax_amount": 0,
-        "reduced_rate_applied": false
+        "rule_label": "1万円未満のもの",
+        "applied_special_rule": null
       }
     },
     {
-      "id": "real_estate_100k_normal",
-      "description": "不動産譲渡契約書 100,000円（10万円以下・200円）",
+      "id": "article1_real_estate_reduced",
+      "description": "第1号文書（不動産譲渡）5,000万円は軽減1万円",
       "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 100000,
+        "document_code": "article1_real_estate_transfer",
+        "stated_amount": 50000000,
         "date": "2024-08-01",
-        "is_reduced_rate_applicable": false
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "real_estate_100k_reduced_no_effect",
-      "description": "不動産譲渡契約書 100,000円（10万円以下は軽減対象外）",
-      "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 100000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "real_estate_100k_plus1_reduced",
-      "description": "不動産譲渡契約書 100,001円（軽減200円）",
-      "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 100001,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "real_estate_500k_normal",
-      "description": "不動産譲渡契約書 500,000円（50万円以下・本則400円）",
-      "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 500000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": false
-      },
-      "expected": {
-        "tax_amount": 400,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "real_estate_5m_reduced",
-      "description": "不動産譲渡契約書 5,000,000円（500万円以下・軽減1,000円）",
-      "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 5000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 1000,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "real_estate_50m_reduced",
-      "description": "不動産譲渡契約書 50,000,000円（5,000万円以下・軽減10,000円）",
-      "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 50000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
+        "flags": []
       },
       "expected": {
         "tax_amount": 10000,
-        "reduced_rate_applied": true
+        "rule_label": "1千万円を超え5千万円以下のもの",
+        "applied_special_rule": "article1_real_estate_transfer_reduced"
       }
     },
     {
-      "id": "real_estate_over_5b_reduced",
-      "description": "不動産譲渡契約書 10,000,000,000円（50億円超・軽減480,000円）",
+      "id": "article2_construction_reduced",
+      "description": "第2号文書（建設工事）250万円は軽減500円",
       "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 10000000000,
+        "document_code": "article2_construction_work",
+        "stated_amount": 2500000,
         "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 480000,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "real_estate_reduced_period_first_day",
-      "description": "不動産譲渡契約書 軽減期間初日（2014-04-01）は軽減適用",
-      "input": {
-        "document_kind": "real_estate_transfer",
-        "contract_amount": 5000000,
-        "date": "2014-04-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 1000,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "construction_1000k_normal",
-      "description": "建設工事請負契約書 1,000,000円（100万円以下・200円）",
-      "input": {
-        "document_kind": "construction_contract",
-        "contract_amount": 1000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": false
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "construction_1000k_reduced_no_effect",
-      "description": "建設工事請負契約書 1,000,000円（100万円以下は軽減対象外）",
-      "input": {
-        "document_kind": "construction_contract",
-        "contract_amount": 1000000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "construction_1000k_plus1_reduced",
-      "description": "建設工事請負契約書 1,000,001円（200万円以下・軽減200円）",
-      "input": {
-        "document_kind": "construction_contract",
-        "contract_amount": 1000001,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "construction_1500k_normal",
-      "description": "建設工事請負契約書 1,500,000円（200万円以下・本則400円）",
-      "input": {
-        "document_kind": "construction_contract",
-        "contract_amount": 1500000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": false
-      },
-      "expected": {
-        "tax_amount": 400,
-        "reduced_rate_applied": false
-      }
-    },
-    {
-      "id": "construction_1500k_reduced",
-      "description": "建設工事請負契約書 1,500,000円（200万円以下・軽減200円）",
-      "input": {
-        "document_kind": "construction_contract",
-        "contract_amount": 1500000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
-      },
-      "expected": {
-        "tax_amount": 200,
-        "reduced_rate_applied": true
-      }
-    },
-    {
-      "id": "construction_2500k_reduced",
-      "description": "建設工事請負契約書 2,500,000円（300万円以下・軽減500円）",
-      "input": {
-        "document_kind": "construction_contract",
-        "contract_amount": 2500000,
-        "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
+        "flags": []
       },
       "expected": {
         "tax_amount": 500,
-        "reduced_rate_applied": true
+        "rule_label": "200万円を超え300万円以下のもの",
+        "applied_special_rule": "article2_construction_work_reduced"
       }
     },
     {
-      "id": "construction_5m_reduced",
-      "description": "建設工事請負契約書 5,000,000円（500万円以下・軽減1,000円）",
+      "id": "article3_special_flat_200",
+      "description": "第3号文書（一覧払等）は固定200円",
       "input": {
-        "document_kind": "construction_contract",
-        "contract_amount": 5000000,
+        "document_code": "article3_bill_special_flat_200",
+        "stated_amount": null,
         "date": "2024-08-01",
-        "is_reduced_rate_applicable": true
+        "flags": []
       },
       "expected": {
-        "tax_amount": 1000,
-        "reduced_rate_applied": true
+        "tax_amount": 200,
+        "rule_label": "200円",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article8_small_deposit_exempt",
+      "description": "第8号文書の特定金融機関1万円未満預入は非課税",
+      "input": {
+        "document_code": "article8_deposit_certificate",
+        "stated_amount": 9999,
+        "date": "2024-08-01",
+        "flags": ["article8_small_deposit_exempt"]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "預入額1万円未満のもの",
+        "applied_special_rule": "article8_small_deposit_exempt"
+      }
+    },
+    {
+      "id": "article15_no_amount_200",
+      "description": "第15号文書の記載金額なしは200円",
+      "input": {
+        "document_code": "article15_assignment_or_assumption",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "契約金額の記載のないもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article16_under_3000_non_taxable",
+      "description": "第16号文書の2,999円は非課税",
+      "input": {
+        "document_code": "article16_dividend_receipt",
+        "stated_amount": 2999,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "3千円未満のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_sales_receipt_threshold",
+      "description": "第17号文書（売上代金）50,000円は200円",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 50000,
+        "date": "2024-08-01",
+        "flags": []
+      },
+      "expected": {
+        "tax_amount": 200,
+        "rule_label": "100万円以下のもの",
+        "applied_special_rule": null
+      }
+    },
+    {
+      "id": "article17_non_business_exempt",
+      "description": "第17号文書（売上代金）営業外は非課税",
+      "input": {
+        "document_code": "article17_sales_receipt",
+        "stated_amount": 70000,
+        "date": "2024-08-01",
+        "flags": ["article17_non_business_exempt"]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "営業に関しないもの",
+        "applied_special_rule": "article17_non_business_exempt"
+      }
+    },
+    {
+      "id": "article18_tax_reserve_exempt",
+      "description": "第18号文書の納税準備預金通帳は非課税",
+      "input": {
+        "document_code": "article18_passbook",
+        "stated_amount": null,
+        "date": "2024-08-01",
+        "flags": ["article18_tax_reserve_deposit_passbook"]
+      },
+      "expected": {
+        "tax_amount": 0,
+        "rule_label": "納税準備預金通帳",
+        "applied_special_rule": "article18_tax_reserve_deposit_passbook"
       }
     }
   ]

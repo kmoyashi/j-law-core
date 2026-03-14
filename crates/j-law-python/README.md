@@ -92,17 +92,20 @@ import datetime
 
 from j_law_python.stamp_tax import calc_stamp_tax
 
-result = calc_stamp_tax(5_000_000, datetime.date(2024, 8, 1))
+result = calc_stamp_tax(
+    "article1_real_estate_transfer",
+    5_000_000,
+    datetime.date(2024, 8, 1),
+)
 
-print(result.tax_amount)            # 2000
-print(result.bracket_label)         # 適用ブラケット名
-print(result.reduced_rate_applied)  # False
+print(result.tax_amount)            # 1000
+print(result.rule_label)            # 適用税額表ラベル
+print(result.applied_special_rule)  # "article1_real_estate_transfer_reduced"
 
 construction = calc_stamp_tax(
+    "article2_construction_work",
     1_500_000,
     datetime.date(2024, 8, 1),
-    is_reduced_rate_applicable=True,
-    document_kind="construction_contract",
 )
 
 print(construction.tax_amount)      # 200
@@ -113,7 +116,7 @@ print(construction.tax_amount)      # 200
 - `j_law_python.real_estate.calc_brokerage_fee(price, date, is_low_cost_vacant_house=False, is_seller=False)`
 - `j_law_python.income_tax.calc_income_tax(taxable_income, date, apply_reconstruction_tax=True)`
 - `j_law_python.consumption_tax.calc_consumption_tax(amount, date, is_reduced_rate=False)`
-- `j_law_python.stamp_tax.calc_stamp_tax(contract_amount, date, is_reduced_rate_applicable=False, document_kind="real_estate_transfer")`
+- `j_law_python.stamp_tax.calc_stamp_tax(document_code, stated_amount, date, flags=None)`
 
 すべての API は `datetime.date` を受け取り、型不一致は `TypeError`、入力不正や法令適用外日付は `ValueError` を送出します。
 

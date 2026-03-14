@@ -5,14 +5,8 @@ require "json"
 require "date"
 require "j_law_ruby"
 
-# 印紙税法 別表第一に基づく印紙税額計算のテスト。
-#
-# 法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
-# テストケースは tests/fixtures/stamp_tax.json から読み込む。
 class TestStampTax < Minitest::Test
   FIXTURES = JSON.parse(File.read(File.join(__dir__, "../../../tests/fixtures/stamp_tax.json")))
-
-  # ─── データ駆動テスト ─────────────────────────────────────────────────────
 
   FIXTURES["stamp_tax"].each do |tc|
     define_method("test_#{tc['id']}") do
@@ -21,52 +15,49 @@ class TestStampTax < Minitest::Test
 
       date = Date.parse(inp["date"])
       result = JLawRuby::StampTax.calc_stamp_tax(
-        inp["contract_amount"],
+        inp["document_code"],
+        inp["stated_amount"],
         date,
-        inp["is_reduced_rate_applicable"],
-        document_kind: inp["document_kind"]
+        flags: inp["flags"]
       )
 
       assert_equal exp["tax_amount"], result.tax_amount, "#{tc['id']}: tax_amount"
-      assert_equal exp["reduced_rate_applied"], result.reduced_rate_applied?, "#{tc['id']}: reduced_rate_applied"
+      assert_equal exp["rule_label"], result.rule_label, "#{tc['id']}: rule_label"
+      assert_equal exp["applied_special_rule"], result.applied_special_rule, "#{tc['id']}: applied_special_rule"
     end
   end
 
-  # ─── 言語固有テスト ───────────────────────────────────────────────────────
-
   def test_error_date_out_of_range
     err = assert_raises(RuntimeError) do
-      JLawRuby::StampTax.calc_stamp_tax(5_000_000, Date.new(2014, 3, 31), false)
+      JLawRuby::StampTax.calc_stamp_tax("article1_real_estate_transfer", 5_000_000, Date.new(2014, 3, 31))
     end
     assert_match(/2014-03-31/, err.message)
   end
 
-  def test_bracket_label_present
-    result = JLawRuby::StampTax.calc_stamp_tax(5_000_000, Date.new(2024, 8, 1), false)
-    refute_empty result.bracket_label
-  end
-
   def test_inspect
-    result = JLawRuby::StampTax.calc_stamp_tax(5_000_000, Date.new(2024, 8, 1), false)
+    result = JLawRuby::StampTax.calc_stamp_tax("article1_real_estate_transfer", 5_000_000, Date.new(2024, 8, 1))
     assert_match(/StampTaxResult/, result.inspect)
   end
 
   def test_type_error_invalid_date
     assert_raises(TypeError) do
-      JLawRuby::StampTax.calc_stamp_tax(5_000_000, "2024-08-01", false)
-    end
-    assert_raises(TypeError) do
-      JLawRuby::StampTax.calc_stamp_tax(5_000_000, 20_240_801, false)
+      JLawRuby::StampTax.calc_stamp_tax("article1_real_estate_transfer", 5_000_000, "2024-08-01")
     end
   end
 
-  def test_invalid_document_kind
+  def test_invalid_document_code
+    assert_raises(ArgumentError) do
+      JLawRuby::StampTax.calc_stamp_tax("invalid_code", 5_000_000, Date.new(2024, 8, 1))
+    end
+  end
+
+  def test_invalid_flag
     assert_raises(ArgumentError) do
       JLawRuby::StampTax.calc_stamp_tax(
-        5_000_000,
+        "article17_sales_receipt",
+        70_000,
         Date.new(2024, 8, 1),
-        false,
-        document_kind: :invalid_kind
+        flags: ["invalid_flag"]
       )
     end
   end

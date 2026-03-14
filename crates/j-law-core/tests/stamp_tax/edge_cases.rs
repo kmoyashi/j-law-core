@@ -1,245 +1,176 @@
-#![allow(clippy::disallowed_methods)] // テストコードでは unwrap() 使用可能
+#![allow(clippy::disallowed_methods)]
 
 use std::collections::HashSet;
 
 use j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
-    context::{StampTaxContext, StampTaxDocumentKind, StampTaxFlag},
+    context::{StampTaxContext, StampTaxDocumentCode, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
-use j_law_core::LegalDate;
+use j_law_core::{InputError, JLawError, LegalDate};
 use j_law_registry::load_stamp_tax_params;
 
 fn ctx(
-    document_kind: StampTaxDocumentKind,
-    amount: u64,
+    document_code: StampTaxDocumentCode,
+    stated_amount: Option<u64>,
     date: LegalDate,
-    reduced: bool,
+    flags: &[StampTaxFlag],
 ) -> StampTaxContext {
-    let mut flags = HashSet::new();
-    if reduced {
-        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
+    let mut set = HashSet::new();
+    for flag in flags {
+        set.insert(*flag);
     }
+
     StampTaxContext {
-        document_kind,
-        contract_amount: amount,
+        document_code,
+        stated_amount,
         target_date: date,
-        flags,
+        flags: set,
         policy: Box::new(StandardNtaPolicy),
     }
 }
 
-// ─── 境界値テスト ──────────────────────────────────────────────────────────
-
-/// 1万円ちょうど（非課税の境界を超えた最初の課税対象）
 #[test]
-fn edge_10k_exact() {
+fn article1_under_10k_is_non_taxable() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            10_000,
+            StampTaxDocumentCode::Article1OtherTransfer,
+            Some(9_999),
             LegalDate::new(2024, 8, 1),
-            false,
+            &[],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 200);
-}
 
-/// 9,999円（非課税の上限）
-#[test]
-fn edge_9999() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            9_999,
-            LegalDate::new(2024, 8, 1),
-            false,
-        ),
-        &params,
-    )
-    .unwrap();
     assert_eq!(result.tax_amount.as_yen(), 0);
 }
 
-/// 10万円ちょうど（10万円以下ブラケットの上限）
 #[test]
-fn edge_100k_exact() {
+fn article3_no_amount_is_non_taxable() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            100_000,
+            StampTaxDocumentCode::Article3BillAmountTable,
+            None,
             LegalDate::new(2024, 8, 1),
-            false,
+            &[],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 200);
+
+    assert_eq!(result.tax_amount.as_yen(), 0);
 }
 
-/// 100,001円（10万円超・50万円以下ブラケットに入る）
 #[test]
-fn edge_100k_plus1() {
+fn article4_requires_amount() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            100_001,
+            StampTaxDocumentCode::Article4SecurityCertificate,
+            None,
             LegalDate::new(2024, 8, 1),
-            false,
+            &[],
         ),
         &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 400);
+    );
+
+    assert!(matches!(
+        result,
+        Err(JLawError::Input(InputError::InvalidStampTaxInput { .. }))
+    ));
 }
 
-/// 10万円以下は軽減対象外（フラグありでも本則適用）
 #[test]
-fn edge_100k_reduced_flag_no_effect() {
+fn fixed_document_rejects_amount() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            100_000,
+            StampTaxDocumentCode::Article20SealBook,
+            Some(1),
             LegalDate::new(2024, 8, 1),
-            true,
+            &[],
         ),
         &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 200);
-    assert!(!result.reduced_rate_applied);
+    );
+
+    assert!(matches!(
+        result,
+        Err(JLawError::Input(InputError::InvalidStampTaxInput { .. }))
+    ));
 }
 
-/// 100,001円 + 軽減フラグ → 軽減200円
 #[test]
-fn edge_100k_plus1_reduced() {
+fn invalid_flag_for_document_is_rejected() {
     let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            100_001,
+            StampTaxDocumentCode::Article5MergerOrSplit,
+            None,
             LegalDate::new(2024, 8, 1),
-            true,
+            &[StampTaxFlag::Article17NonBusinessExempt],
         ),
         &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 200);
-    assert!(result.reduced_rate_applied);
+    );
+
+    assert!(matches!(
+        result,
+        Err(JLawError::Input(InputError::InvalidStampTaxInput { .. }))
+    ));
 }
 
-// ─── 軽減期間の境界テスト ──────────────────────────────────────────────────
-
-/// 軽減期間の初日（2014/4/1）→ 軽減適用
 #[test]
-fn reduced_period_first_day() {
-    let params = load_stamp_tax_params(LegalDate::new(2014, 4, 1)).unwrap();
+fn amount_required_for_article8_small_deposit_flag() {
+    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            5_000_000,
-            LegalDate::new(2014, 4, 1),
-            true,
+            StampTaxDocumentCode::Article8DepositCertificate,
+            None,
+            LegalDate::new(2024, 8, 1),
+            &[StampTaxFlag::Article8SmallDepositExempt],
         ),
         &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 1_000);
-    assert!(result.reduced_rate_applied);
+    );
+
+    assert!(matches!(
+        result,
+        Err(JLawError::Input(InputError::InvalidStampTaxInput { .. }))
+    ));
 }
 
-/// 軽減期間の最終日（2027/3/31）→ 軽減適用
 #[test]
-fn reduced_period_last_day() {
-    let params = load_stamp_tax_params(LegalDate::new(2027, 3, 31)).unwrap();
+fn article8_small_deposit_exempt_applies_below_threshold() {
+    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            5_000_000,
-            LegalDate::new(2027, 3, 31),
-            true,
+            StampTaxDocumentCode::Article8DepositCertificate,
+            Some(9_999),
+            LegalDate::new(2024, 8, 1),
+            &[StampTaxFlag::Article8SmallDepositExempt],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 1_000);
-    assert!(result.reduced_rate_applied);
+
+    assert_eq!(result.tax_amount.as_yen(), 0);
 }
 
-/// 軽減期間の翌日（2027/4/1）→ 本則適用
 #[test]
-fn reduced_period_day_after() {
+fn article2_reduction_ends_after_2027_03_31() {
     let params = load_stamp_tax_params(LegalDate::new(2027, 4, 1)).unwrap();
     let result = calculate_stamp_tax(
         &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            5_000_000,
+            StampTaxDocumentCode::Article2ConstructionWork,
+            Some(2_500_000),
             LegalDate::new(2027, 4, 1),
-            true,
+            &[],
         ),
         &params,
     )
     .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 2_000);
-    assert!(!result.reduced_rate_applied);
-}
 
-/// 契約金額 0円
-#[test]
-fn zero_amount() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::RealEstateTransfer,
-            0,
-            LegalDate::new(2024, 8, 1),
-            false,
-        ),
-        &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 0);
-}
-
-/// 建設工事請負契約書は100万円以下のとき軽減対象外
-#[test]
-fn construction_reduced_boundary_1000k_exact() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::ConstructionContract,
-            1_000_000,
-            LegalDate::new(2024, 8, 1),
-            true,
-        ),
-        &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 200);
-    assert!(!result.reduced_rate_applied);
-}
-
-/// 建設工事請負契約書は100万円超で軽減対象となる
-#[test]
-fn construction_reduced_boundary_1000k_plus1() {
-    let params = load_stamp_tax_params(LegalDate::new(2024, 8, 1)).unwrap();
-    let result = calculate_stamp_tax(
-        &ctx(
-            StampTaxDocumentKind::ConstructionContract,
-            1_000_001,
-            LegalDate::new(2024, 8, 1),
-            true,
-        ),
-        &params,
-    )
-    .unwrap();
-    assert_eq!(result.tax_amount.as_yen(), 200);
-    assert!(result.reduced_rate_applied);
+    assert_eq!(result.tax_amount.as_yen(), 1_000);
+    assert!(result.applied_special_rule.is_none());
 }

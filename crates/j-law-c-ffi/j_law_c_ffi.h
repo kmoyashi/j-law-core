@@ -22,7 +22,7 @@ extern "C" {
 #define J_LAW_ERROR_BUF_LEN 256
 
 /** j-law-c-ffi の FFI 互換バージョン。 */
-#define J_LAW_C_FFI_VERSION 3
+#define J_LAW_C_FFI_VERSION 4
 
 /** 所得控除種別定数。 */
 #define J_LAW_INCOME_DEDUCTION_KIND_BASIC 1
@@ -403,76 +403,84 @@ int j_law_calc_consumption_tax(
 typedef struct {
     /** 印紙税額（円）。 */
     uint64_t tax_amount;
-    /** 適用されたブラケットの表示名（NUL 終端・最大 63 文字）。 */
-    char     bracket_label[J_LAW_LABEL_LEN];
-    /** 軽減税率が適用されたか（0 = false, 1 = true）。 */
-    int      reduced_rate_applied;
+    /** 適用された税額ルールの表示名（NUL 終端・最大 63 文字）。 */
+    char     rule_label[J_LAW_LABEL_LEN];
+    /** 適用された特例ルールコード（NUL 終端・最大 63 文字）。 */
+    char     applied_special_rule[J_LAW_LABEL_LEN];
 } JLawStampTaxResult;
 
 /**
- * 印紙税の文書種別。
+ * 印紙税の文書コード。
  */
 typedef enum {
-    /** 不動産の譲渡に関する契約書（第1号文書）。 */
-    J_LAW_STAMP_TAX_DOCUMENT_REAL_ESTATE_TRANSFER = 0,
-    /** 建設工事の請負に関する契約書（第2号文書）。 */
-    J_LAW_STAMP_TAX_DOCUMENT_CONSTRUCTION_CONTRACT = 1
-} JLawStampTaxDocumentKind;
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE1_REAL_ESTATE_TRANSFER = 1,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE1_OTHER_TRANSFER = 2,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE1_LAND_LEASE_OR_SURFACE_RIGHT = 3,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE1_CONSUMPTION_LOAN = 4,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE1_TRANSPORTATION = 5,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE2_CONSTRUCTION_WORK = 6,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE2_GENERAL_CONTRACT = 7,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE3_BILL_AMOUNT_TABLE = 8,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE3_BILL_SPECIAL_FLAT_200 = 9,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE4_SECURITY_CERTIFICATE = 10,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE5_MERGER_OR_SPLIT = 11,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE6_ARTICLES_OF_INCORPORATION = 12,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE7_CONTINUING_TRANSACTION_BASIC = 13,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE8_DEPOSIT_CERTIFICATE = 14,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE9_TRANSPORT_CERTIFICATE = 15,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE10_INSURANCE_CERTIFICATE = 16,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE11_LETTER_OF_CREDIT = 17,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE12_TRUST_CONTRACT = 18,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE13_DEBT_GUARANTEE = 19,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE14_DEPOSIT_CONTRACT = 20,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE15_ASSIGNMENT_OR_ASSUMPTION = 21,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE16_DIVIDEND_RECEIPT = 22,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE17_SALES_RECEIPT = 23,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE17_OTHER_RECEIPT = 24,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE18_PASSBOOK = 25,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE19_MISC_PASSBOOK = 26,
+    J_LAW_STAMP_TAX_DOCUMENT_ARTICLE20_SEAL_BOOK = 27
+} JLawStampTaxDocumentCode;
+
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE3_COPY_OR_TRANSCRIPT_EXEMPT (1ULL << 0)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE4_SPECIFIED_ISSUER_EXEMPT (1ULL << 1)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE4_RESTRICTED_BENEFICIARY_CERTIFICATE_EXEMPT (1ULL << 2)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE6_NOTARY_COPY_EXEMPT (1ULL << 3)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE8_SMALL_DEPOSIT_EXEMPT (1ULL << 4)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE13_IDENTITY_GUARANTEE_EXEMPT (1ULL << 5)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE17_NON_BUSINESS_EXEMPT (1ULL << 6)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE17_APPENDED_RECEIPT_EXEMPT (1ULL << 7)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE18_SPECIFIED_FINANCIAL_INSTITUTION_EXEMPT (1ULL << 8)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE18_INCOME_TAX_EXEMPT_PASSBOOK (1ULL << 9)
+#define J_LAW_STAMP_TAX_FLAG_ARTICLE18_TAX_RESERVE_DEPOSIT_PASSBOOK (1ULL << 10)
 
 /* ─── 印紙税 関数 ─────────────────────────────────────────────────────────── */
 
 /**
  * 印紙税法 別表第一に基づく印紙税額を計算する。
  *
- * 法的根拠: 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
+ * 法的根拠: 印紙税法 別表第一 / 租税特別措置法 第91条
  *
- * @param contract_amount             契約金額（円）
+ * @param document_code               文書コード（JLawStampTaxDocumentCode）
+ * @param stated_amount               記載金額、受取金額、券面金額など
+ * @param has_stated_amount           stated_amount を使う場合は非0、未記載文書なら 0
  * @param year                        契約書作成日（年）
  * @param month                       契約書作成日（月）
  * @param day                         契約書作成日（日）
- * @param is_reduced_rate_applicable  軽減税率適用フラグ（0 = false, 非0 = true）
- *                                    WARNING: 事実認定は呼び出し元の責任。
- *                                    この関数は不動産譲渡契約書を既定値として扱います。
+ * @param flags_bitset                主な非課税文書フラグの bit OR
  * @param out_result                  [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
  * @param error_buf                   [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
  * @param error_buf_len               error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
  * @return                            成功時 0、失敗時 非0
  */
 int j_law_calc_stamp_tax(
-    uint64_t contract_amount,
+    uint32_t document_code,
+    uint64_t stated_amount,
+    int      has_stated_amount,
     uint16_t year,
     uint8_t  month,
     uint8_t  day,
-    int      is_reduced_rate_applicable,
-    JLawStampTaxResult *out_result,
-    char    *error_buf,
-    int      error_buf_len
-);
-
-/**
- * 印紙税法 別表第一に基づく印紙税額を計算する（文書種別指定あり）。
- *
- * 法的根拠: 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
- *
- * @param contract_amount             契約金額（円）
- * @param year                        契約書作成日（年）
- * @param month                       契約書作成日（月）
- * @param day                         契約書作成日（日）
- * @param is_reduced_rate_applicable  軽減税率適用フラグ（0 = false, 非0 = true）
- *                                    WARNING: 事実認定は呼び出し元の責任。
- * @param document_kind               文書種別（JLawStampTaxDocumentKind）
- * @param out_result                  [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
- * @param error_buf                   [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
- * @param error_buf_len               error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
- * @return                            成功時 0、失敗時 非0
- */
-int j_law_calc_stamp_tax_with_document_kind(
-    uint64_t contract_amount,
-    uint16_t year,
-    uint8_t  month,
-    uint8_t  day,
-    int      is_reduced_rate_applicable,
-    int      document_kind,
+    uint64_t flags_bitset,
     JLawStampTaxResult *out_result,
     char    *error_buf,
     int      error_buf_len

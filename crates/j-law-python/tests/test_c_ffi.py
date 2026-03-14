@@ -133,7 +133,7 @@ def test_error_buffer_is_raised_as_value_error():
         (_c_ffi.calc_brokerage_fee, (-1, 2024, 8, 1, False, False), "price"),
         (_c_ffi.calc_income_tax, (-1, 2024, 1, 1, True), "taxable_income"),
         (_c_ffi.calc_consumption_tax, (-1, 2024, 1, 1, False), "amount"),
-        (_c_ffi.calc_stamp_tax, (-1, 2024, 8, 1, False), "contract_amount"),
+        (_c_ffi.calc_stamp_tax, (2, -1, 2024, 8, 1, 0), "stated_amount"),
         (_c_ffi.calc_withholding_tax, (-1, 0, 2026, 1, 1, 1, False), "payment_amount"),
     ],
 )

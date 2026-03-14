@@ -3,7 +3,10 @@ pub mod context;
 pub mod params;
 pub mod policy;
 
-pub use calculator::{calculate_stamp_tax, StampTaxResult};
-pub use context::{StampTaxContext, StampTaxDocumentKind, StampTaxFlag};
-pub use params::{StampTaxBracket, StampTaxDocumentParams, StampTaxParams};
+pub use calculator::{calculate_stamp_tax, StampTaxBreakdownStep, StampTaxResult};
+pub use context::{StampTaxContext, StampTaxDocumentCode, StampTaxFlag};
+pub use params::{
+    StampTaxAmountUsage, StampTaxBracket, StampTaxChargeMode, StampTaxCitation,
+    StampTaxDocumentParams, StampTaxParams, StampTaxSpecialRule,
+};
 pub use policy::StandardNtaPolicy;

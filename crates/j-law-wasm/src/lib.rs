@@ -29,7 +29,7 @@ use ::j_law_core::domains::real_estate::{
 };
 use ::j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
-    context::{StampTaxContext, StampTaxDocumentKind, StampTaxFlag},
+    context::{StampTaxContext, StampTaxDocumentCode, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
 use ::j_law_core::domains::withholding_tax::{
@@ -1008,13 +1008,13 @@ pub fn calc_income_tax_assessment(
 ///
 /// Properties:
 /// - `taxAmount`: 印紙税額（円）
-/// - `bracketLabel`: 適用されたブラケットの表示名
-/// - `reducedRateApplied`: 軽減税率が適用されたか
+/// - `ruleLabel`: 適用された税額ルールの表示名
+/// - `appliedSpecialRule`: 適用された特例ルールコード
 #[wasm_bindgen]
 pub struct StampTaxResult {
     tax_amount: u64,
-    bracket_label: String,
-    reduced_rate_applied: bool,
+    rule_label: String,
+    applied_special_rule: Option<String>,
 }
 
 #[wasm_bindgen]
@@ -1024,59 +1024,56 @@ impl StampTaxResult {
         self.tax_amount
     }
 
-    #[wasm_bindgen(getter, js_name = "bracketLabel")]
-    pub fn bracket_label(&self) -> String {
-        self.bracket_label.clone()
+    #[wasm_bindgen(getter, js_name = "ruleLabel")]
+    pub fn rule_label(&self) -> String {
+        self.rule_label.clone()
     }
 
-    #[wasm_bindgen(getter, js_name = "reducedRateApplied")]
-    pub fn reduced_rate_applied(&self) -> bool {
-        self.reduced_rate_applied
+    #[wasm_bindgen(getter, js_name = "appliedSpecialRule")]
+    pub fn applied_special_rule(&self) -> Option<String> {
+        self.applied_special_rule.clone()
     }
 }
 
 /// 印紙税法 別表第一に基づく印紙税額を計算する。
 ///
-/// @param contractAmount - 契約金額（円）
+/// @param documentCode - 文書コード
+/// @param statedAmount - 記載金額（円）。記載がない文書は `null`
 /// @param date - 契約書作成日（JavaScript Date オブジェクト。JST で解釈される）
-/// @param isReducedRateApplicable - 軽減税率適用フラグ
-/// @param documentKind - 文書種別（`"real_estate_transfer"` または
-/// `"construction_contract"`）。省略時は `"real_estate_transfer"`。
+/// @param flags - 主な非課税文書フラグ配列
 /// @returns StampTaxResult
-/// @throws 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合
+/// @throws 入力が不正、または対象日に有効な法令パラメータが存在しない場合
 /// JavaScript の Number 型は 53bit 整数精度のため u64 を直接受け取れない。
-/// 印紙税の最高ブラケット（50億円超）は u32 (最大約42.9億円) を超えるため、
-/// f64 で受け取り u64 に変換する。
 #[wasm_bindgen(js_name = "calcStampTax")]
 pub fn calc_stamp_tax(
-    contract_amount: f64,
+    document_code: String,
+    stated_amount: Option<f64>,
     date: &js_sys::Date,
-    is_reduced_rate_applicable: bool,
-    document_kind: Option<String>,
+    flag_values: Option<Box<[JsValue]>>,
 ) -> Result<StampTaxResult, JsValue> {
     let (year, month, day) = extract_jst_date(date);
-    let document_kind = match document_kind.as_deref().unwrap_or("real_estate_transfer") {
-        "real_estate_transfer" => StampTaxDocumentKind::RealEstateTransfer,
-        "construction_contract" => StampTaxDocumentKind::ConstructionContract,
-        other => {
-            return Err(JsValue::from_str(&format!(
-                "unsupported stamp tax document kind: {}",
-                other
-            )));
-        }
-    };
+    let document_code = document_code
+        .parse::<StampTaxDocumentCode>()
+        .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let params = load_stamp_tax_params(LegalDate::new(year, month, day))
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let mut flags = HashSet::new();
-    if is_reduced_rate_applicable {
-        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
+    if let Some(entries) = flag_values {
+        for entry in entries.iter() {
+            let flag = entry
+                .as_string()
+                .ok_or_else(|| JsValue::from_str("stamp tax flags must be strings"))?
+                .parse::<StampTaxFlag>()
+                .map_err(|e: InputError| JsValue::from_str(&e.to_string()))?;
+            flags.insert(flag);
+        }
     }
 
     let ctx = StampTaxContext {
-        document_kind,
-        contract_amount: contract_amount as u64,
+        document_code,
+        stated_amount: stated_amount.map(|value| value as u64),
         target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardNtaPolicy),
@@ -1087,8 +1084,8 @@ pub fn calc_stamp_tax(
 
     Ok(StampTaxResult {
         tax_amount: result.tax_amount.as_yen() as u64,
-        bracket_label: result.bracket_label,
-        reduced_rate_applied: result.reduced_rate_applied,
+        rule_label: result.rule_label,
+        applied_special_rule: result.applied_special_rule,
     })
 }
 

@@ -25,7 +25,7 @@ use j_law_core::domains::real_estate::{
 };
 use j_law_core::domains::stamp_tax::{
     calculator::calculate_stamp_tax,
-    context::{StampTaxContext, StampTaxDocumentKind, StampTaxFlag},
+    context::{StampTaxContext, StampTaxDocumentCode, StampTaxFlag},
     policy::StandardNtaPolicy,
 };
 use j_law_core::domains::withholding_tax::{
@@ -56,13 +56,7 @@ pub const J_LAW_LABEL_LEN: usize = 64;
 pub const J_LAW_ERROR_BUF_LEN: usize = 256;
 
 /// C FFI の互換バージョン。
-pub const J_LAW_C_FFI_VERSION: u32 = 3;
-
-/// 印紙税: 不動産譲渡契約書。
-pub const J_LAW_STAMP_TAX_DOCUMENT_REAL_ESTATE_TRANSFER: c_int = 0;
-
-/// 印紙税: 建設工事請負契約書。
-pub const J_LAW_STAMP_TAX_DOCUMENT_CONSTRUCTION_CONTRACT: c_int = 1;
+pub const J_LAW_C_FFI_VERSION: u32 = 4;
 /// 源泉徴収カテゴリ: 原稿料・講演料等。
 pub const J_LAW_WITHHOLDING_TAX_CATEGORY_MANUSCRIPT_AND_LECTURE: u32 = 1;
 /// 源泉徴収カテゴリ: 税理士等の報酬・料金。
@@ -253,16 +247,13 @@ fn write_income_deduction_breakdown(
     len as c_int
 }
 
-fn stamp_tax_document_kind_from_c(value: c_int) -> Result<StampTaxDocumentKind, String> {
-    match value {
-        J_LAW_STAMP_TAX_DOCUMENT_REAL_ESTATE_TRANSFER => {
-            Ok(StampTaxDocumentKind::RealEstateTransfer)
-        }
-        J_LAW_STAMP_TAX_DOCUMENT_CONSTRUCTION_CONTRACT => {
-            Ok(StampTaxDocumentKind::ConstructionContract)
-        }
-        _ => Err(format!("unsupported stamp tax document kind: {}", value)),
-    }
+fn stamp_tax_document_code_from_c(value: u32) -> Result<StampTaxDocumentCode, String> {
+    StampTaxDocumentCode::from_ffi_code(value)
+        .map_err(|e| format!("unsupported stamp tax document code: {e}"))
+}
+
+fn stamp_tax_flags_from_c(value: u64) -> Result<HashSet<StampTaxFlag>, String> {
+    StampTaxFlag::from_bitmask(value).map_err(|e| e.to_string())
 }
 
 fn write_breakdown(
@@ -999,10 +990,10 @@ pub unsafe extern "C" fn j_law_calc_consumption_tax(
 pub struct JLawStampTaxResult {
     /// 印紙税額（円）。
     pub tax_amount: u64,
-    /// 適用されたブラケットの表示名（NUL 終端・最大 63 文字）。
-    pub bracket_label: [c_char; J_LAW_LABEL_LEN],
-    /// 軽減税率が適用されたか（0 = false, 1 = true）。
-    pub reduced_rate_applied: c_int,
+    /// 適用された税額ルールの表示名（NUL 終端・最大 63 文字）。
+    pub rule_label: [c_char; J_LAW_LABEL_LEN],
+    /// 適用された特例ルールコード（NUL 終端・最大 63 文字）。未適用時は空文字。
+    pub applied_special_rule: [c_char; J_LAW_LABEL_LEN],
 }
 
 // ─── 印紙税 C FFI 公開関数 ──────────────────────────────────────────────────────
@@ -1010,12 +1001,14 @@ pub struct JLawStampTaxResult {
 /// 印紙税法 別表第一に基づく印紙税額を計算する。
 ///
 /// # 法的根拠
-/// 印紙税法 別表第一 第1号文書 / 租税特別措置法 第91条
+/// 印紙税法 別表第一 / 租税特別措置法 第91条
 ///
 /// # 引数
-/// - `contract_amount`: 契約金額（円）
+/// - `document_code`: 文書コード（`StampTaxDocumentCode::ffi_code()` の値）
+/// - `stated_amount`: 記載金額、受取金額、券面金額など
+/// - `has_stated_amount`: 記載金額を指定する場合は非0、未記載文書なら 0
 /// - `year`, `month`, `day`: 契約書作成日
-/// - `is_reduced_rate_applicable`: 軽減税率適用フラグ（0 = false, 非0 = true）
+/// - `flags_bitset`: `StampTaxFlag::bitmask()` の OR
 /// - `out_result`: [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
 /// - `error_buf`: [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
 /// - `error_buf_len`: `error_buf` のバイト長（推奨: `J_LAW_ERROR_BUF_LEN` = 256）
@@ -1030,62 +1023,13 @@ pub struct JLawStampTaxResult {
 /// - `error_buf_len` は 1 以上であること。
 #[no_mangle]
 pub unsafe extern "C" fn j_law_calc_stamp_tax(
-    contract_amount: u64,
+    document_code: u32,
+    stated_amount: u64,
+    has_stated_amount: c_int,
     year: u16,
     month: u8,
     day: u8,
-    is_reduced_rate_applicable: c_int,
-    out_result: *mut JLawStampTaxResult,
-    error_buf: *mut c_char,
-    error_buf_len: c_int,
-) -> c_int {
-    unsafe {
-        j_law_calc_stamp_tax_with_document_kind(
-            contract_amount,
-            year,
-            month,
-            day,
-            is_reduced_rate_applicable,
-            J_LAW_STAMP_TAX_DOCUMENT_REAL_ESTATE_TRANSFER,
-            out_result,
-            error_buf,
-            error_buf_len,
-        )
-    }
-}
-
-/// 印紙税法 別表第一に基づく印紙税額を計算する。
-///
-/// # 法的根拠
-/// 印紙税法 別表第一 第1号文書 / 第2号文書 / 租税特別措置法 第91条
-///
-/// # 引数
-/// - `contract_amount`: 契約金額（円）
-/// - `year`, `month`, `day`: 契約書作成日
-/// - `is_reduced_rate_applicable`: 軽減税率適用フラグ（0 = false, 非0 = true）
-/// - `document_kind`: 文書種別
-///   - `0`: 不動産の譲渡に関する契約書
-///   - `1`: 建設工事の請負に関する契約書
-/// - `out_result`: [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
-/// - `error_buf`: [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
-/// - `error_buf_len`: `error_buf` のバイト長（推奨: `J_LAW_ERROR_BUF_LEN` = 256）
-///
-/// # 戻り値
-/// - `0`: 成功。`out_result` にデータが書き込まれている。
-/// - `非0`: 失敗。`error_buf` に NUL 終端エラーメッセージが書き込まれている。
-///
-/// # Safety
-/// - `out_result` は呼び出し元が所有する有効なポインタであること。
-/// - `error_buf` は `error_buf_len` バイト以上の領域を指していること。
-/// - `error_buf_len` は 1 以上であること。
-#[no_mangle]
-pub unsafe extern "C" fn j_law_calc_stamp_tax_with_document_kind(
-    contract_amount: u64,
-    year: u16,
-    month: u8,
-    day: u8,
-    is_reduced_rate_applicable: c_int,
-    document_kind: c_int,
+    flags_bitset: u64,
     out_result: *mut JLawStampTaxResult,
     error_buf: *mut c_char,
     error_buf_len: c_int,
@@ -1094,15 +1038,22 @@ pub unsafe extern "C" fn j_law_calc_stamp_tax_with_document_kind(
         return -1;
     }
 
-    let document_kind = match stamp_tax_document_kind_from_c(document_kind) {
-        Ok(kind) => kind,
+    let document_code = match stamp_tax_document_code_from_c(document_code) {
+        Ok(code) => code,
         Err(msg) => {
             write_error_msg(&msg, error_buf, error_buf_len);
             return 1;
         }
     };
 
-    // パラメータロード
+    let flags = match stamp_tax_flags_from_c(flags_bitset) {
+        Ok(flags) => flags,
+        Err(msg) => {
+            write_error_msg(&msg, error_buf, error_buf_len);
+            return 1;
+        }
+    };
+
     let params = match load_stamp_tax_params(LegalDate::new(year, month, day)) {
         Ok(p) => p,
         Err(e) => {
@@ -1111,15 +1062,13 @@ pub unsafe extern "C" fn j_law_calc_stamp_tax_with_document_kind(
         }
     };
 
-    // フラグ構築
-    let mut flags = HashSet::new();
-    if is_reduced_rate_applicable != 0 {
-        flags.insert(StampTaxFlag::IsReducedTaxRateApplicable);
-    }
-
     let ctx = StampTaxContext {
-        document_kind,
-        contract_amount,
+        document_code,
+        stated_amount: if has_stated_amount != 0 {
+            Some(stated_amount)
+        } else {
+            None
+        },
         target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardNtaPolicy),
@@ -1134,11 +1083,13 @@ pub unsafe extern "C" fn j_law_calc_stamp_tax_with_document_kind(
         }
     };
 
-    // 結果を out_result に書き込む
     let out = &mut *out_result;
     out.tax_amount = result.tax_amount.as_yen();
-    copy_str_to_fixed_buf(&result.bracket_label, &mut out.bracket_label);
-    out.reduced_rate_applied = if result.reduced_rate_applied { 1 } else { 0 };
+    copy_str_to_fixed_buf(&result.rule_label, &mut out.rule_label);
+    copy_str_to_fixed_buf(
+        result.applied_special_rule.as_deref().unwrap_or(""),
+        &mut out.applied_special_rule,
+    );
 
     0
 }
@@ -1496,11 +1447,13 @@ mod tests {
 
         let status = unsafe {
             j_law_calc_stamp_tax(
+                StampTaxDocumentCode::Article1OtherTransfer.ffi_code(),
                 5_000_000,
+                1,
                 2024,
                 8,
                 1,
-                1,
+                0,
                 &mut result,
                 error_buf.as_mut_ptr(),
                 J_LAW_ERROR_BUF_LEN as c_int,
@@ -1509,24 +1462,28 @@ mod tests {
 
         assert_eq!(status, 0);
         assert_eq!(error_buf_to_string(&error_buf), "");
-        assert_eq!(result.tax_amount, 1_000);
-        assert_eq!(fixed_buf_to_string(&result.bracket_label), "500万円以下");
-        assert_eq!(result.reduced_rate_applied, 1);
+        assert_eq!(result.tax_amount, 2_000);
+        assert_eq!(
+            fixed_buf_to_string(&result.rule_label),
+            "100万円を超え500万円以下のもの"
+        );
+        assert_eq!(fixed_buf_to_string(&result.applied_special_rule), "");
     }
 
     #[test]
-    fn stamp_tax_with_document_kind_supports_construction_contract() {
+    fn stamp_tax_supports_flags_and_special_rules() {
         let mut result = unsafe { std::mem::zeroed::<JLawStampTaxResult>() };
         let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
 
         let status = unsafe {
-            j_law_calc_stamp_tax_with_document_kind(
-                1_500_000,
+            j_law_calc_stamp_tax(
+                StampTaxDocumentCode::Article17SalesReceipt.ffi_code(),
+                70_000,
+                1,
                 2024,
                 8,
                 1,
-                1,
-                J_LAW_STAMP_TAX_DOCUMENT_CONSTRUCTION_CONTRACT,
+                StampTaxFlag::Article17NonBusinessExempt.bitmask(),
                 &mut result,
                 error_buf.as_mut_ptr(),
                 J_LAW_ERROR_BUF_LEN as c_int,
@@ -1535,24 +1492,31 @@ mod tests {
 
         assert_eq!(status, 0);
         assert_eq!(error_buf_to_string(&error_buf), "");
-        assert_eq!(result.tax_amount, 200);
-        assert_eq!(fixed_buf_to_string(&result.bracket_label), "200万円以下");
-        assert_eq!(result.reduced_rate_applied, 1);
+        assert_eq!(result.tax_amount, 0);
+        assert_eq!(
+            fixed_buf_to_string(&result.rule_label),
+            "営業に関しないもの"
+        );
+        assert_eq!(
+            fixed_buf_to_string(&result.applied_special_rule),
+            "article17_non_business_exempt"
+        );
     }
 
     #[test]
-    fn stamp_tax_rejects_unknown_document_kind() {
+    fn stamp_tax_rejects_unknown_document_code() {
         let mut result = unsafe { std::mem::zeroed::<JLawStampTaxResult>() };
         let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
 
         let status = unsafe {
-            j_law_calc_stamp_tax_with_document_kind(
-                1_500_000,
-                2024,
-                8,
-                1,
-                1,
+            j_law_calc_stamp_tax(
                 99,
+                1_500_000,
+                1,
+                2024,
+                8,
+                1,
+                0,
                 &mut result,
                 error_buf.as_mut_ptr(),
                 J_LAW_ERROR_BUF_LEN as c_int,
@@ -1560,7 +1524,7 @@ mod tests {
         };
 
         assert_eq!(status, 1);
-        assert!(error_buf_to_string(&error_buf).contains("unsupported stamp tax document kind"));
+        assert!(error_buf_to_string(&error_buf).contains("unsupported stamp tax document code"));
     }
 
     #[test]
@@ -1570,7 +1534,9 @@ mod tests {
 
         let status = unsafe {
             j_law_calc_stamp_tax(
+                StampTaxDocumentCode::Article1RealEstateTransfer.ffi_code(),
                 5_000_000,
+                1,
                 2014,
                 3,
                 31,

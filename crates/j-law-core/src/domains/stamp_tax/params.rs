@@ -1,134 +1,190 @@
-/// 印紙税額のブラケット（1区間分）。
-///
-/// 印紙税は税率ではなく固定額のため、`Rate` ではなく `tax_amount` を直接保持する。
-///
-/// # 法的根拠
-/// 印紙税法 別表第一 第1号文書（不動産の譲渡に関する契約書）
+use std::collections::BTreeMap;
+use std::str::FromStr;
+
+use crate::domains::stamp_tax::context::{StampTaxDocumentCode, StampTaxFlag};
+use crate::error::InputError;
+
+/// 税額適用の法的根拠。
 #[derive(Debug, Clone)]
-pub struct StampTaxBracket {
-    /// ブラケットの表示名（例: "10万円超50万円以下"）。
-    pub label: String,
-    /// 契約金額の下限（円・この金額以上）。
-    pub amount_from: u64,
-    /// 契約金額の上限（円・この金額以下）。`None` は上限なし。
-    pub amount_to_inclusive: Option<u64>,
-    /// 本則税額（円）。
-    pub tax_amount: u64,
-    /// 軽減税額（円）。軽減措置の対象外の場合は `None`。
-    pub reduced_tax_amount: Option<u64>,
+pub struct StampTaxCitation {
+    pub law_name: String,
+    pub article: String,
 }
 
-/// 印紙税の文書種別ごとのパラメータセット。
+/// 印紙税額のブラケット（1区間分）。
 ///
 /// # 法的根拠
-/// 印紙税法 別表第一 第1号文書 / 第2号文書
-/// 租税特別措置法 第91条
+/// 印紙税法 別表第一
+#[derive(Debug, Clone)]
+pub struct StampTaxBracket {
+    pub label: String,
+    pub amount_from: u64,
+    pub amount_to_inclusive: Option<u64>,
+    pub tax_amount: u64,
+}
+
+impl StampTaxBracket {
+    pub fn matches(&self, amount: u64) -> bool {
+        amount >= self.amount_from
+            && match self.amount_to_inclusive {
+                Some(to) => amount <= to,
+                None => true,
+            }
+    }
+}
+
+/// 税額表の課税モード。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StampTaxChargeMode {
+    AmountBrackets,
+    FixedPerDocument,
+    FixedPerYear,
+}
+
+impl FromStr for StampTaxChargeMode {
+    type Err = InputError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "amount_brackets" => Ok(Self::AmountBrackets),
+            "fixed_per_document" => Ok(Self::FixedPerDocument),
+            "fixed_per_year" => Ok(Self::FixedPerYear),
+            _ => Err(InputError::InvalidStampTaxInput {
+                field: "charge_mode".into(),
+                reason: format!("未知の charge_mode です: {s}"),
+            }),
+        }
+    }
+}
+
+/// 文書コードごとの金額入力の扱い。
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StampTaxAmountUsage {
+    Required,
+    Optional,
+    Unsupported,
+}
+
+impl FromStr for StampTaxAmountUsage {
+    type Err = InputError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "required" => Ok(Self::Required),
+            "optional" => Ok(Self::Optional),
+            "unsupported" => Ok(Self::Unsupported),
+            _ => Err(InputError::InvalidStampTaxInput {
+                field: "amount_usage".into(),
+                reason: format!("未知の amount_usage です: {s}"),
+            }),
+        }
+    }
+}
+
+/// 軽減・非課税などの特例ルール。
+#[derive(Debug, Clone)]
+pub struct StampTaxSpecialRule {
+    pub code: String,
+    pub label: String,
+    pub priority: u16,
+    pub effective_from: Option<String>,
+    pub effective_until: Option<String>,
+    pub required_flags: Vec<StampTaxFlag>,
+    pub tax_amount: Option<u64>,
+    pub rule_label: Option<String>,
+    pub brackets: Vec<StampTaxBracket>,
+    pub no_amount_tax_amount: Option<u64>,
+    pub no_amount_rule_label: Option<String>,
+}
+
+impl StampTaxSpecialRule {
+    pub fn matches_date(&self, date_str: &str) -> bool {
+        let from_ok = match self.effective_from.as_deref() {
+            Some(from) => date_str >= from,
+            None => true,
+        };
+        let until_ok = match self.effective_until.as_deref() {
+            Some(until) => date_str <= until,
+            None => true,
+        };
+        from_ok && until_ok
+    }
+
+    pub fn matches_amount(&self, stated_amount: Option<u64>) -> bool {
+        if self.tax_amount.is_some() {
+            return true;
+        }
+
+        match stated_amount {
+            Some(amount) => self.brackets.iter().any(|bracket| bracket.matches(amount)),
+            None => self.no_amount_tax_amount.is_some(),
+        }
+    }
+}
+
+/// 文書コードごとのパラメータ。
+///
+/// # 法的根拠
+/// 印紙税法 別表第一
 #[derive(Debug, Clone)]
 pub struct StampTaxDocumentParams {
-    /// 税額ブラケットの一覧（契約金額の低い方から順に並ぶ）。
+    pub code: StampTaxDocumentCode,
+    pub label: String,
+    pub citation: StampTaxCitation,
+    pub charge_mode: StampTaxChargeMode,
+    pub amount_usage: StampTaxAmountUsage,
+    pub base_rule_label: String,
+    pub base_tax_amount: Option<u64>,
     pub brackets: Vec<StampTaxBracket>,
-    /// 軽減措置の適用開始日（ISO 8601形式、例: "2014-04-01"）。
-    pub reduced_rate_from: Option<String>,
-    /// 軽減措置の適用終了日（ISO 8601形式、例: "2027-03-31"）。
-    pub reduced_rate_until: Option<String>,
+    pub no_amount_tax_amount: Option<u64>,
+    pub no_amount_rule_label: Option<String>,
+    pub special_rules: Vec<StampTaxSpecialRule>,
 }
 
 /// 印紙税計算に使うパラメータセット。
-///
-/// `j-law-registry` がJSONからロードしてこの型に変換する。
-///
-/// # 法的根拠
-/// 印紙税法 別表第一 / 租税特別措置法 第91条
 #[derive(Debug, Clone)]
 pub struct StampTaxParams {
-    /// 不動産の譲渡に関する契約書（第1号文書）用パラメータ。
-    pub real_estate_transfer: StampTaxDocumentParams,
-    /// 建設工事の請負に関する契約書（第2号文書）用パラメータ。
-    pub construction_contract: StampTaxDocumentParams,
+    pub documents: BTreeMap<StampTaxDocumentCode, StampTaxDocumentParams>,
 }
 
 impl StampTaxParams {
     pub(crate) fn document_params(
         &self,
-        document_kind: super::context::StampTaxDocumentKind,
-    ) -> &StampTaxDocumentParams {
-        match document_kind {
-            super::context::StampTaxDocumentKind::RealEstateTransfer => &self.real_estate_transfer,
-            super::context::StampTaxDocumentKind::ConstructionContract => {
-                &self.construction_contract
-            }
-        }
+        document_code: StampTaxDocumentCode,
+    ) -> Option<&StampTaxDocumentParams> {
+        self.documents.get(&document_code)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domains::stamp_tax::context::StampTaxDocumentKind;
 
     #[test]
-    fn bracket_construction() {
-        let bracket = StampTaxBracket {
-            label: "10万円超50万円以下".into(),
-            amount_from: 100_001,
-            amount_to_inclusive: Some(500_000),
-            tax_amount: 400,
-            reduced_tax_amount: Some(200),
-        };
-        assert_eq!(bracket.tax_amount, 400);
-        assert_eq!(bracket.reduced_tax_amount, Some(200));
-    }
-
-    #[test]
-    fn document_params_construction() {
-        let document_params = StampTaxDocumentParams {
-            brackets: vec![StampTaxBracket {
-                label: "非課税".into(),
-                amount_from: 0,
-                amount_to_inclusive: Some(9_999),
-                tax_amount: 0,
-                reduced_tax_amount: None,
-            }],
-            reduced_rate_from: Some("2014-04-01".into()),
-            reduced_rate_until: Some("2027-03-31".into()),
-        };
-        assert_eq!(document_params.brackets.len(), 1);
-        assert!(document_params.reduced_rate_from.is_some());
-    }
-
-    #[test]
-    fn params_select_document_kind() {
-        let params = StampTaxParams {
-            real_estate_transfer: StampTaxDocumentParams {
-                brackets: vec![StampTaxBracket {
-                    label: "不動産".into(),
-                    amount_from: 0,
-                    amount_to_inclusive: Some(9_999),
-                    tax_amount: 0,
-                    reduced_tax_amount: None,
-                }],
-                reduced_rate_from: Some("2014-04-01".into()),
-                reduced_rate_until: Some("2027-03-31".into()),
-            },
-            construction_contract: StampTaxDocumentParams {
-                brackets: vec![StampTaxBracket {
-                    label: "工事".into(),
-                    amount_from: 0,
-                    amount_to_inclusive: Some(9_999),
-                    tax_amount: 0,
-                    reduced_tax_amount: None,
-                }],
-                reduced_rate_from: Some("2014-04-01".into()),
-                reduced_rate_until: Some("2027-03-31".into()),
-            },
-        };
-
+    fn charge_mode_parses() {
         assert_eq!(
-            params
-                .document_params(StampTaxDocumentKind::ConstructionContract)
-                .brackets[0]
-                .label,
-            "工事"
+            StampTaxChargeMode::from_str("fixed_per_year").unwrap(),
+            StampTaxChargeMode::FixedPerYear
         );
+    }
+
+    #[test]
+    fn amount_usage_parses() {
+        assert_eq!(
+            StampTaxAmountUsage::from_str("optional").unwrap(),
+            StampTaxAmountUsage::Optional
+        );
+    }
+
+    #[test]
+    fn bracket_match_inclusive_upper_bound() {
+        let bracket = StampTaxBracket {
+            label: "100万円以下".into(),
+            amount_from: 100_000,
+            amount_to_inclusive: Some(1_000_000),
+            tax_amount: 200,
+        };
+        assert!(bracket.matches(1_000_000));
+        assert!(!bracket.matches(1_000_001));
     }
 }

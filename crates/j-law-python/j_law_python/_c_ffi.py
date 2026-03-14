@@ -142,8 +142,8 @@ class _ConsumptionTaxResultStruct(ctypes.Structure):
 class _StampTaxResultStruct(ctypes.Structure):
     _fields_ = [
         ("tax_amount", ctypes.c_uint64),
-        ("bracket_label", ctypes.c_char * LABEL_LEN),
-        ("reduced_rate_applied", ctypes.c_int),
+        ("rule_label", ctypes.c_char * LABEL_LEN),
+        ("applied_special_rule", ctypes.c_char * LABEL_LEN),
     ]
 
 
@@ -260,8 +260,8 @@ class ConsumptionTaxRecord:
 @dataclass(frozen=True)
 class StampTaxRecord:
     tax_amount: int
-    bracket_label: str
-    reduced_rate_applied: bool
+    rule_label: str
+    applied_special_rule: str | None
 
 
 @dataclass(frozen=True)
@@ -490,28 +490,18 @@ _LIB.j_law_calc_consumption_tax.argtypes = [
 ]
 _LIB.j_law_calc_consumption_tax.restype = ctypes.c_int
 _LIB.j_law_calc_stamp_tax.argtypes = [
+    ctypes.c_uint32,
     ctypes.c_uint64,
+    ctypes.c_int,
     ctypes.c_uint16,
     ctypes.c_uint8,
     ctypes.c_uint8,
-    ctypes.c_int,
+    ctypes.c_uint64,
     ctypes.POINTER(_StampTaxResultStruct),
     ctypes.POINTER(ctypes.c_char),
     ctypes.c_int,
 ]
 _LIB.j_law_calc_stamp_tax.restype = ctypes.c_int
-_LIB.j_law_calc_stamp_tax_with_document_kind.argtypes = [
-    ctypes.c_uint64,
-    ctypes.c_uint16,
-    ctypes.c_uint8,
-    ctypes.c_uint8,
-    ctypes.c_int,
-    ctypes.c_int,
-    ctypes.POINTER(_StampTaxResultStruct),
-    ctypes.POINTER(ctypes.c_char),
-    ctypes.c_int,
-]
-_LIB.j_law_calc_stamp_tax_with_document_kind.restype = ctypes.c_int
 _LIB.j_law_calc_withholding_tax.argtypes = [
     ctypes.c_uint64,
     ctypes.c_uint64,
@@ -712,23 +702,30 @@ def calc_consumption_tax(
 
 
 def calc_stamp_tax(
-    contract_amount: int,
+    document_code: int,
+    stated_amount: int | None,
     year: int,
     month: int,
     day: int,
-    is_reduced_rate_applicable: bool,
-    document_kind: int = 0,
+    flags_bitset: int = 0,
 ) -> StampTaxRecord:
-    checked_contract_amount = _validate_u64(contract_amount, "contract_amount")
+    checked_document_code = _validate_u32(document_code, "document_code")
+    checked_stated_amount = 0
+    has_stated_amount = 0
+    if stated_amount is not None:
+        checked_stated_amount = _validate_u64(stated_amount, "stated_amount")
+        has_stated_amount = 1
+    checked_flags_bitset = _validate_u64(flags_bitset, "flags_bitset")
     result = _StampTaxResultStruct()
     error_buffer = ctypes.create_string_buffer(ERROR_BUF_LEN)
-    status = _LIB.j_law_calc_stamp_tax_with_document_kind(
-        ctypes.c_uint64(checked_contract_amount),
+    status = _LIB.j_law_calc_stamp_tax(
+        ctypes.c_uint32(checked_document_code),
+        ctypes.c_uint64(checked_stated_amount),
+        ctypes.c_int(has_stated_amount),
         ctypes.c_uint16(year),
         ctypes.c_uint8(month),
         ctypes.c_uint8(day),
-        ctypes.c_int(_bool_to_c_int(is_reduced_rate_applicable)),
-        ctypes.c_int(document_kind),
+        ctypes.c_uint64(checked_flags_bitset),
         ctypes.byref(result),
         error_buffer,
         ERROR_BUF_LEN,
@@ -738,8 +735,8 @@ def calc_stamp_tax(
 
     return StampTaxRecord(
         tax_amount=int(result.tax_amount),
-        bracket_label=_decode_fixed_string(result.bracket_label),
-        reduced_rate_applied=bool(result.reduced_rate_applied),
+        rule_label=_decode_fixed_string(result.rule_label),
+        applied_special_rule=_decode_fixed_string(result.applied_special_rule) or None,
     )
 
 
