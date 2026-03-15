@@ -1,0 +1,328 @@
+import java.util.Locale
+
+plugins {
+    id "java-library"
+    id "maven-publish"
+    id "signing"
+}
+
+group = "io.github.kmoyashi"
+if (version == "unspecified") {
+    version = "0.0.1"
+}
+
+def workspaceRoot = file("../..").canonicalFile
+def currentPlatform = resolvePlatform(System.getProperty("os.name"), System.getProperty("os.arch"))
+def generatedNativeResourcesDir = file("$buildDir/generated/native-resources")
+def prebuiltNativeRoot = file("$buildDir/prebuilt-native")
+def requestedNativeProfile = providers.gradleProperty("nativeProfile").orElse("debug").get()
+def rustTargetTriple = rustTargetTriple(currentPlatform)
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+    withSourcesJar()
+    withJavadocJar()
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter:5.11.4"
+    testImplementation "com.fasterxml.jackson.core:jackson-databind:2.18.2"
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDir generatedNativeResourcesDir
+        }
+    }
+    test {
+        resources {
+            srcDir "${workspaceRoot}/tests/fixtures"
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = "UTF-8"
+    options.charSet = "UTF-8"
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption("html5", true)
+    }
+}
+
+tasks.withType(Test).configureEach {
+    useJUnitPlatform()
+}
+
+tasks.register("ensureRustTarget", Exec) {
+    commandLine "rustup", "target", "add", rustTargetTriple
+}
+
+tasks.register("buildRustStaticLib", Exec) {
+    dependsOn tasks.named("ensureRustTarget")
+    workingDir workspaceRoot
+    commandLine "cargo", "build", "-p", "j-law-c-ffi", "--manifest-path", "${workspaceRoot}/Cargo.toml"
+    args "--target", rustTargetTriple
+    if (requestedNativeProfile == "release") {
+        args "--release"
+    }
+}
+
+tasks.register("compileJni", Exec) {
+    dependsOn tasks.named("buildRustStaticLib")
+    inputs.file file("src/main/c/jlaw_jni.c")
+    inputs.file file("${workspaceRoot}/crates/j-law-c-ffi/j_law_c_ffi.h")
+    inputs.file rustStaticLibraryPath(workspaceRoot, currentPlatform.os, requestedNativeProfile, rustTargetTriple)
+    inputs.property "nativeProfile", requestedNativeProfile
+    outputs.file nativeLibraryOutput(project, currentPlatform)
+
+    doFirst {
+        def outputFile = nativeLibraryOutput(project, currentPlatform)
+        outputFile.parentFile.mkdirs()
+        commandLine nativeCompileCommand(project, workspaceRoot, currentPlatform, requestedNativeProfile, outputFile)
+    }
+}
+
+tasks.register("prepareNativeResources") {
+    dependsOn tasks.named("compileJni")
+    inputs.files(tasks.named("compileJni"))
+    outputs.dir generatedNativeResourcesDir
+
+    doLast {
+        delete generatedNativeResourcesDir
+
+        copy {
+            from nativeLibraryOutput(project, currentPlatform)
+            into file("${generatedNativeResourcesDir}/META-INF/jlaw/native/${currentPlatform.os}/${currentPlatform.arch}")
+        }
+
+        if (prebuiltNativeRoot.exists()) {
+            copy {
+                from prebuiltNativeRoot
+                into file("${generatedNativeResourcesDir}/META-INF/jlaw/native")
+            }
+        }
+    }
+}
+
+tasks.register("nativeLib") {
+    dependsOn tasks.named("compileJni")
+}
+
+tasks.named("processResources").configure {
+    dependsOn tasks.named("prepareNativeResources")
+}
+
+tasks.named("test").configure {
+    dependsOn tasks.named("prepareNativeResources")
+}
+
+tasks.named("jar").configure {
+    manifest {
+        attributes("Automatic-Module-Name": "io.github.kmoyashi.jlaw")
+    }
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+
+            pom {
+                name = "j-law-java"
+                description = "Java binding for Japanese legal calculation library backed by j-law-c-ffi"
+                url = "https://github.com/kmoyashi/j-law-core"
+
+                licenses {
+                    license {
+                        name = "MIT License"
+                        url = "https://opensource.org/licenses/MIT"
+                    }
+                }
+
+                developers {
+                    developer {
+                        name = "j-law-core contributors"
+                    }
+                }
+
+                scm {
+                    connection = "scm:git:https://github.com/kmoyashi/j-law-core.git"
+                    developerConnection = "scm:git:ssh://git@github.com/kmoyashi/j-law-core.git"
+                    url = "https://github.com/kmoyashi/j-law-core"
+                }
+            }
+        }
+    }
+
+    repositories {
+        if (System.getenv("MAVEN_CENTRAL_URL")) {
+            maven {
+                name = "mavenCentral"
+                url = uri(System.getenv("MAVEN_CENTRAL_URL"))
+                credentials {
+                    username = System.getenv("MAVEN_CENTRAL_USERNAME")
+                    password = System.getenv("MAVEN_CENTRAL_PASSWORD")
+                }
+            }
+        }
+    }
+}
+
+signing {
+    required { gradle.taskGraph.allTasks.any { it.name.toLowerCase(Locale.ROOT).contains("publish") } }
+
+    def signingKey = System.getenv("SIGNING_KEY")
+    def signingPassword = System.getenv("SIGNING_PASSWORD")
+    if (signingKey && signingPassword) {
+        useInMemoryPgpKeys(signingKey, signingPassword)
+        sign publishing.publications.mavenJava
+    }
+}
+
+static Map<String, String> resolvePlatform(String osName, String archName) {
+    return [os: normalizeOs(osName), arch: normalizeArch(archName)]
+}
+
+static String normalizeOs(String osName) {
+    def value = osName.toLowerCase(Locale.ROOT)
+    if (value.contains("mac") || value.contains("darwin")) {
+        return "macos"
+    }
+    if (value.contains("win")) {
+        return "windows"
+    }
+    if (value.contains("nux") || value.contains("linux")) {
+        return "linux"
+    }
+    throw new GradleException("Unsupported operating system: ${osName}")
+}
+
+static String normalizeArch(String archName) {
+    def value = archName.toLowerCase(Locale.ROOT)
+    if (value in ["x86_64", "amd64"]) {
+        return "x86_64"
+    }
+    if (value in ["aarch64", "arm64"]) {
+        return "aarch64"
+    }
+    throw new GradleException("Unsupported architecture: ${archName}")
+}
+
+static File nativeLibraryOutput(Project project, Map<String, String> platform) {
+    return project.file("${project.buildDir}/native/${platform.os}/${platform.arch}/${sharedLibraryFileName(platform.os)}")
+}
+
+static String sharedLibraryFileName(String os) {
+    if (os == "windows") {
+        return "jlaw_jni.dll"
+    }
+    if (os == "macos") {
+        return "libjlaw_jni.dylib"
+    }
+    return "libjlaw_jni.so"
+}
+
+static List<String> nativeCompileCommand(
+    Project project,
+    File workspaceRoot,
+    Map<String, String> platform,
+    String nativeProfile,
+    File outputFile
+) {
+    def jdkHome = resolveJdkHome()
+    def includeDir = new File(jdkHome, "include")
+    def osIncludeDir = new File(includeDir, jniOsInclude(platform.os))
+    def headerDir = new File(workspaceRoot, "crates/j-law-c-ffi")
+    def sourceFile = new File(project.projectDir, "src/main/c/jlaw_jni.c")
+    def rustStaticLib = rustStaticLibraryPath(workspaceRoot, platform.os, nativeProfile, rustTargetTriple(platform))
+
+    if (platform.os == "windows") {
+        return [
+            "cl",
+            "/nologo",
+            "/std:c11",
+            "/LD",
+            "/I${includeDir.absolutePath}",
+            "/I${osIncludeDir.absolutePath}",
+            "/I${headerDir.absolutePath}",
+            sourceFile.absolutePath,
+            rustStaticLib.absolutePath,
+            "/Fe:${outputFile.absolutePath}"
+        ]
+    }
+
+    def command = [
+        "cc",
+        "-std=c11",
+        "-O2",
+        "-fPIC",
+        "-I${includeDir.absolutePath}",
+        "-I${osIncludeDir.absolutePath}",
+        "-I${headerDir.absolutePath}",
+        sourceFile.absolutePath,
+        rustStaticLib.absolutePath,
+        "-o",
+        outputFile.absolutePath
+    ]
+
+    if (platform.os == "macos") {
+        command.addAll(["-dynamiclib", "-arch", clangArch(platform.arch), "-framework", "Security", "-framework", "CoreFoundation"])
+    } else {
+        command.addAll(["-shared", "-ldl", "-lpthread", "-lm"])
+    }
+
+    return command
+}
+
+static File resolveJdkHome() {
+    def javaHome = new File(System.getProperty("java.home"))
+    if (new File(javaHome, "include").isDirectory()) {
+        return javaHome
+    }
+    if (javaHome.name == "jre" && new File(javaHome.parentFile, "include").isDirectory()) {
+        return javaHome.parentFile
+    }
+    throw new GradleException("JDK headers were not found under ${javaHome.absolutePath}")
+}
+
+static String jniOsInclude(String os) {
+    if (os == "windows") {
+        return "win32"
+    }
+    if (os == "macos") {
+        return "darwin"
+    }
+    return "linux"
+}
+
+static File rustStaticLibraryPath(File workspaceRoot, String os, String nativeProfile, String targetTriple = null) {
+    String baseDir = targetTriple == null ? "target" : "target/${targetTriple}"
+    if (os == "windows") {
+        return new File(workspaceRoot, "${baseDir}/${nativeProfile}/j_law_c_ffi.lib")
+    }
+    return new File(workspaceRoot, "${baseDir}/${nativeProfile}/libj_law_c_ffi.a")
+}
+
+static String rustTargetTriple(Map<String, String> platform) {
+    if (platform.os == "macos") {
+        return platform.arch == "x86_64" ? "x86_64-apple-darwin" : "aarch64-apple-darwin"
+    }
+    if (platform.os == "windows") {
+        return platform.arch == "x86_64" ? "x86_64-pc-windows-msvc" : "aarch64-pc-windows-msvc"
+    }
+    return platform.arch == "x86_64" ? "x86_64-unknown-linux-gnu" : "aarch64-unknown-linux-gnu"
+}
+
+static String clangArch(String arch) {
+    return arch == "aarch64" ? "arm64" : arch
+}

@@ -24,6 +24,11 @@ services:
       context: .
       target: test-go
 
+  test-java:
+    build:
+      context: .
+      target: test-java
+
   test-all:
     depends_on:
       test-rust:
@@ -35,6 +40,8 @@ services:
       test-ruby:
         condition: service_completed_successfully
       test-go:
+        condition: service_completed_successfully
+      test-java:
         condition: service_completed_successfully
     image: busybox
     command: echo "All tests passed!"
