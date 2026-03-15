@@ -1,9 +1,8 @@
 # j-law-wasm
 
-日本の法令に基づく各種計算を提供する WebAssembly バインディング。
+日本の法令に基づく各種計算を提供する WebAssembly バインディングです。
 
-Rust コアライブラリ（j-law-core）を [wasm-bindgen](https://rustwasm.github.io/wasm-bindgen/) 経由でラップしています。
-浮動小数点演算を一切使用せず、整数演算で端数処理の再現性を保証します。
+Rust コアライブラリを `wasm-bindgen` 経由でラップし、JavaScript / TypeScript から利用できます。
 
 > [!WARNING]
 > **アルファ版・AI生成コードに関する注意事項**
@@ -12,11 +11,15 @@ Rust コアライブラリ（j-law-core）を [wasm-bindgen](https://rustwasm.gi
 > - コードの大部分は **AI（LLM）によって生成** されており、人間による網羅的なレビューが十分に行われていません。
 > - 計算結果を実際の法的手続きや業務判断に用いる際は、必ず有資格者または専門家に確認してください。
 
-> [!NOTE]
-> **数値精度について**
->
-> JavaScript の `Number` 型は 53bit 整数精度のため、`u64` を直接扱えません。
-> `calcBrokerageFee` / `calcIncomeTax` / `calcStampTax` の金額引数は `number` です。
+## 対応機能
+
+- `calcConsumptionTax(amount, date, isReducedRate = false)`
+- `calcBrokerageFee(price, date, isLowCostVacantHouse = false, isSeller = false)`
+- `calcIncomeTax(taxableIncome, date, applyReconstructionTax = true)`
+- `calcIncomeDeductions(input)`
+- `calcIncomeTaxAssessment(input, applyReconstructionTax = true)`
+- `calcStampTax(documentCode, statedAmount, date, flags = [])`
+- `calcWithholdingTax(paymentAmount, date, category, isSubmissionPrize = false, separatedConsumptionTaxAmount = 0)`
 
 ## インストール
 
@@ -27,173 +30,53 @@ npm install j-law-wasm
 ソースからビルドする場合:
 
 ```sh
-# wasm-pack が必要
 wasm-pack build --target nodejs crates/j-law-wasm
 ```
 
-## 使い方
-
-### Node.js (CommonJS)
+## クイックスタート
 
 ```js
-const { calcBrokerageFee, calcIncomeTax, calcStampTax } = require("j-law-wasm");
-```
+import {
+  calcBrokerageFee,
+  calcConsumptionTax,
+  calcIncomeTaxAssessment,
+  calcStampTax,
+  calcWithholdingTax,
+} from "j-law-wasm";
 
-### ES Modules / バンドラー
-
-```js
-import { calcBrokerageFee, calcIncomeTax, calcStampTax } from "j-law-wasm";
-```
-
----
-
-### 不動産ドメイン — 媒介報酬（宅建業法 第46条）
-
-```js
-// 売買価格 500万円、2024年8月1日基準
-const result = calcBrokerageFee(5_000_000, 2024, 8, 1, false, false);
-
-console.log(result.totalWithTax);           // 231000（税込）
-console.log(result.totalWithoutTax);        // 210000（税抜）
-console.log(result.taxAmount);              // 21000（消費税）
-console.log(result.lowCostSpecialApplied);  // false
-
-// 各ティアの内訳
-const steps = result.breakdown();
-// [
-//   { label: "tier1", baseAmount: 2000000, rateNumer: 5, rateDenom: 100, result: 100000 },
-//   { label: "tier2", baseAmount: 2000000, rateNumer: 4, rateDenom: 100, result: 80000 },
-//   { label: "tier3", baseAmount: 1000000, rateNumer: 3, rateDenom: 100, result: 30000 },
-// ]
-
-// 低廉な空き家特例（2024年7月1日施行・800万円以下・売主買主双方）
-// WARNING: 対象物件が特例に該当するかの事実認定は呼び出し元の責任
-const special = calcBrokerageFee(8_000_000, 2024, 8, 1, true, false);
-console.log(special.totalWithTax);           // 363000
-console.log(special.lowCostSpecialApplied);  // true
-
-// 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
-const special2018 = calcBrokerageFee(4_000_000, 2022, 4, 1, true, true);
-console.log(special2018.totalWithTax);           // 198000
-console.log(special2018.lowCostSpecialApplied);  // true
-```
-
-### 所得税ドメイン — 所得税額（所得税法 第89条）
-
-```js
-// 課税所得 500万円（1,000円未満切り捨て済みの値を渡すこと）
-const result = calcIncomeTax(5_000_000, 2024, 1, 1, true);
-
-console.log(result.totalTax);                  // 584500（申告納税額・100円未満切り捨て）
-console.log(result.baseTax);                   // 572500（基準所得税額）
-console.log(result.reconstructionTax);         // 12022（復興特別所得税）
-console.log(result.reconstructionTaxApplied);  // true
-
-// 復興特別所得税を適用しない場合
-const result2 = calcIncomeTax(5_000_000, 2024, 1, 1, false);
-console.log(result2.totalTax);                 // 572500
-```
-
-### 印紙税ドメイン — 印紙税額（印紙税法 別表第一）
-
-```js
 const date = new Date(Date.UTC(2024, 7, 1));
 
-// 契約金額 500万円（不動産譲渡契約書）
-const result = calcStampTax(
-  "article1_real_estate_transfer",
-  5_000_000,
-  date
-);
+console.log(calcConsumptionTax(100_000, date, false).taxAmount);
+console.log(calcBrokerageFee(5_000_000, date, false, false).totalWithTax);
 
-console.log(result.taxAmount);          // 1000（印紙税額）
-console.log(result.ruleLabel);          // 適用税額表ラベル
-console.log(result.appliedSpecialRule); // "article1_real_estate_transfer_reduced"
-
-const special = calcStampTax(
-  "article2_construction_work",
-  1_500_000,
-  date
+const assessment = calcIncomeTaxAssessment(
+  {
+    totalIncomeAmount: 8_000_000n,
+    date: new Date(Date.UTC(2024, 0, 1)),
+    socialInsurancePremiumPaid: 600_000n,
+  },
+  true,
 );
-console.log(special.taxAmount);          // 200
-console.log(special.appliedSpecialRule); // "article2_construction_work_reduced"
+console.log(assessment.totalTax);
+
+console.log(calcStampTax("article1_real_estate_transfer", 5_000_000, date).taxAmount);
+console.log(
+  calcWithholdingTax(
+    1_500_000,
+    new Date(Date.UTC(2026, 0, 1)),
+    "professional_fee",
+    false,
+    0,
+  ).taxAmount,
+);
 ```
 
-## API リファレンス
+## API メモ
 
-### `calcBrokerageFee(price, year, month, day, isLowCostVacantHouse, isSeller)`
-
-宅建業法第46条に基づく媒介報酬を計算する。
-
-| 引数 | 型 | 説明 |
-|---|---|---|
-| `price` | `number` | 売買価格（円・最大約42.9億円） |
-| `year` | `number` | 基準日（年） |
-| `month` | `number` | 基準日（月） |
-| `day` | `number` | 基準日（日） |
-| `isLowCostVacantHouse` | `boolean` | 低廉な空き家特例フラグ |
-| `isSeller` | `boolean` | 売主側として計算するか。2018年1月〜2024年6月の特例は売主のみ適用 |
-
-**戻り値: `BrokerageFeeResult`**
-
-| プロパティ/メソッド | 型 | 説明 |
-|---|---|---|
-| `totalWithoutTax` | `number` | 税抜合計額（円） |
-| `totalWithTax` | `number` | 税込合計額（円） |
-| `taxAmount` | `number` | 消費税額（円） |
-| `lowCostSpecialApplied` | `boolean` | 低廉な空き家特例が適用されたか |
-| `breakdown()` | `Array<{label, baseAmount, rateNumer, rateDenom, result}>` | 各ティアの計算内訳 |
-
-**例外** — 売買価格が不正、または対象日に有効な法令パラメータが存在しない場合に `Error` をスロー。
-
----
-
-### `calcIncomeTax(taxableIncome, year, month, day, applyReconstructionTax)`
-
-所得税法第89条に基づく所得税額を計算する。
-
-| 引数 | 型 | 説明 |
-|---|---|---|
-| `taxableIncome` | `number` | 課税所得金額（円・1,000円未満切り捨て済み） |
-| `year` | `number` | 対象年度（年） |
-| `month` | `number` | 基準日（月） |
-| `day` | `number` | 基準日（日） |
-| `applyReconstructionTax` | `boolean` | 復興特別所得税を適用するか |
-
-**戻り値: `IncomeTaxResult`**
-
-| プロパティ/メソッド | 型 | 説明 |
-|---|---|---|
-| `baseTax` | `number` | 基準所得税額（円） |
-| `reconstructionTax` | `number` | 復興特別所得税額（円） |
-| `totalTax` | `number` | 申告納税額（円・100円未満切り捨て） |
-| `reconstructionTaxApplied` | `boolean` | 復興特別所得税が適用されたか |
-| `breakdown()` | `Array<{label, taxableIncome, rateNumer, rateDenom, deduction, result}>` | 速算表の計算内訳 |
-
-**例外** — 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合に `Error` をスロー。
-
----
-
-### `calcStampTax(documentCode, statedAmount, date, flags = [])`
-
-印紙税法 別表第一に基づく印紙税額を計算する。
-
-| 引数 | 型 | 説明 |
-|---|---|---|
-| `documentCode` | `string` | 文書コード |
-| `statedAmount` | `number \| null` | 記載金額（円）。記載がない文書は `null` |
-| `date` | `Date` | 文書作成日（JST で解釈） |
-| `flags` | `string[]` | 主な非課税文書などの明示フラグ |
-
-**戻り値: `StampTaxResult`**
-
-| プロパティ | 型 | 説明 |
-|---|---|---|
-| `taxAmount` | `number` | 印紙税額（円） |
-| `ruleLabel` | `string` | 適用された税額表ラベル |
-| `appliedSpecialRule` | `string \| null` | 適用された特例ルールコード |
-
-**例外** — 契約金額が不正、または対象日に有効な法令パラメータが存在しない場合に `Error` をスロー。
+- すべての `Date` 引数は **JST** として解釈されます。
+- `calcConsumptionTax` / `calcBrokerageFee` / `calcIncomeTax` / `calcWithholdingTax` は安全な整数 `number` を受け取ります。
+- `calcIncomeDeductions` / `calcIncomeTaxAssessment` は `number` または `BigInt` の入力を受け取り、`u64` 相当の戻り値は `BigInt` になります。
+- `calcStampTax()` の `documentCode` と `flags` は文字列で指定します。
 
 ## テスト
 
@@ -201,6 +84,11 @@ console.log(special.appliedSpecialRule); // "article2_construction_work_reduced"
 wasm-pack build --target nodejs crates/j-law-wasm
 node --test crates/j-law-wasm/tests/*.test.mjs
 ```
+
+## 関連ドキュメント
+
+- [リポジトリ README](../../README.md)
+- [利用ガイド](../../docs/usage.md)
 
 ## ライセンス
 

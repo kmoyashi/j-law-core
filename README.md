@@ -12,346 +12,129 @@
 
 ## 概要
 
-J-Law-Core は、日本の法令・告示・省令が定める各種計算を、法的正確性を保証して実装するライブラリです。
+J-Law-Core は、日本の法令・告示・省令が定める各種計算を、整数演算と分数表現で再現するライブラリです。
 
-- 金額・数値計算に浮動小数点を一切使用せず、整数演算と分数表現で端数処理の再現性を確保
-- 法令パラメータ（税率・上限額・経過措置など）をJSONで外部管理し、法改正に対応
-- ドメイン単位で法令を追加できる拡張可能なアーキテクチャ
-- Rust コアライブラリに加え、Python / JavaScript(WASM) / Ruby / Go の言語バインディングを提供
+- 金額計算で `f64` / `f32` を使わず、端数処理の順序を再現
+- 法令パラメータを JSON registry として外部管理し、施行日ごとの差分を履歴管理
+- Rust コアに加え、C ABI と Python / WASM / Ruby / Go バインディングを提供
+- `tests/fixtures/` の共通 JSON を使って複数言語で同じケースを検証
 
-**実装済みドメイン**
+## 実装済みドメイン
 
-| ドメイン                | 対象法令                                | 対応告示                                                        |
-| ----------------------- | --------------------------------------- | --------------------------------------------------------------- |
-| 不動産（`real_estate`） | 宅地建物取引業法 第46条                 | 1970年12月1日施行〜 / 2018年1月1日施行〜 / 2024年7月1日施行〜  |
-| 所得税（`income_tax`）  | 所得税法 第89条 / 復興財源確保法 第13条 | 2015年1月1日施行                                                |
-| 源泉徴収（`withholding_tax`） | 所得税法 第204条第1項 | 2013年1月1日〜2037年12月31日（報酬・料金等の二段階税率類型） |
+| ドメイン | 法的根拠 | 現在の実装範囲 |
+| --- | --- | --- |
+| `consumption_tax` | 消費税法 第29条 | 標準税率・軽減税率、税額、税込/税抜、適用税率の返却 |
+| `real_estate` | 宅地建物取引業法 第46条 | 媒介報酬の3段階ティア計算、低廉な空き家等特例、消費税連携 |
+| `income_tax` | 所得税法 第89条 / 復興財源確保法 第13条 | 速算表による所得税額、復興特別所得税、所得控除、通し計算 |
+| `stamp_tax` | 印紙税法 別表第一 | 主要文書コード、軽減措置、非課税フラグ、適用ルールの返却 |
+| `withholding_tax` | 所得税法 第204条第1項 | 報酬・料金等の二段階税率類型、応募作品賞金の免税、区分消費税控除 |
 
----
+README では各ドメインの説明を概要レベルに留めています。利用例と API 名の対応は [docs/usage.md](docs/usage.md) を参照してください。
 
-## 使い方
+## パッケージ構成
 
-### Python
+| パッケージ | 役割 | 補足 |
+| --- | --- | --- |
+| `crates/j-law-core` | コアライブラリ | 型、エラー、各ドメインの計算ロジック |
+| `crates/j-law-registry` | 法令パラメータ loader | JSON registry を読み込み、施行日に応じたパラメータを返す |
+| `crates/j-law-wasm` | JavaScript / WASM バインディング | `wasm-bindgen` ベース |
+| `crates/j-law-c-ffi` | C ABI | Python / Ruby / Go バインディングの共通入口 |
+| `crates/j-law-python` | Python バインディング | `ctypes` で C ABI を利用。Cargo workspace 外 |
+| `crates/j-law-ruby` | Ruby バインディング | `ffi` で C ABI を利用。Cargo workspace 外 |
+| `crates/j-law-go` | Go バインディング | CGo で C ABI を利用。Cargo workspace 外 |
 
-```python
-import datetime
-from j_law_python.real_estate import calc_brokerage_fee
-from j_law_python.income_tax import calc_income_tax
-from j_law_python.withholding_tax import calc_withholding_tax
+Cargo workspace メンバーは `j-law-core` / `j-law-registry` / `j-law-wasm` / `j-law-c-ffi` です。
 
-# 媒介報酬の計算（宅建業法 第46条）
-result = calc_brokerage_fee(5_000_000, datetime.date(2024, 8, 1))
-print(result.total_with_tax)     # 231000
-print(result.total_without_tax)  # 210000
-print(result.tax_amount)         # 21000
+## ドキュメント
 
-# 低廉な空き家特例（2024年7月施行・800万円以下・売主買主双方）
-result = calc_brokerage_fee(8_000_000, datetime.date(2024, 8, 1), is_low_cost_vacant_house=True)
-print(result.total_with_tax)     # 363000
+- [利用ガイド](docs/usage.md)
+- [Python バインディング](crates/j-law-python/README.md)
+- [WASM / JavaScript バインディング](crates/j-law-wasm/README.md)
+- [Ruby バインディング](crates/j-law-ruby/README.md)
+- [Go バインディング](crates/j-law-go/README.md)
+- [実装ルール](AGENTS.md)
 
-# 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
-result = calc_brokerage_fee(4_000_000, datetime.date(2022, 4, 1), is_low_cost_vacant_house=True, is_seller=True)
-print(result.total_with_tax)     # 198000
-
-# 所得税の計算（所得税法 第89条）
-result = calc_income_tax(5_000_000, datetime.date(2024, 1, 1), apply_reconstruction_tax=True)
-print(result.total_tax)          # 584500
-print(result.base_tax)           # 572500
-print(result.reconstruction_tax) # 12022
-
-# 報酬・料金等の源泉徴収（所得税法 第204条第1項）
-result = calc_withholding_tax(
-    1_500_000,
-    datetime.date(2026, 1, 1),
-    "professional_fee",
-)
-print(result.tax_amount)         # 204200
-print(result.net_payment_amount) # 1295800
-```
-
-### JavaScript (WASM)
-
-```javascript
-const { calcBrokerageFee, calcIncomeTax, calcWithholdingTax } = require("j-law-wasm");
-
-// Date は JST で解釈される。Date.UTC() を使うとタイムゾーン非依存になる
-const fee = calcBrokerageFee(5_000_000, new Date(Date.UTC(2024, 7, 1)), false, false);
-console.log(fee.totalWithTax); // 231000
-
-const tax = calcIncomeTax(5_000_000, new Date(Date.UTC(2024, 0, 1)), true);
-console.log(tax.totalTax); // 584500
-
-const withholding = calcWithholdingTax(
-  1_500_000,
-  new Date(Date.UTC(2026, 0, 1)),
-  "professional_fee",
-  false,
-  0
-);
-console.log(withholding.taxAmount); // 204200
-```
-
-### Ruby
-
-```ruby
-require "j_law_ruby"
-require "date"
-result = JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, Date.new(2024, 8, 1), false, false)
-puts result.total_with_tax  # 231000
-
-result = JLawRuby::IncomeTax.calc_income_tax(5_000_000, Date.new(2024, 1, 1), true)
-puts result.total_tax       # 584500
-
-result = JLawRuby::WithholdingTax.calc_withholding_tax(
-  1_500_000,
-  Date.new(2026, 1, 1),
-  :professional_fee
-)
-puts result.tax_amount      # 204200
-```
-
-### Go
-
-```go
-import (
-    "time"
-    jlawcore "github.com/kmoyashi/j-law-go"
-)
-date := time.Date(2024, time.August, 1, 0, 0, 0, 0, time.UTC)
-result, err := jlawcore.CalcBrokerageFee(5_000_000, date, false, false)
-fmt.Println(result.TotalWithTax) // 231000
-
-taxDate := time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC)
-taxResult, err := jlawcore.CalcIncomeTax(5_000_000, taxDate, true)
-fmt.Println(taxResult.TotalTax)  // 584500
-
-withholdingDate := time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC)
-withholdingResult, err := jlawcore.CalcWithholdingTax(
-    1_500_000,
-    withholdingDate,
-    jlawcore.WithholdingTaxCategoryProfessionalFee,
-    false,
-    0,
-)
-fmt.Println(withholdingResult.TaxAmount) // 204200
-```
+## クイックスタート
 
 ### Rust
 
+```toml
+[dependencies]
+j-law-core = { path = "crates/j-law-core" }
+j-law-registry = { path = "crates/j-law-registry" }
+```
+
 ```rust
+use std::collections::HashSet;
+
 use j_law_core::domains::real_estate::{
     calculator::calculate_brokerage_fee,
-    context::{RealEstateContext, RealEstateFlag},
+    context::RealEstateContext,
     policy::StandardMliitPolicy,
 };
 use j_law_core::LegalDate;
 use j_law_registry::load_brokerage_fee_params;
-use std::collections::HashSet;
 
-// 基本的な計算（売買価格 500万円、2024年8月1日）
+let date = LegalDate::new(2024, 8, 1);
 let ctx = RealEstateContext {
     price: 5_000_000,
-    target_date: LegalDate::new(2024, 8, 1),
+    target_date: date,
     flags: HashSet::new(),
     policy: Box::new(StandardMliitPolicy),
 };
-let params = load_brokerage_fee_params(ctx.target_date)?;
+
+let params = load_brokerage_fee_params(date)?;
 let result = calculate_brokerage_fee(&ctx, &params)?;
-println!("税込報酬額: {}円", result.total_with_tax.as_yen()); // 231000
 
-// 低廉な空き家特例（2018年1月〜2024年6月・400万円以下・売主のみ）
-let mut flags = HashSet::new();
-flags.insert(RealEstateFlag::IsLowCostVacantHouse);
-flags.insert(RealEstateFlag::IsSeller);
-let ctx2 = RealEstateContext {
-    price: 4_000_000,
-    target_date: LegalDate::new(2022, 4, 1),
-    flags,
-    policy: Box::new(StandardMliitPolicy),
-};
-let params2 = load_brokerage_fee_params(ctx2.target_date)?;
-let result2 = calculate_brokerage_fee(&ctx2, &params2)?;
-println!("税込報酬額: {}円", result2.total_with_tax.as_yen()); // 198000
+assert_eq!(result.total_with_tax.as_yen(), 231_000);
 ```
 
----
+### その他の言語
 
-## プロジェクト構成
+- Python: `pip install ./crates/j-law-python`
+- JavaScript / WASM: `wasm-pack build --target nodejs crates/j-law-wasm`
+- Ruby: `cd crates/j-law-ruby && bundle install && bundle exec rake compile`
+- Go: `cd crates/j-law-go && make build-rust`
 
-```
-j-law-core/
-├── crates/
-│   ├── j-law-core/               # コアライブラリ（型・エラー・計算ロジック）
-│   │   └── src/
-│   │       ├── types/            # FinalAmount, Rate, RoundingStrategy
-│   │       ├── error.rs          # JLawError 階層
-│   │       └── domains/
-│   │           ├── real_estate/  # 不動産ドメイン（宅建業法 第46条）
-│   │           ├── income_tax/   # 所得税ドメイン（所得税法 第89条）
-│   │           └── withholding_tax/ # 源泉徴収ドメイン（所得税法 第204条）
-│   ├── j-law-registry/           # 法令パラメータ管理（JSON）
-│   │   └── data/
-│   │       ├── real_estate/      # 宅建業法告示パラメータ
-│   │       ├── income_tax/       # 所得税法パラメータ
-│   │       └── withholding_tax/  # 源泉徴収パラメータ
-│   ├── j-law-python/             # Python バインディング（ctypes + C ABI）
-│   ├── j-law-wasm/               # WASM/JavaScript バインディング（wasm-bindgen）
-│   ├── j-law-ruby/               # Ruby バインディング（ffi + C ABI）
-│   ├── j-law-c-ffi/              # C ABI
-│   └── j-law-go/                 # Go バインディング（CGo）
-├── tests/
-│   └── fixtures/                 # 全言語共通テストフィクスチャ（JSON）
-│       ├── real_estate.json
-│       ├── income_tax.json
-│       └── withholding_tax.json
-├── Dockerfile                    # マルチステージテスト環境
-└── docker-compose.yml            # 全言語テスト一括実行
-```
+公開 API 名の一覧は [docs/usage.md](docs/usage.md) にまとめています。
 
----
+## テスト
 
-## 計算仕様
-
-### 不動産ドメイン — 媒介報酬（宅建業法 第46条）
-
-**3段階ティア計算**
-
-| 売買価格の範囲               | 率  |
-| ---------------------------- | --- |
-| 200万円以下の部分            | 5%  |
-| 200万円超〜400万円以下の部分 | 4%  |
-| 400万円超の部分              | 3%  |
-
-端数処理: 各ティアで切り捨て → 合計 → 消費税（消費税ドメインから自動取得・切り捨て）
-
-消費税率は計算対象日に応じて消費税ドメインが自動的に決定します（例: 2019年10月1日以降は10%、2014年4月〜2019年9月は8%）。
-
-**対応期間**: 1970年12月1日以降（昭和45年建設省告示第1552号施行〜）の全期間に対応。2018年以前は低廉特例がないだけで媒介報酬上限は計算できます。
-
-**低廉な空き家特例（2018年1月1日〜2024年6月30日）**: 売買価格が400万円以下で `IsLowCostVacantHouse` フラグかつ `IsSeller` フラグ（**売主側のみ**）を指定した場合、税抜報酬額が180,000円に引き上げられます。
-
-**低廉な空き家特例（2024年7月1日〜）**: 売買価格が800万円以下で `IsLowCostVacantHouse` フラグを指定した場合、税抜報酬額が330,000円に引き上げられます（売主・買主双方に適用）。
-
-> **注意**: `IsLowCostVacantHouse` フラグの事実認定はこのライブラリの責任範囲外です。
-
-**計算例**
-
-| 売買価格                              | 税抜合計  | 消費税   | 税込合計    |
-| ------------------------------------- | --------- | -------- | ----------- |
-| 1,000,000円                           | 50,000円  | 5,000円  | 55,000円    |
-| 5,000,000円                           | 210,000円 | 21,000円 | 231,000円   |
-| 10,000,000円                          | 360,000円 | 36,000円 | 396,000円   |
-| 30,000,000円                          | 960,000円 | 96,000円 | 1,056,000円 |
-| 4,000,000円（2018〜2024低廉特例・売主） | 180,000円 | 18,000円 | 198,000円   |
-| 8,000,000円（2024〜低廉特例）         | 330,000円 | 33,000円 | 363,000円   |
-
-### 所得税ドメイン — 所得税額（所得税法 第89条）
-
-**速算表方式（7段階累進課税）**
-
-| 課税所得金額           | 税率 | 控除額      |
-| ---------------------- | ---- | ----------- |
-| 〜195万円              | 5%   | 0円         |
-| 195万円超〜330万円     | 10%  | 97,500円    |
-| 330万円超〜695万円     | 20%  | 427,500円   |
-| 695万円超〜900万円     | 23%  | 636,000円   |
-| 900万円超〜1,800万円   | 33%  | 1,536,000円 |
-| 1,800万円超〜4,000万円 | 40%  | 2,796,000円 |
-| 4,000万円超            | 45%  | 4,796,000円 |
-
-- **復興特別所得税**: 基準所得税額 × 2.1%（2013〜2037年）
-- **申告納税額**: 100円未満切り捨て
-
-### 源泉徴収ドメイン — 報酬・料金等（所得税法 第204条第1項）
-
-初版の `withholding_tax` ドメインは、給与所得の税額表ではなく、報酬・料金等のうち次の二段階税率類型を対象にしています。
-
-- 原稿料・講演料等
-- 税理士・弁護士・公認会計士等の報酬・料金
-- 役務提供等を約することにより一時に支払う専属契約金
-
-税額計算:
-
-- 100万円以下の部分: 10.21%
-- 100万円超の部分: 20.42%
-
-対応期間:
-
-- 2013年1月1日から2037年12月31日まで
-
-特例:
-
-- 原稿料・講演料等について、応募作品等の入選者に支払う賞金・謝金で 1 回 50,000 円以下の場合は源泉徴収不要
-- 請求書等で消費税額が明示されている場合、その明示額を計算対象額から控除可能
-
----
-
-## ビルド・テスト
-
-### Docker（推奨 — 全言語一括テスト）
+### Rust CI 相当
 
 ```sh
-# 全言語テスト一括実行
-docker compose up test-all --build
-
-# 個別言語テスト
-docker compose up test-rust --build
-docker compose up test-python --build
-docker compose up test-wasm --build
-docker compose up test-ruby --build
-docker compose up test-go --build
+make ci
 ```
 
-### ローカル
+### 全言語バインディング
 
 ```sh
-# Rust 1.94.0 toolchain が必要
+make docker-test
+```
 
-# Rust コアテスト
-cargo test --all
+### よく使う個別コマンド
 
-# Python
-pip install pytest
+```sh
+cargo test --workspace
 pytest crates/j-law-python/tests/ -v
-
-# WASM/JS
-wasm-pack build --target nodejs crates/j-law-wasm
 node --test crates/j-law-wasm/tests/*.test.mjs
-
-# Ruby
-cd crates/j-law-ruby && bundle install && bundle exec rake test
-
-# Go
+cd crates/j-law-ruby && bundle exec rake test
 cd crates/j-law-go && make test
 ```
 
-### テストフィクスチャ
-
-全言語のテストは `tests/fixtures/` 配下の共通 JSON フィクスチャからテストケースを読み込むデータ駆動テスト方式です。テストケースの追加・修正は JSON を編集するだけで全言語に反映されます。
-
----
-
 ## コントリビューション
 
-Issue・Pull Request を歓迎します。コードを変更・追加する場合は以下の点に従ってください。
+- `crates/j-law-core/src/` では `f64` / `f32` を使わない
+- `crates/j-law-core/src/` では `panic!` / `unwrap()` / `expect()` を使わない
+- 公開 API には根拠条文を doc コメントで明記する
+- 変更に対応するテストを追加し、提出前に `make ci` を通す
+- ドメイン追加や registry 変更時は関連 binding / fixture / docs も更新する
 
-- `crates/j-law-core/src/` に `f64`/`f32` を使わないこと（`clippy.toml` で禁止設定）
-- `crates/j-law-core/src/` に `panic!`/`unwrap()`/`expect()` を使わないこと（`clippy.toml` で禁止設定）
-- 公開APIにはRustdocで根拠条文を明記すること
-- 変更に対応するテストを必ず追加すること
-- 新規ドメインを追加する場合は既存ドメイン（`real_estate`, `income_tax`）の構成に倣うこと
-- Rust 1.94.0 を使用し、コミット前に `make ci` を実行すること
-- コミット前に `cargo clippy --all-targets --all-features -- -D warnings` が通ることを確認すること
-
-詳細なコーディングルールは [AGENTS.md](AGENTS.md) を参照してください。
-
----
+詳細な実装ルールは [AGENTS.md](AGENTS.md) を参照してください。
 
 ## 免責事項
 
-本ライブラリは法的助言を提供するものではありません。計算結果は参考情報であり、実際の手続きにおいては必ず有資格者または弁護士に確認してください。法改正により計算ロジックが変わる場合があります。
-
----
+本ライブラリは法的助言を提供するものではありません。計算結果は参考情報であり、実際の手続きにおいては必ず有資格者または専門家に確認してください。法改正により計算ロジックが変わる場合があります。
 
 ## ライセンス
 
