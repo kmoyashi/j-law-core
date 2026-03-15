@@ -1,31 +1,48 @@
 name: Publish Go module
 
-# GitHub Releases が公開されたときに Go モジュールのバージョンタグを作成する。
+# GitHub Releases が公開されたときに、Go モジュール向けの同梱 native archive を
+# 対応プラットフォームごとに生成し、それらを含むコミットへ Go モジュールタグを作成する。
 #
 # Go モジュールのタグ付け規約:
-#   モジュールパス: github.com/kmoyashi/j-law-go
+#   モジュールパス: github.com/kmoyashi/j-law-core/crates/j-law-go
 #   タグ形式: crates/j-law-go/v<version>
 #
-# 注意: j-law-go は CGo を通じて Rust 静的ライブラリ（libj_law_cgo.a）を使用するため、
-#       利用者の環境に Rust ツールチェイン（cargo）が必要です。
-#       インストール手順は crates/j-law-go/README.md を参照してください。
+# 利用者は対応プラットフォーム上で `go get` だけで導入できるよう、Go タグは
+# `crates/j-law-go/native/` 配下に配布物を含むコミットを指す。
 
 on:
   release:
     types: [published]
 
 permissions:
-  contents: write # タグの作成に必要
+  contents: write # 生成コミットとタグの push に必要
 
 jobs:
-  # --- Go テストを実行してリリース品質を確認 ---
-  test:
-    name: Test Go bindings
-    runs-on: ubuntu-latest
+  build-native:
+    name: Build Go native archive (${{ matrix.platform_dir }})
+    runs-on: ${{ matrix.runs_on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runs_on: ubuntu-latest
+            rust_target: x86_64-unknown-linux-gnu
+            platform_dir: linux_amd64
+          - runs_on: ubuntu-24.04-arm
+            rust_target: aarch64-unknown-linux-gnu
+            platform_dir: linux_arm64
+          - runs_on: macos-13
+            rust_target: x86_64-apple-darwin
+            platform_dir: darwin_amd64
+          - runs_on: macos-14
+            rust_target: aarch64-apple-darwin
+            platform_dir: darwin_arm64
     steps:
       - uses: actions/checkout@v4
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          targets: ${{ matrix.rust_target }}
 
       - uses: actions/cache@v4
         with:
@@ -34,31 +51,56 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target/
-          key: ${{ runner.os }}-cargo-go-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-${{ matrix.platform_dir }}-cargo-go-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
+            ${{ runner.os }}-${{ matrix.platform_dir }}-cargo-go-
             ${{ runner.os }}-cargo-go-
 
       - uses: actions/setup-go@v5
         with:
           go-version-file: crates/j-law-go/go.mod
-          cache-dependency-path: crates/j-law-go/go.sum
+          cache-dependency-path: crates/j-law-go/go.mod
 
-      - name: Build Rust static library
-        run: cargo build -p j-law-cgo
+      - name: Sync vendored native archive
+        env:
+          JLAW_GO_NATIVE_TARGET: ${{ matrix.rust_target }}
+        run: ./scripts/sync_go_native_archive.sh
 
       - name: Run Go tests
         working-directory: crates/j-law-go
-        run: go test -v ./...
+        run: go test ./...
 
-  # --- Go モジュールタグを作成 ---
+      - uses: actions/upload-artifact@v4
+        with:
+          name: j-law-go-native-${{ matrix.platform_dir }}
+          path: crates/j-law-go/native/${{ matrix.platform_dir }}/libj_law_c_ffi.a
+          if-no-files-found: error
+
   tag:
     name: Create Go module tag
-    needs: test
+    needs: build-native
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: /tmp/j-law-go-native
+
+      - name: Place native archives into Go module tree
+        run: |
+          rm -rf crates/j-law-go/native
+          mkdir -p crates/j-law-go/native/darwin_amd64
+          mkdir -p crates/j-law-go/native/darwin_arm64
+          mkdir -p crates/j-law-go/native/linux_amd64
+          mkdir -p crates/j-law-go/native/linux_arm64
+
+          cp /tmp/j-law-go-native/j-law-go-native-darwin_amd64/libj_law_c_ffi.a crates/j-law-go/native/darwin_amd64/libj_law_c_ffi.a
+          cp /tmp/j-law-go-native/j-law-go-native-darwin_arm64/libj_law_c_ffi.a crates/j-law-go/native/darwin_arm64/libj_law_c_ffi.a
+          cp /tmp/j-law-go-native/j-law-go-native-linux_amd64/libj_law_c_ffi.a crates/j-law-go/native/linux_amd64/libj_law_c_ffi.a
+          cp /tmp/j-law-go-native/j-law-go-native-linux_arm64/libj_law_c_ffi.a crates/j-law-go/native/linux_arm64/libj_law_c_ffi.a
 
       - name: Create Go module tag
         env:
@@ -71,8 +113,15 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git tag "$GO_TAG" "${{ github.sha }}"
+          git add crates/j-law-go/native
+          TARGET_SHA="${{ github.sha }}"
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(go): vendor native archives for v${VERSION}"
+            TARGET_SHA="$(git rev-parse HEAD)"
+          fi
+
+          git tag "$GO_TAG" "$TARGET_SHA"
           git push origin "$GO_TAG"
 
           echo "Go module tag created: $GO_TAG"
-          echo "Users can install with: go get github.com/kmoyashi/j-law-go@v${VERSION}"
+          echo "Users can install with: go get github.com/kmoyashi/j-law-core/crates/j-law-go@v${VERSION}"

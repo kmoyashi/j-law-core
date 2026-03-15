@@ -1,7 +1,8 @@
 // Package jlawcore は、日本の法令に基づく各種計算を提供する。
 //
 // j-law-c-ffi が提供する C FFI を CGo 経由で利用している。
-// 使用前に `make build-rust` を実行して静的ライブラリをビルドすること。
+// 配布済みの静的ライブラリを同梱しているため、対応プラットフォームでは
+// `go get` 後に追加ビルドなしで利用できる。
 //
 // 使用例:
 //
@@ -21,8 +22,10 @@
 package jlawcore
 
 // #cgo CFLAGS: -I${SRCDIR}/../j-law-c-ffi
-// #cgo darwin LDFLAGS: ${SRCDIR}/../../target/debug/libj_law_c_ffi.a -framework Security -framework CoreFoundation
-// #cgo linux  LDFLAGS: ${SRCDIR}/../../target/debug/libj_law_c_ffi.a -ldl -lpthread -lm
+// #cgo darwin,arm64 LDFLAGS: ${SRCDIR}/native/darwin_arm64/libj_law_c_ffi.a -framework Security -framework CoreFoundation
+// #cgo darwin,amd64 LDFLAGS: ${SRCDIR}/native/darwin_amd64/libj_law_c_ffi.a -framework Security -framework CoreFoundation
+// #cgo linux,amd64 LDFLAGS: ${SRCDIR}/native/linux_amd64/libj_law_c_ffi.a -ldl -lpthread -lm
+// #cgo linux,arm64 LDFLAGS: ${SRCDIR}/native/linux_arm64/libj_law_c_ffi.a -ldl -lpthread -lm
 // #include "j_law_c_ffi.h"
 // #include <stdlib.h>
 import "C"
