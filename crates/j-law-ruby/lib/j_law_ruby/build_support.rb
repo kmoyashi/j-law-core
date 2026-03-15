@@ -6,8 +6,29 @@ module JLawRuby
   module BuildSupport
     module_function
 
+    BINARY_GEM_ENV = "JLAW_RUBY_BINARY_GEM"
+    FORCE_CARGO_BUILD_ENV = "JLAW_RUBY_FORCE_CARGO_BUILD"
+
     def cargo_profile
       ENV.fetch("JLAW_RUBY_CARGO_PROFILE", "release")
+    end
+
+    def binary_gem_build?
+      ENV[BINARY_GEM_ENV] == "1"
+    end
+
+    def force_cargo_build?
+      ENV[FORCE_CARGO_BUILD_ENV] == "1"
+    end
+
+    def gem_platform
+      require "rubygems/platform"
+
+      Gem::Platform.local
+    end
+
+    def make_command
+      RbConfig::CONFIG.fetch("MAKE", "make")
     end
 
     def shared_library_filename
@@ -27,6 +48,10 @@ module JLawRuby
 
     def packaged_shared_library_path(gem_root)
       File.join(native_dir(gem_root), shared_library_filename)
+    end
+
+    def packaged_shared_library?(gem_root)
+      File.file?(packaged_shared_library_path(gem_root))
     end
 
     def vendored_workspace_root(gem_root)
@@ -77,6 +102,28 @@ module JLawRuby
 
     def resolve_shared_library_path(gem_root)
       shared_library_candidates(gem_root).find { |path| File.file?(path) }
+    end
+
+    def should_build_shared_library?(gem_root)
+      return true if force_cargo_build?
+
+      !packaged_shared_library?(gem_root)
+    end
+
+    def write_stub_makefile(path = "Makefile")
+      File.write(
+        path,
+        <<~MAKEFILE
+          all:
+          \t@true
+
+          install:
+          \t@true
+
+          clean:
+          \t@true
+        MAKEFILE
+      )
     end
   end
 end

@@ -1,31 +1,79 @@
 # frozen_string_literal: true
 
 require "rake/testtask"
+require_relative "lib/j_law_ruby/build_support"
 require_relative "rake_support/vendor_rust"
 
-task :vendor_rust do
-  JLawRuby::VendorRust.prepare!(File.expand_path(__dir__))
-end
-
-task compile: :vendor_rust do
-  Dir.chdir("ext/j_law_ruby") do
-    ruby "extconf.rb"
-    sh "make"
+def with_unbundled_env
+  if defined?(Bundler)
+    Bundler.with_unbundled_env { yield }
+  else
+    yield
   end
 end
 
-task build: :vendor_rust do
-  sh "gem build j_law_ruby.gemspec"
+def gem_root
+  File.expand_path(__dir__)
+end
+
+def prepare_vendor_rust
+  JLawRuby::VendorRust.prepare!(gem_root)
+end
+
+def clean_native_library
+  rm_rf "lib/j_law_ruby/native"
+end
+
+def compile_native_library
+  prepare_vendor_rust
+
+  Dir.chdir("ext/j_law_ruby") do
+    ruby "extconf.rb"
+    sh JLawRuby::BuildSupport.make_command
+  end
+end
+
+task :vendor_rust do
+  prepare_vendor_rust
+end
+
+task :clean_native do
+  clean_native_library
+end
+
+task :compile do
+  compile_native_library
+end
+
+task :build_source_gem do
+  prepare_vendor_rust
+  clean_native_library
+
+  with_unbundled_env do
+    sh "gem", "build", "j_law_ruby.gemspec"
+  end
+end
+
+task :build_binary_gem do
+  compile_native_library
+
+  with_unbundled_env do
+    sh(
+      { JLawRuby::BuildSupport::BINARY_GEM_ENV => "1" },
+      "gem", "build", "j_law_ruby.gemspec"
+    )
+  end
 end
 
 task :clean do
   rm_rf "vendor/rust"
   rm_rf "lib/j_law_ruby/native"
+  rm_f FileList["*.gem"]
 
   next unless File.exist?("ext/j_law_ruby/Makefile")
 
   Dir.chdir("ext/j_law_ruby") do
-    sh "make clean"
+    sh JLawRuby::BuildSupport.make_command, "clean"
   end
 end
 
@@ -34,5 +82,6 @@ Rake::TestTask.new(:test) do |t|
   t.test_files = FileList["test/test_*.rb"]
 end
 
+task build: :build_source_gem
 task test: :compile
 task default: :test

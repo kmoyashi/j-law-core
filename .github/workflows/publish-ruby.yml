@@ -1,4 +1,4 @@
-name: Publish Ruby gem (RubyGems)
+name: Publish Ruby gems (RubyGems)
 
 # GitHub Releases が公開されたときに RubyGems へ公開する。
 # 事前準備: RubyGems 側で Trusted Publisher を設定し、
@@ -9,7 +9,7 @@ on:
     types: [published]
 
 jobs:
-  build-gem:
+  build-source-gem:
     name: Build source gem
     runs-on: ubuntu-latest
     steps:
@@ -43,18 +43,93 @@ jobs:
         working-directory: crates/j-law-ruby
         run: bundle exec rake test
 
-      - name: Build gem
+      - name: Build source gem
         working-directory: crates/j-law-ruby
-        run: bundle exec rake build
+        run: bundle exec rake build_source_gem
 
       - uses: actions/upload-artifact@v4
         with:
           name: ruby-source-gem
           path: crates/j-law-ruby/*.gem
 
+  build-binary-gems:
+    name: Build binary gem (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            label: linux x86_64
+            artifact_name: linux-x86_64
+          - os: ubuntu-24.04-arm
+            label: linux aarch64
+            artifact_name: linux-aarch64
+          - os: macos-15-intel
+            label: macos x86_64
+            artifact_name: macos-x86_64
+          - os: macos-15
+            label: macos arm64
+            artifact_name: macos-arm64
+          - os: windows-2022
+            label: windows amd64
+            artifact_name: windows-amd64
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify release tag matches package versions
+        run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
+
+      - uses: dtolnay/rust-toolchain@1.94.0
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          key: ${{ runner.os }}-${{ runner.arch }}-cargo-ruby-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-cargo-ruby-
+            ${{ runner.os }}-cargo-ruby-
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.1'
+          bundler-cache: false
+
+      - name: Install dependencies
+        working-directory: crates/j-law-ruby
+        run: bundle install
+
+      - name: Run Ruby tests
+        working-directory: crates/j-law-ruby
+        run: bundle exec rake test
+
+      - name: Build binary gem
+        working-directory: crates/j-law-ruby
+        run: bundle exec rake build_binary_gem
+
+      - name: Smoke test binary gem
+        shell: bash
+        run: |
+          gem_path="$(ls crates/j-law-ruby/*.gem | head -n 1)"
+          export GEM_HOME="$RUNNER_TEMP/j-law-ruby-gems"
+          export GEM_PATH="$GEM_HOME"
+          export PATH="$GEM_HOME/bin:$PATH"
+          mkdir -p "$GEM_HOME"
+          gem install ffi --no-document
+          gem install --local "$gem_path"
+          ruby -e 'require "date"; require "j_law_ruby"; abort "smoke test failed" unless JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, Date.new(2024, 1, 1), false).tax_amount == 10_000'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ruby-binary-gem-${{ matrix.artifact_name }}
+          path: crates/j-law-ruby/*.gem
+
   publish:
     name: Publish to RubyGems
-    needs: build-gem
+    needs: [build-source-gem, build-binary-gems]
     runs-on: ubuntu-latest
     environment: rubygems
     permissions:

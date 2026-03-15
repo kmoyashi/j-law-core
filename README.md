@@ -51,7 +51,7 @@ Cargo workspace メンバーは `j-law-core` / `j-law-registry` / `j-law-wasm` /
 | --- | --- | --- |
 | Python | CPython `3.10`-`3.14` | PyPI wheel: `linux/x86_64` `linux/aarch64` `macos/x86_64` `macos/arm64` `windows/amd64`。その他は source build |
 | JavaScript / WASM | Node.js `20` `22` `24` `25` | npm package は `wasm-pack --target nodejs` で生成 |
-| Ruby | Ruby `3.1`-`4.0` | RubyGems source gem のみ。install 時に Rust `1.94.0` が必要 |
+| Ruby | Ruby `3.1`-`4.0` | RubyGems binary gem: `linux/x86_64` `linux/aarch64` `macos/x86_64` `macos/arm64` `windows/amd64`。その他は source gem から build（Rust `1.94.0` が必要） |
 | Go | Go `1.21+` | `darwin/amd64` `darwin/arm64` `linux/amd64` `linux/arm64` の同梱 native archive。Windows 非対応 |
 
 ## ドキュメント
