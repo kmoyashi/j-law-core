@@ -16,7 +16,8 @@
 
 ## インストール
 
-source gem として配布する前提です。`gem install` 時に Rust 1.94.0 toolchain が必要です。
+source gem として配布する前提です。公開サポート範囲は Ruby `3.1` から `4.0` です。
+OS / アーキテクチャ別の prebuilt gem は配布せず、`gem install` 時に対象環境で Rust `1.94.0` toolchain を使ってビルドします。
 
 ```sh
 gem install j_law_ruby

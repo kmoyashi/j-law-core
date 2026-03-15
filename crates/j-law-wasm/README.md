@@ -27,22 +27,33 @@ Rust コアライブラリを `wasm-bindgen` 経由でラップし、JavaScript 
 npm install j-law-wasm
 ```
 
+公開 npm パッケージは `wasm-pack --target nodejs` で生成した Node.js 向け配布物です。
+CI では Node.js `20` / `22` / `24` / `25` を検証しています。
+
 ソースからビルドする場合:
 
 ```sh
 wasm-pack build --target nodejs crates/j-law-wasm
 ```
 
+ブラウザや bundler 向け成果物が必要な場合は、公開 npm パッケージではなく次を使ってソースから生成してください。
+
+```sh
+wasm-pack build --target bundler crates/j-law-wasm
+```
+
 ## クイックスタート
 
 ```js
-import {
+import jLawWasm from "j-law-wasm";
+
+const {
   calcBrokerageFee,
   calcConsumptionTax,
   calcIncomeTaxAssessment,
   calcStampTax,
   calcWithholdingTax,
-} from "j-law-wasm";
+} = jLawWasm;
 
 const date = new Date(Date.UTC(2024, 7, 1));
 
