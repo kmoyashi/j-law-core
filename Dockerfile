@@ -49,6 +49,5 @@ RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-$(dpkg --print-architect
     | tar -C /usr/local -xz
 ENV PATH="/usr/local/go/bin:${PATH}"
 WORKDIR /app
-RUN cargo build -p j-law-c-ffi
 WORKDIR /app/crates/j-law-go
 CMD ["go", "test", "-v", "./..."]

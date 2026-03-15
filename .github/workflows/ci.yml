@@ -224,4 +224,6 @@ jobs:
             ${{ runner.os }}-cargo-
       - name: Run Go binding tests
         working-directory: crates/j-law-go
-        run: make test
+        run: |
+          make verify-native
+          make test

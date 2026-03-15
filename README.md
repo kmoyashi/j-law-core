@@ -94,7 +94,7 @@ assert_eq!(result.total_with_tax.as_yen(), 231_000);
 - Python: `pip install ./crates/j-law-python`
 - JavaScript / WASM: `wasm-pack build --target nodejs crates/j-law-wasm`
 - Ruby: `cd crates/j-law-ruby && bundle install && bundle exec rake compile`
-- Go: `cd crates/j-law-go && make build-rust`
+- Go: `go get github.com/kmoyashi/j-law-core/crates/j-law-go`（Windows 非対応）
 
 公開 API 名の一覧は [docs/usage.md](docs/usage.md) にまとめています。
 

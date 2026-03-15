@@ -12,7 +12,9 @@
 > - 計算結果を実際の法的手続きや業務判断に用いる際は、必ず有資格者または専門家に確認してください。
 
 > [!NOTE]
-> `go test` / `go run` の前に `make build-rust` を実行して、`j-law-c-ffi` の staticlib をビルドしてください。
+> 対応済みの同梱ネイティブ配布物は `darwin/amd64` / `darwin/arm64` / `linux/amd64` / `linux/arm64` です。
+> Windows は現時点では非対応です。
+> CGo を使うため C コンパイラは必要ですが、対応プラットフォームでは Rust ツールチェインは不要です。
 
 ## 対応機能
 
@@ -30,12 +32,9 @@
 go get github.com/kmoyashi/j-law-core/crates/j-law-go
 ```
 
-使用前に Rust staticlib をビルドします。
+Windows では利用できません。対応プラットフォームは `darwin/amd64` / `darwin/arm64` / `linux/amd64` / `linux/arm64` です。
 
-```sh
-cd crates/j-law-go
-make build-rust
-```
+これで `go run` / `go test` に進めます。
 
 ## クイックスタート
 
@@ -96,9 +95,10 @@ func main() {
 
 ```sh
 cd crates/j-law-go
-make build-rust
 make test
 ```
+
+Rust コアや C ABI を更新して Go 向け配布物を再生成したいメンテナは、先に `make sync-native` を実行してください。
 
 ## 関連ドキュメント
 
