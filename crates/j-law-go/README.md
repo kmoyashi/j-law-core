@@ -27,7 +27,7 @@
 ## インストール
 
 ```sh
-go get github.com/kmoyashi/j-law-go
+go get github.com/kmoyashi/j-law-core/crates/j-law-go
 ```
 
 使用前に Rust staticlib をビルドします。
@@ -46,7 +46,7 @@ import (
 	"fmt"
 	"time"
 
-	jlawcore "github.com/kmoyashi/j-law-go"
+	jlawcore "github.com/kmoyashi/j-law-core/crates/j-law-go"
 )
 
 func main() {

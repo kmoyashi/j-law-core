@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	jlawcore "github.com/kmoyashi/j-law-go"
+	jlawcore "github.com/kmoyashi/j-law-core/crates/j-law-go"
 )
 
 // ─── 日付ユーティリティ ──────────────────────────────────────────────────────

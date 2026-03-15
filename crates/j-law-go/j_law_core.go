@@ -21,8 +21,8 @@
 package jlawcore
 
 // #cgo CFLAGS: -I${SRCDIR}/../j-law-c-ffi
-// #cgo darwin LDFLAGS: ${SRCDIR}/../../target/debug/libj_law_c_ffi.a -framework Security -framework CoreFoundation
-// #cgo linux  LDFLAGS: ${SRCDIR}/../../target/debug/libj_law_c_ffi.a -ldl -lpthread -lm
+// #cgo darwin LDFLAGS: ${SRCDIR}/../../target/release/libj_law_c_ffi.a -framework Security -framework CoreFoundation
+// #cgo linux  LDFLAGS: ${SRCDIR}/../../target/release/libj_law_c_ffi.a -ldl -lpthread -lm
 // #include "j_law_c_ffi.h"
 // #include <stdlib.h>
 import "C"

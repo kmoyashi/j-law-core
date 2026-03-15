@@ -3,10 +3,10 @@ name: Publish Go module
 # GitHub Releases が公開されたときに Go モジュールのバージョンタグを作成する。
 #
 # Go モジュールのタグ付け規約:
-#   モジュールパス: github.com/kmoyashi/j-law-go
+#   モジュールパス: github.com/kmoyashi/j-law-core/crates/j-law-go
 #   タグ形式: crates/j-law-go/v<version>
 #
-# 注意: j-law-go は CGo を通じて Rust 静的ライブラリ（libj_law_cgo.a）を使用するため、
+# 注意: j-law-go は CGo を通じて Rust 静的ライブラリ（libj_law_c_ffi.a）を使用するため、
 #       利用者の環境に Rust ツールチェイン（cargo）が必要です。
 #       インストール手順は crates/j-law-go/README.md を参照してください。
 
@@ -41,14 +41,11 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version-file: crates/j-law-go/go.mod
-          cache-dependency-path: crates/j-law-go/go.sum
-
-      - name: Build Rust static library
-        run: cargo build -p j-law-cgo
+          cache-dependency-path: crates/j-law-go/go.mod
 
       - name: Run Go tests
         working-directory: crates/j-law-go
-        run: go test -v ./...
+        run: make test
 
   # --- Go モジュールタグを作成 ---
   tag:
@@ -75,4 +72,4 @@ jobs:
           git push origin "$GO_TAG"
 
           echo "Go module tag created: $GO_TAG"
-          echo "Users can install with: go get github.com/kmoyashi/j-law-go@v${VERSION}"
+          echo "Users can install with: go get github.com/kmoyashi/j-law-core/crates/j-law-go@v${VERSION}"

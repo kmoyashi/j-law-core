@@ -7,26 +7,26 @@ WORKSPACE_ROOT := $(realpath $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/../.
 CARGO         := cargo
 GO            := go
 
-.PHONY: all build-rust test clean
+.PHONY: all build-rust build-rust-release test test-release clean
 
 ## デフォルト: Rust ビルド → Go テスト
 all: test
 
-## Rust staticlib をビルドする（target/debug/libj_law_c_ffi.a を生成）
-build-rust:
-	$(CARGO) build -p j-law-c-ffi --manifest-path $(WORKSPACE_ROOT)/Cargo.toml
-
 ## Rust staticlib をリリースビルドする（target/release/libj_law_c_ffi.a を生成）
+build-rust:
+	$(CARGO) build -p j-law-c-ffi --release --manifest-path $(WORKSPACE_ROOT)/Cargo.toml
+
+## Rust staticlib を明示的にリリースビルドする（target/release/libj_law_c_ffi.a を生成）
 build-rust-release:
 	$(CARGO) build -p j-law-c-ffi --release --manifest-path $(WORKSPACE_ROOT)/Cargo.toml
 
-## Go テストを実行する（debug ビルドのライブラリを使用）
+## Go テストを実行する（release ビルドのライブラリを使用）
 test: build-rust
 	$(GO) test -v ./...
 
 ## Go テストをリリースビルドのライブラリで実行する
 test-release: build-rust-release
-	CGO_LDFLAGS="-L$(WORKSPACE_ROOT)/target/release" $(GO) test -v ./...
+	$(GO) test -v ./...
 
 clean:
 	$(GO) clean -testcache
