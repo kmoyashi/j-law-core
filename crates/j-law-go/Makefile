@@ -29,12 +29,7 @@ sync-native:
 
 ## 現在のプラットフォーム向け配布物が Rust ソースと同期しているか検証
 verify-native:
-	@tmp_dir=$$(mktemp -d); \
-	trap 'rm -rf "$$tmp_dir"' EXIT; \
-	JLAW_GO_NATIVE_DEST_ROOT="$$tmp_dir" $(SYNC_SCRIPT); \
-	cmp -s "$$tmp_dir/$(HOST_PLATFORM)/libj_law_c_ffi.a" "$(NATIVE_ARCHIVE)" || \
-		(echo "vendored native archive is stale: $(NATIVE_ARCHIVE)"; \
-		echo "Run 'make sync-native' and commit the updated archive."; exit 1)
+	@JLAW_GO_NATIVE_ACTION=verify $(SYNC_SCRIPT)
 
 ## 互換用エイリアス: 配布物を更新
 build-rust: sync-native
