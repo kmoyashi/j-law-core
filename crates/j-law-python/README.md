@@ -24,13 +24,20 @@
 ## インストール
 
 ```sh
-pip install ./crates/j-law-python
+pip install j-law-python
 ```
 
-ローカル checkout を直接 import する場合は、先に `j-law-c-ffi` をビルドしてください。
+公開サポート範囲は次のとおりです。
+
+- CPython `3.10` から `3.14`
+- PyPI wheel: `linux/x86_64` `linux/aarch64` `macos/x86_64` `macos/arm64` `windows/amd64`
+- それ以外の環境は source build 扱いです。Rust `1.94.0` が必要です。
+
+リポジトリ checkout を直接 install / import する場合は、先に `j-law-c-ffi` をビルドしてください。
 
 ```sh
 cargo build -p j-law-c-ffi
+pip install ./crates/j-law-python
 ```
 
 共有ライブラリの探索先を明示したい場合は `JLAW_PYTHON_C_FFI_LIB` を指定できます。

@@ -3,7 +3,7 @@
 # CIで実行される全チェックをローカルでワンコマンドで再現する。
 # コードを変更したら必ず `make ci` を実行してからプッシュすること。
 
-.PHONY: all fmt fmt-check clippy test audit ci docker-test
+.PHONY: all fmt fmt-check clippy test audit check-versions ci docker-test
 
 ## デフォルト: CIチェック一式を実行
 all: ci
@@ -28,11 +28,15 @@ test:
 audit:
 	cargo audit
 
+## 公開パッケージのバージョン整合性を確認する
+check-versions:
+	./scripts/verify_release_versions.sh
+
 ## CIチェック一式: フォーマット・リント・テストを順番に実行する
 ##
 ## プッシュ前に必ずこのコマンドを実行すること。
 ## .github/workflows/ci.yml の lint + test-rust ジョブに相当する。
-ci: fmt-check clippy test
+ci: check-versions fmt-check clippy test
 
 ## 全言語バインディングテストを Docker で実行する
 ## GitHub Actions では .github/workflows/ci.yml の言語別マトリクスで直接実行する

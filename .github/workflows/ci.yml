@@ -31,6 +31,8 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
+      - name: Verify published package versions are aligned
+        run: ./scripts/verify_release_versions.sh
       - name: Check format
         run: cargo fmt --check
       - name: Clippy
@@ -129,8 +131,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: test-rust
     strategy:
-      # Currently supported Node.js release lines:
-      # https://nodejs.org/en/about/previous-releases
+      # Published npm package targets currently supported Node.js release lines.
       matrix:
         node-version: ["20", "22", "24", "25"]
       fail-fast: false
@@ -165,10 +166,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: test-rust
     strategy:
-      # Officially supported Ruby branches:
-      # https://www.ruby-lang.org/en/downloads/branches/
+      # Test the minimum supported Ruby plus current maintained branches.
       matrix:
-        ruby-version: ["3.2", "3.3", "3.4", "4.0"]
+        ruby-version: ["3.1", "3.2", "3.3", "3.4", "4.0"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
@@ -199,10 +199,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: test-rust
     strategy:
-      # Go supports the current release and the previous two major releases:
-      # https://go.dev/doc/devel/release
+      # Test the minimum declared Go version and each subsequent supported minor line.
       matrix:
-        go-version: ["1.24", "1.25", "1.26"]
+        go-version: ["1.21", "1.22", "1.23", "1.24", "1.25", "1.26"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
