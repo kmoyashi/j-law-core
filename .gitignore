@@ -56,6 +56,13 @@ crates/j-law-ruby/ext/j_law_ruby/Makefile
 # source gem ビルド成果物
 crates/j-law-ruby/*.gem
 
+# =============================================================================
+# Java / Gradle / JNI (crates/j-law-java)
+# =============================================================================
+
+crates/j-law-java/.gradle/
+crates/j-law-java/build/
+
 # Bundler
 crates/j-law-ruby/.bundle/
 

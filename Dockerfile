@@ -52,3 +52,10 @@ WORKDIR /app
 RUN cargo build -p j-law-c-ffi
 WORKDIR /app/crates/j-law-go
 CMD ["go", "test", "-v", "./..."]
+
+# ---- Java テスト ----
+FROM base-rust AS test-java
+RUN apt-get update && apt-get install -y openjdk-17-jdk build-essential curl unzip \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app/crates/j-law-java
+CMD ["./gradlew", "test", "--no-daemon"]

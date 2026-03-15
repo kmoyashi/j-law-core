@@ -1,6 +1,6 @@
 # J-Law-Core
 
-日本法令に準拠した計算・検証ライブラリ（Rust / Python / JavaScript / Ruby / Go）
+日本法令に準拠した計算・検証ライブラリ（Rust / Java / Python / JavaScript / Ruby / Go）
 
 > [!WARNING]
 > **アルファ版・AI生成コードに関する注意事項**
@@ -17,7 +17,7 @@ J-Law-Core は、日本の法令・告示・省令が定める各種計算を、
 - 金額・数値計算に浮動小数点を一切使用せず、整数演算と分数表現で端数処理の再現性を確保
 - 法令パラメータ（税率・上限額・経過措置など）をJSONで外部管理し、法改正に対応
 - ドメイン単位で法令を追加できる拡張可能なアーキテクチャ
-- Rust コアライブラリに加え、Python / JavaScript(WASM) / Ruby / Go の言語バインディングを提供
+- Rust コアライブラリに加え、Java / Python / JavaScript(WASM) / Ruby / Go の言語バインディングを提供
 
 **実装済みドメイン**
 
@@ -67,6 +67,42 @@ result = calc_withholding_tax(
 )
 print(result.tax_amount)         # 204200
 print(result.net_payment_amount) # 1295800
+```
+
+### Java
+
+```java
+import io.github.kmoyashi.jlaw.BrokerageFeeResult;
+import io.github.kmoyashi.jlaw.IncomeTaxResult;
+import io.github.kmoyashi.jlaw.RealEstate;
+import io.github.kmoyashi.jlaw.WithholdingTax;
+import io.github.kmoyashi.jlaw.WithholdingTaxCategory;
+import io.github.kmoyashi.jlaw.WithholdingTaxResult;
+import java.time.LocalDate;
+
+BrokerageFeeResult fee = RealEstate.calcBrokerageFee(
+    5_000_000L,
+    LocalDate.of(2024, 8, 1),
+    false,
+    false
+);
+System.out.println(fee.getTotalWithTax()); // 231000
+
+IncomeTaxResult tax = io.github.kmoyashi.jlaw.IncomeTax.calcIncomeTax(
+    5_000_000L,
+    LocalDate.of(2024, 1, 1),
+    true
+);
+System.out.println(tax.getTotalTax()); // 584500
+
+WithholdingTaxResult withholding = WithholdingTax.calcWithholdingTax(
+    1_500_000L,
+    0L,
+    LocalDate.of(2026, 1, 1),
+    WithholdingTaxCategory.PROFESSIONAL_FEE,
+    false
+);
+System.out.println(withholding.getTaxAmount()); // 204200
 ```
 
 ### JavaScript (WASM)
@@ -195,6 +231,7 @@ j-law-core/
 │   │       ├── income_tax/       # 所得税法パラメータ
 │   │       └── withholding_tax/  # 源泉徴収パラメータ
 │   ├── j-law-python/             # Python バインディング（ctypes + C ABI）
+│   ├── j-law-java/               # Java/JVM バインディング（JNI + C ABI）
 │   ├── j-law-wasm/               # WASM/JavaScript バインディング（wasm-bindgen）
 │   ├── j-law-ruby/               # Ruby バインディング（ffi + C ABI）
 │   ├── j-law-c-ffi/              # C ABI
@@ -297,6 +334,7 @@ docker compose up test-all --build
 # 個別言語テスト
 docker compose up test-rust --build
 docker compose up test-python --build
+docker compose up test-java --build
 docker compose up test-wasm --build
 docker compose up test-ruby --build
 docker compose up test-go --build
@@ -313,6 +351,9 @@ cargo test --all
 # Python
 pip install pytest
 pytest crates/j-law-python/tests/ -v
+
+# Java
+cd crates/j-law-java && ./gradlew test --no-daemon
 
 # WASM/JS
 wasm-pack build --target nodejs crates/j-law-wasm
