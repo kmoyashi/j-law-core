@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
+require_relative "lib/j_law_ruby/build_support"
+
 Gem::Specification.new do |spec|
+  binary_gem_build = JLawRuby::BuildSupport.binary_gem_build?
+
   spec.name    = "j_law_ruby"
   spec.version = "0.0.1"
   spec.authors = ["j-law-core contributors"]
@@ -24,16 +28,23 @@ Gem::Specification.new do |spec|
 
   spec.files = Dir[
     "lib/**/*.rb",
-    "ext/**/*.rb",
-    "rake_support/**/*.rb",
-    "test/**/*.rb",
-    "vendor/rust/**/*",
-    "Gemfile",
-    "Rakefile",
     "README.md",
+    *(binary_gem_build ? ["lib/j_law_ruby/native/*"] : [
+      "ext/**/*.rb",
+      "rake_support/**/*.rb",
+      "test/**/*.rb",
+      "vendor/rust/**/*",
+      "Gemfile",
+      "Rakefile",
+    ]),
   ].select { |path| File.file?(path) }
   spec.require_paths = ["lib"]
-  spec.extensions = ["ext/j_law_ruby/extconf.rb"]
+
+  if binary_gem_build
+    spec.platform = JLawRuby::BuildSupport.gem_platform
+  else
+    spec.extensions = ["ext/j_law_ruby/extconf.rb"]
+  end
 
   spec.add_dependency "ffi", "~> 1.0"
 end

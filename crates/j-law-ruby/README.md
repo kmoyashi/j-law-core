@@ -16,11 +16,20 @@
 
 ## インストール
 
-source gem として配布する前提です。公開サポート範囲は Ruby `3.1` から `4.0` です。
-OS / アーキテクチャ別の prebuilt gem は配布せず、`gem install` 時に対象環境で Rust `1.94.0` toolchain を使ってビルドします。
+公開サポート範囲は Ruby `3.1` から `4.0` です。
+RubyGems では `linux/x86_64` `linux/aarch64` `macos/x86_64` `macos/arm64` `windows/amd64`
+向けの build 済み platform gem を配布します。これらの環境では Rust toolchain は不要です。
+その他の環境では source gem にフォールバックし、`gem install` 時に Rust `1.94.0`
+toolchain を使って `j-law-c-ffi` をビルドします。
 
 ```sh
 gem install j_law_ruby
+```
+
+source gem を明示的に使う場合は次を実行します。
+
+```sh
+gem install j_law_ruby --platform ruby
 ```
 
 開発環境では次を実行します。
@@ -72,10 +81,13 @@ puts JLawRuby::WithholdingTax.calc_withholding_tax(
 ```sh
 cd crates/j-law-ruby
 bundle install
-bundle exec rake build
+bundle exec rake build_source_gem
+bundle exec rake build_binary_gem
 ```
 
-`rake build` は source gem 用に必要な Rust ソースを `vendor/rust/` へ同期してから gem を生成します。
+`rake build` は `build_source_gem` のエイリアスです。
+`build_source_gem` は source gem 用に必要な Rust ソースを `vendor/rust/` へ同期してから gem を生成します。
+`build_binary_gem` は共有ライブラリを事前にビルドして、platform gem に同梱します。
 
 ## 関連ドキュメント
 

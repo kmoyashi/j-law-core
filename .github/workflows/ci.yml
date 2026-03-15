@@ -193,6 +193,12 @@ jobs:
       - name: Run Ruby binding tests
         working-directory: crates/j-law-ruby
         run: bundle exec rake test
+      - name: Build Ruby gems
+        if: matrix.ruby-version == '3.1'
+        working-directory: crates/j-law-ruby
+        run: |
+          bundle exec rake build_source_gem
+          bundle exec rake build_binary_gem
 
   test-go-bindings:
     name: Test Binding (Go ${{ matrix.go-version }})
