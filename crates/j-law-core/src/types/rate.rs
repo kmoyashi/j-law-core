@@ -1,3 +1,4 @@
+use crate::error::{CalculationError, InputError, JLawError};
 use crate::types::amount::IntermediateAmount;
 use crate::types::rounding::RoundingStrategy;
 
@@ -36,25 +37,30 @@ impl Rate {
     /// 端数を保持した状態でレートを適用したい場合は、
     /// 事前に `amount.finalize(rounding)` を呼び出して整数化してください。
     ///
-    /// # Panics
-    /// このメソッド自体はパニックしませんが、
-    /// `MultiplyOrder::MultiplyFirst` の場合は乗算がオーバーフローする可能性があります。
-    /// 大きな金額には `MultiplyOrder::DivideFirst` の使用を検討してください。
-    ///
     /// # エラー
-    /// `self.denom == 0` の場合は `InputError::ZeroDenominator` を返す。
+    /// - `self.denom == 0` の場合は `InputError::ZeroDenominator` を返す。
+    /// - `MultiplyOrder::MultiplyFirst` で `base * self.numer` がオーバーフローした場合は
+    ///   `CalculationError::Overflow` を返す。
     pub fn apply(
         &self,
         amount: &IntermediateAmount,
         order: MultiplyOrder,
         rounding: RoundingStrategy,
-    ) -> Result<IntermediateAmount, crate::error::InputError> {
+    ) -> Result<IntermediateAmount, JLawError> {
+        if self.denom == 0 {
+            return Err(InputError::ZeroDenominator.into());
+        }
         let base = amount.whole;
         let result_whole = match order {
-            MultiplyOrder::MultiplyFirst => rounding.apply_ratio(base * self.numer, self.denom)?,
-            MultiplyOrder::DivideFirst => {
-                rounding.apply_ratio(base / self.denom * self.numer, 1)?
+            MultiplyOrder::MultiplyFirst => {
+                let product = base.checked_mul(self.numer).ok_or_else(|| {
+                    CalculationError::Overflow {
+                        step: format!("rate_apply: {} * {}", base, self.numer),
+                    }
+                })?;
+                rounding.apply_ratio(product, self.denom)?
             }
+            MultiplyOrder::DivideFirst => rounding.apply_ratio(base / self.denom * self.numer, 1)?,
         };
         Ok(IntermediateAmount::from_exact(result_whole))
     }
@@ -187,7 +193,26 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            crate::error::InputError::ZeroDenominator
+            crate::error::JLawError::Input(crate::error::InputError::ZeroDenominator)
+        ));
+    }
+
+    #[test]
+    fn overflow_returns_calculation_error() {
+        // u64::MAX * 2 はオーバーフローする
+        let rate = Rate {
+            numer: 2,
+            denom: 1,
+        };
+        let result = rate.apply(
+            &exact(u64::MAX),
+            MultiplyOrder::MultiplyFirst,
+            RoundingStrategy::Floor,
+        );
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            crate::error::JLawError::Calculation(crate::error::CalculationError::Overflow { .. })
         ));
     }
 }

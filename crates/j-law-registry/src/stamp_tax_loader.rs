@@ -26,6 +26,7 @@ pub fn load_stamp_tax_params(target_date: LegalDate) -> Result<StampTaxParams, J
             path: PATH.into(),
             cause: e.to_string(),
         })?;
+    validate_registry(&registry)?;
 
     let date_str = target_date.to_date_str();
 
@@ -34,6 +35,57 @@ pub fn load_stamp_tax_params(target_date: LegalDate) -> Result<StampTaxParams, J
     })?;
 
     to_params(entry)
+}
+
+/// `StampTaxRegistry` の整合性を検証する。
+///
+/// # 検証内容
+/// - 適用期間の重複（Overlap）
+/// - 適用期間の空白（Gap）
+fn validate_registry(registry: &StampTaxRegistry) -> Result<(), RegistryError> {
+    let domain = &registry.domain;
+
+    // 期間の重複・ギャップチェック
+    let mut sorted = registry.history.clone();
+    sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
+
+    for [current, next] in sorted.array_windows::<2>() {
+        let current_until = match &current.effective_until {
+            Some(d) => d.clone(),
+            None => {
+                return Err(RegistryError::PeriodOverlap {
+                    domain: domain.clone(),
+                    from: next.effective_from.clone(),
+                    until: "open-ended".into(),
+                });
+            }
+        };
+
+        if current_until >= next.effective_from {
+            return Err(RegistryError::PeriodOverlap {
+                domain: domain.clone(),
+                from: next.effective_from.clone(),
+                until: current_until.clone(),
+            });
+        }
+
+        let until_date = LegalDate::from_date_str(&current_until).ok_or_else(|| {
+            RegistryError::InvalidDateFormat {
+                domain: domain.clone(),
+                value: current_until.clone(),
+            }
+        })?;
+        let expected_next_from = until_date.next_day().to_date_str();
+        if expected_next_from != next.effective_from {
+            return Err(RegistryError::PeriodGap {
+                domain: domain.clone(),
+                end: current_until,
+                next_start: next.effective_from.clone(),
+            });
+        }
+    }
+
+    Ok(())
 }
 
 fn find_entry<'a>(
@@ -244,6 +296,61 @@ fn registry_parse_error(err: impl Into<JLawError>) -> JLawError {
 #[allow(clippy::disallowed_methods)]
 mod tests {
     use super::*;
+    use crate::stamp_tax_schema::{StampTaxHistoryEntry, StampTaxParamsEntry, StampTaxRegistry};
+
+    fn make_registry(entries: Vec<StampTaxHistoryEntry>) -> StampTaxRegistry {
+        StampTaxRegistry {
+            domain: "stamp_tax".into(),
+            history: entries,
+        }
+    }
+
+    fn make_entry(from: &str, until: Option<&str>) -> StampTaxHistoryEntry {
+        StampTaxHistoryEntry {
+            effective_from: from.into(),
+            effective_until: until.map(|s| s.into()),
+            params: StampTaxParamsEntry {
+                documents: BTreeMap::new(),
+            },
+        }
+    }
+
+    #[test]
+    fn registry_validation_passes_for_current_data() {
+        let json_str = include_str!("../data/stamp_tax/stamp_tax.json");
+        let registry: StampTaxRegistry = serde_json::from_str(json_str).unwrap();
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_detects_overlap() {
+        let reg = make_registry(vec![
+            make_entry("2014-04-01", Some("2020-01-15")),
+            make_entry("2020-01-01", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_gap() {
+        let reg = make_registry(vec![
+            make_entry("2014-04-01", Some("2019-12-31")),
+            make_entry("2020-01-03", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodGap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_open_ended_before_next() {
+        let reg = make_registry(vec![
+            make_entry("2014-04-01", None),
+            make_entry("2020-01-01", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
 
     #[test]
     fn load_2024_params() {

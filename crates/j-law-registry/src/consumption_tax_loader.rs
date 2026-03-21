@@ -3,6 +3,8 @@ use j_law_core::domains::consumption_tax::params::{ConsumptionTaxParams, Consump
 use j_law_core::types::date::LegalDate;
 use j_law_core::{JLawError, RegistryError};
 
+const PATH: &str = "consumption_tax/consumption_tax.json";
+
 /// `consumption_tax.json` をロードして `target_date` に対応するパラメータを返す。
 ///
 /// # 法的根拠
@@ -22,9 +24,10 @@ pub fn load_consumption_tax_params(
 
     let registry: ConsumptionTaxRegistry =
         serde_json::from_str(json_str).map_err(|e| RegistryError::ParseError {
-            path: "consumption_tax/consumption_tax.json".into(),
+            path: PATH.into(),
             cause: e.to_string(),
         })?;
+    validate_registry(&registry)?;
 
     let date_str = target_date.to_date_str();
 
@@ -53,6 +56,74 @@ fn find_entry<'a>(
     })
 }
 
+/// `ConsumptionTaxRegistry` の整合性を検証する。
+///
+/// # 検証内容
+/// - 適用期間の重複（Overlap）
+/// - 適用期間の空白（Gap）
+/// - 分母ゼロ（standard_rate.denom / reduced_rate.denom）
+fn validate_registry(registry: &ConsumptionTaxRegistry) -> Result<(), RegistryError> {
+    let domain = &registry.domain;
+
+    // 分母ゼロチェック
+    for (i, entry) in registry.history.iter().enumerate() {
+        if entry.params.standard_rate.denom == 0 {
+            return Err(RegistryError::ZeroDenominator {
+                path: format!("{domain}/history[{i}]/standard_rate.denom"),
+            });
+        }
+        if let Some(reduced) = &entry.params.reduced_rate {
+            if reduced.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!("{domain}/history[{i}]/reduced_rate.denom"),
+                });
+            }
+        }
+    }
+
+    // 期間の重複・ギャップチェック
+    let mut sorted = registry.history.clone();
+    sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
+
+    for [current, next] in sorted.array_windows::<2>() {
+        let current_until = match &current.effective_until {
+            Some(d) => d.clone(),
+            None => {
+                return Err(RegistryError::PeriodOverlap {
+                    domain: domain.clone(),
+                    from: next.effective_from.clone(),
+                    until: "open-ended".into(),
+                });
+            }
+        };
+
+        if current_until >= next.effective_from {
+            return Err(RegistryError::PeriodOverlap {
+                domain: domain.clone(),
+                from: next.effective_from.clone(),
+                until: current_until.clone(),
+            });
+        }
+
+        let until_date = LegalDate::from_date_str(&current_until).ok_or_else(|| {
+            RegistryError::InvalidDateFormat {
+                domain: domain.clone(),
+                value: current_until.clone(),
+            }
+        })?;
+        let expected_next_from = until_date.next_day().to_date_str();
+        if expected_next_from != next.effective_from {
+            return Err(RegistryError::PeriodGap {
+                domain: domain.clone(),
+                end: current_until,
+                next_start: next.effective_from.clone(),
+            });
+        }
+    }
+
+    Ok(())
+}
+
 fn to_params(entry: &ConsumptionTaxHistoryEntry) -> ConsumptionTaxParams {
     ConsumptionTaxParams {
         standard_rate: ConsumptionTaxRate {
@@ -74,6 +145,89 @@ fn to_params(entry: &ConsumptionTaxHistoryEntry) -> ConsumptionTaxParams {
 #[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
+    use crate::consumption_tax_schema::{
+        ConsumptionTaxCitationEntry, ConsumptionTaxFraction, ConsumptionTaxHistoryEntry,
+        ConsumptionTaxParamsEntry, ConsumptionTaxRegistry,
+    };
+
+    fn make_registry(entries: Vec<ConsumptionTaxHistoryEntry>) -> ConsumptionTaxRegistry {
+        ConsumptionTaxRegistry {
+            domain: "consumption_tax".into(),
+            history: entries,
+        }
+    }
+
+    fn make_entry(from: &str, until: Option<&str>) -> ConsumptionTaxHistoryEntry {
+        ConsumptionTaxHistoryEntry {
+            effective_from: from.into(),
+            effective_until: until.map(|s| s.into()),
+            status: "active".into(),
+            citation: ConsumptionTaxCitationEntry {
+                law_id: "test".into(),
+                law_name: "消費税法".into(),
+                article: 29,
+                paragraph: None,
+                ministry: "財務省".into(),
+            },
+            params: ConsumptionTaxParamsEntry {
+                standard_rate: ConsumptionTaxFraction { numer: 10, denom: 100 },
+                reduced_rate: None,
+            },
+        }
+    }
+
+    #[test]
+    fn registry_validation_passes_for_current_data() {
+        let json_str = include_str!("../data/consumption_tax/consumption_tax.json");
+        let registry: ConsumptionTaxRegistry = serde_json::from_str(json_str).unwrap();
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_detects_overlap() {
+        let reg = make_registry(vec![
+            make_entry("1989-04-01", Some("1997-04-15")),
+            make_entry("1997-04-01", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_gap() {
+        let reg = make_registry(vec![
+            make_entry("1989-04-01", Some("1997-03-31")),
+            make_entry("1997-04-03", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodGap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_zero_denominator_standard_rate() {
+        let mut reg = make_registry(vec![make_entry("1989-04-01", None)]);
+        reg.history[0].params.standard_rate.denom = 0;
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::ZeroDenominator { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_zero_denominator_reduced_rate() {
+        let mut reg = make_registry(vec![make_entry("2019-10-01", None)]);
+        reg.history[0].params.reduced_rate = Some(ConsumptionTaxFraction { numer: 8, denom: 0 });
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::ZeroDenominator { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_open_ended_before_next() {
+        let reg = make_registry(vec![
+            make_entry("1989-04-01", None), // effective_until なし（open-ended）
+            make_entry("1997-04-01", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
 
     #[test]
     fn load_3pct_1990() {

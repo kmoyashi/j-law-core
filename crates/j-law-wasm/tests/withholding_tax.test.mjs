@@ -33,9 +33,9 @@ describe("calcWithholdingTax - フィクスチャ駆動", () => {
         c.input.separated_consumption_tax_amount
       );
 
-      assert.equal(result.taxablePaymentAmount, c.expected.taxable_payment_amount);
-      assert.equal(result.taxAmount, c.expected.tax_amount);
-      assert.equal(result.netPaymentAmount, c.expected.net_payment_amount);
+      assert.equal(result.taxablePaymentAmount, BigInt(c.expected.taxable_payment_amount));
+      assert.equal(result.taxAmount, BigInt(c.expected.tax_amount));
+      assert.equal(result.netPaymentAmount, BigInt(c.expected.net_payment_amount));
       assert.equal(result.submissionPrizeExempted, c.expected.submission_prize_exempted);
     });
   }
