@@ -35,4 +35,12 @@ class TestCFFIAdapter < Minitest::Test
 
     refute_empty error.message
   end
+
+  def test_invalid_date_parts_are_rejected
+    error = assert_raises(ArgumentError) do
+      JLawRuby::Internal::CFFI.calc_brokerage_fee(5_000_000, 2024, 13, 1, false, false)
+    end
+
+    assert_match(/2024-13-01/, error.message)
+  end
 end

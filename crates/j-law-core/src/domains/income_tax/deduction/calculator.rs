@@ -20,6 +20,8 @@ pub fn calculate_income_deductions(
     ctx: &IncomeDeductionContext,
     params: &IncomeDeductionParams,
 ) -> Result<IncomeDeductionResult, JLawError> {
+    ctx.target_date.validate()?;
+
     let mut breakdown = calculate_personal_deductions(ctx, &params.personal)?;
     breakdown.extend(calculate_expense_deductions(ctx, &params.expense)?);
 

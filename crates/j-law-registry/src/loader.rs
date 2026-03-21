@@ -1,5 +1,6 @@
 use crate::consumption_tax_loader::load_consumption_tax_params;
 use crate::schema::{BrokerageFeeRegistry, HistoryEntry};
+use crate::validator::validate;
 use j_law_core::domains::real_estate::params::{
     BrokerageFeeParams, LowCostSpecialParams, TierParam,
 };
@@ -15,6 +16,8 @@ use j_law_core::{InputError, JLawError, RegistryError};
 /// - `target_date` がどの有効期間にも該当しない → `InputError::DateOutOfRange`
 /// - Registry データの不整合 → `RegistryError` でパニック（起動時バリデーション）
 pub fn load_brokerage_fee_params(target_date: LegalDate) -> Result<BrokerageFeeParams, JLawError> {
+    target_date.validate()?;
+
     let json_str = include_str!("../data/real_estate/brokerage_fee.json");
 
     let registry: BrokerageFeeRegistry =
@@ -22,6 +25,7 @@ pub fn load_brokerage_fee_params(target_date: LegalDate) -> Result<BrokerageFeeP
             path: "real_estate/brokerage_fee.json".into(),
             cause: e.to_string(),
         })?;
+    validate(&registry)?;
 
     let date_str = target_date.to_date_str();
 
@@ -85,7 +89,6 @@ fn to_params(
 #[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
-    use crate::validator::validate;
 
     #[test]
     fn load_2024_active_params() {
@@ -202,5 +205,17 @@ mod tests {
         let json_str = include_str!("../data/real_estate/brokerage_fee.json");
         let registry: BrokerageFeeRegistry = serde_json::from_str(json_str).unwrap();
         validate(&registry).unwrap();
+    }
+
+    #[test]
+    fn invalid_month_returns_error() {
+        let result = load_brokerage_fee_params(LegalDate::new(2024, 13, 1));
+        assert!(matches!(result, Err(JLawError::Input(_))));
+    }
+
+    #[test]
+    fn invalid_day_returns_error() {
+        let result = load_brokerage_fee_params(LegalDate::new(2024, 2, 30));
+        assert!(matches!(result, Err(JLawError::Input(_))));
     }
 }

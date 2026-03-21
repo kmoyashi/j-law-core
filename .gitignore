@@ -58,6 +58,7 @@ crates/j-law-ruby/*.gem
 
 # Bundler
 crates/j-law-ruby/.bundle/
+crates/j-law-ruby/Gemfile.lock
 
 # =============================================================================
 # Claude Code

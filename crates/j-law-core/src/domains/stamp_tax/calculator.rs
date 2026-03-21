@@ -36,6 +36,8 @@ pub fn calculate_stamp_tax(
     ctx: &StampTaxContext,
     params: &StampTaxParams,
 ) -> Result<StampTaxResult, JLawError> {
+    ctx.target_date.validate()?;
+
     let document = params.document_params(ctx.document_code).ok_or_else(|| {
         InputError::InvalidStampTaxInput {
             field: "document_code".into(),

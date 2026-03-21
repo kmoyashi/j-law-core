@@ -149,6 +149,7 @@ make docker-test
 ```sh
 cargo test --workspace
 pytest crates/j-law-python/tests/ -v
+wasm-pack build --target nodejs crates/j-law-wasm
 node --test crates/j-law-wasm/tests/*.test.mjs
 cd crates/j-law-ruby && bundle exec rake test
 cd crates/j-law-go && make test

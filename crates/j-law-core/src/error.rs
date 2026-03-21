@@ -42,6 +42,9 @@ pub enum InputError {
     #[error("負の金額は無効です: value={value}")]
     NegativeAmount { value: i64 },
 
+    #[error("無効な日付です: date={date}, reason={reason}")]
+    InvalidDate { date: String, reason: String },
+
     #[error("指定した日付は法令の適用期間外です: date={date}")]
     DateOutOfRange { date: String },
 
@@ -103,6 +106,16 @@ mod tests {
     fn input_error_display() {
         let e = InputError::NegativeAmount { value: -100 };
         assert!(e.to_string().contains("-100"));
+    }
+
+    #[test]
+    fn invalid_date_display() {
+        let e = InputError::InvalidDate {
+            date: "2024-02-30".into(),
+            reason: "指定された月の日数を超えています".into(),
+        };
+        assert!(e.to_string().contains("2024-02-30"));
+        assert!(e.to_string().contains("指定された月の日数"));
     }
 
     #[test]

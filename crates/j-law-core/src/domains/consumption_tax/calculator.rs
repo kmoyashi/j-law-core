@@ -44,6 +44,8 @@ pub fn calculate_consumption_tax(
     ctx: &ConsumptionTaxContext,
     params: &ConsumptionTaxParams,
 ) -> Result<ConsumptionTaxResult, JLawError> {
+    ctx.target_date.validate()?;
+
     let amount = ctx.amount;
     let rounding = ctx.policy.tax_rounding();
     let use_reduced = ctx.policy.should_apply_reduced_rate(&ctx.flags);
@@ -197,6 +199,17 @@ mod tests {
             Err(JLawError::Calculation(
                 crate::error::CalculationError::PolicyNotApplicable { .. }
             ))
+        ));
+    }
+
+    #[test]
+    fn invalid_target_date_is_rejected() {
+        let mut ctx = ctx_standard(100_000);
+        ctx.target_date = LegalDate::new(2024, 2, 30);
+        let result = calculate_consumption_tax(&ctx, &params_10pct());
+        assert!(matches!(
+            result,
+            Err(JLawError::Input(crate::InputError::InvalidDate { .. }))
         ));
     }
 }

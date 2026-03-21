@@ -66,6 +66,8 @@ pub fn calculate_withholding_tax(
     ctx: &WithholdingTaxContext,
     params: &WithholdingTaxParams,
 ) -> Result<WithholdingTaxResult, JLawError> {
+    ctx.target_date.validate()?;
+
     let taxable_payment_amount = ctx
         .payment_amount
         .checked_sub(ctx.separated_consumption_tax_amount)

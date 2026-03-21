@@ -87,4 +87,12 @@ class TestBrokerageFeeLanguageSpecific < Minitest::Test
       JLawRuby::RealEstate.calc_brokerage_fee(5_000_000, 20_240_801, false, false)
     end
   end
+
+  def test_negative_price_is_rejected
+    error = assert_raises(ArgumentError) do
+      JLawRuby::RealEstate.calc_brokerage_fee(-1, Date.new(2024, 8, 1), false, false)
+    end
+
+    assert_match(/price/, error.message)
+  end
 end

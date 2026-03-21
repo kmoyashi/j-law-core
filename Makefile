@@ -3,7 +3,7 @@
 # CIで実行される全チェックをローカルでワンコマンドで再現する。
 # コードを変更したら必ず `make ci` を実行してからプッシュすること。
 
-.PHONY: all fmt fmt-check clippy test audit check-versions sync-go-native ci docker-test
+.PHONY: all fmt fmt-check clippy test audit check-versions sync-go-native sync-go-native-all ci docker-test
 
 ## デフォルト: CIチェック一式を実行
 all: ci
@@ -32,7 +32,7 @@ audit:
 check-versions:
 	./scripts/verify_release_versions.sh
 
-## Go バインディング用の同梱ネイティブアーカイブをソースと同期する
+## Go バインディング用の現在のプラットフォーム向け同梱ネイティブアーカイブをソースと同期する
 ##
 ## verify-native で差分がなければスキップし、差分があれば自動リビルドする。
 ## リビルドされた場合はコミットに含めること。
@@ -40,10 +40,18 @@ sync-go-native:
 	@$(MAKE) -C crates/j-law-go verify-native 2>/dev/null \
 		|| $(MAKE) -C crates/j-law-go sync-native
 
+## Go バインディング用の全対応プラットフォーム分の同梱ネイティブアーカイブをソースと同期する
+##
+## verify-native-all で差分がなければスキップし、差分があれば自動リビルドする。
+## リポジトリに同梱する配布物を更新するメンテナ向け。
+sync-go-native-all:
+	@$(MAKE) -C crates/j-law-go verify-native-all 2>/dev/null \
+		|| $(MAKE) -C crates/j-law-go sync-native-all
+
 ## CIチェック一式: フォーマット・リント・テスト・Go native同期を順番に実行する
 ##
 ## プッシュ前に必ずこのコマンドを実行すること。
-## .github/workflows/ci.yml の lint + test-rust + go verify-native ジョブに相当する。
+## ローカルでは現在のプラットフォーム向け Go 配布物を確認する。
 ci: check-versions fmt-check clippy test sync-go-native
 
 ## 全言語バインディングテストを Docker で実行する

@@ -16,6 +16,8 @@ use j_law_core::{JLawError, RegistryError};
 pub fn load_consumption_tax_params(
     target_date: LegalDate,
 ) -> Result<ConsumptionTaxParams, JLawError> {
+    target_date.validate()?;
+
     let json_str = include_str!("../data/consumption_tax/consumption_tax.json");
 
     let registry: ConsumptionTaxRegistry =
@@ -153,5 +155,14 @@ mod tests {
         let params = load_consumption_tax_params(LegalDate::new(2019, 10, 1)).unwrap();
         assert_eq!(params.standard_rate.numer, 10);
         assert!(params.reduced_rate.is_some());
+    }
+
+    #[test]
+    fn invalid_date_returns_input_error() {
+        let result = load_consumption_tax_params(LegalDate::new(2024, 13, 1));
+        assert!(matches!(
+            result,
+            Err(JLawError::Input(j_law_core::InputError::InvalidDate { .. }))
+        ));
     }
 }

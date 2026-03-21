@@ -83,6 +83,8 @@ pub(crate) fn calculate_income_tax_inner(
     policy: &dyn IncomeTaxPolicy,
     params: &IncomeTaxParams,
 ) -> Result<IncomeTaxResult, JLawError> {
+    target_date.validate()?;
+
     let income = taxable_income;
     let tax_rounding = policy.tax_rounding();
 

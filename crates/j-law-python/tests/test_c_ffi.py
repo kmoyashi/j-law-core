@@ -162,6 +162,19 @@ def test_public_api_rejects_negative_price_as_value_error():
         )
 
 
+@pytest.mark.parametrize(
+    ("args", "date_part"),
+    [
+        ((5_000_000, 2024, 13, 1, False, False), "2024-13-01"),
+        ((5_000_000, 2024, 2, 30, False, False), "2024-02-30"),
+        ((5_000_000, 2024, 0, 1, False, False), "2024-00-01"),
+    ],
+)
+def test_invalid_date_parts_are_rejected(args, date_part):
+    with pytest.raises(_c_ffi.CFFIError, match=date_part):
+        _c_ffi.calc_brokerage_fee(*args)
+
+
 def test_loaded_library_path_exists():
     assert Path(_c_ffi.library_path()).is_file()
 
