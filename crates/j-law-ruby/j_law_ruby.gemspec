@@ -9,10 +9,10 @@ Gem::Specification.new do |spec|
   spec.version = "0.0.1"
   spec.authors = ["j-law-core contributors"]
   spec.email   = []
-  spec.summary = "日本の法令が定める各種計算を法的正確性を保証して実装するライブラリ"
+  spec.summary = "日本法令計算のPoCをRubyから利用するためのアルファ版バインディング"
   spec.description = <<~DESC
-    宅地建物取引業法・所得税法・印紙税法が定める各種計算を、
-    整数演算による端数処理の再現性を保証して実装するRubyバインディングです。
+    日本法令計算の PoC を Ruby から利用するためのバインディングです。
+    実装は alpha 段階であり、計算結果の正確性・完全性・最新性を保証するものではありません。
   DESC
   spec.homepage = "https://github.com/kmoyashi/j-law-core"
   spec.license  = "MIT"

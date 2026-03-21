@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "j-law-python"
 version = "0.0.1"
-description = "日本の法令が定める各種計算を法的正確性を保証して実装するライブラリ（宅建業法・所得税法・印紙税法）"
+description = "日本法令計算の PoC を Python から利用するためのアルファ版バインディング"
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.10"

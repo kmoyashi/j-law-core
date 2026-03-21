@@ -8,6 +8,7 @@ J-Law-Core へのコントリビューションを歓迎します。
 ## 目次
 
 - [開発環境のセットアップ](#開発環境のセットアップ)
+- [プロジェクトステータス表記](#プロジェクトステータス表記)
 - [アーキテクチャ概要](#アーキテクチャ概要)
 - [型システムのルール](#型システムのルール)
 - [エラー型の3層構造](#エラー型の3層構造)
@@ -62,13 +63,24 @@ make ci
 
 ---
 
+## プロジェクトステータス表記
+
+J-Law-Core は `v0.0.1` 時点で alpha / PoC です。公開 README、利用ガイド、パッケージ説明文、生成コードコメントでは、次を守ってください。
+
+- 「法的正確性を保証する」「本番利用可能」と断定しない
+- 計算結果の正確性、完全性、最新性、個別事案への適合性を保証しないことを明記する
+- 実務利用時は一次資料と専門家確認が必要である旨を入れる
+- 必要に応じて [docs/project-status.md](./docs/project-status.md) へリンクする
+
+---
+
 ## アーキテクチャ概要
 
 ### モジュール構成
 
 ```
 crates/
-├── j-law-core/         コアライブラリ（唯一の外部依存: thiserror）
+├── j-law-core/         コアライブラリ（ランタイム依存は `thiserror` のみ）
 │   └── src/
 │       ├── lib.rs              公開 re-export のみ（ロジックなし）
 │       ├── error.rs            全エラー型
@@ -77,7 +89,8 @@ crates/
 │           ├── consumption_tax/ 消費税（消費税法 第29条）
 │           ├── income_tax/     所得税（所得税法 第89条）
 │           ├── real_estate/    不動産（宅建業法 第46条）
-│           └── stamp_tax/      印紙税（印紙税法 別表第一）
+│           ├── stamp_tax/      印紙税（印紙税法 別表第一）
+│           └── withholding_tax/ 源泉徴収（所得税法 第204条第1項）
 ├── j-law-registry/     法令パラメータ管理（JSON → Rust 型のローダ）
 ├── j-law-python/       Python バインディング（ctypes + C ABI）
 ├── j-law-wasm/         WASM バインディング（wasm-bindgen）
@@ -86,9 +99,9 @@ crates/
 └── j-law-go/           Go バインディング（CGo、非 workspace メンバー）
 ```
 
-### ドメインの4ファイルパターン
+### ドメインの基本モジュール構成
 
-全ドメインは以下の4ファイル構成に統一しています。新規ドメイン追加時もこのパターンを踏襲してください。
+全ドメインは少なくとも以下の基本モジュールを持ちます。必要に応じて `assessment.rs` や `deduction.rs` のような補助モジュールを追加してください。
 
 ```
 domains/<domain_name>/
@@ -105,11 +118,11 @@ domains/<domain_name>/
 呼び出し元が `calculator::` や `context::` まで辿らなくても使えるようにするためです。
 
 ```rust
-// 正しい例（income_tax/mod.rs）
-pub use calculator::{calculate_income_tax, IncomeTaxResult, IncomeTaxStep};
-pub use context::{IncomeTaxContext, IncomeTaxFlag};
-pub use params::{IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams};
-pub use policy::StandardIncomeTaxPolicy;
+// 正しい例（real_estate/mod.rs）
+pub use calculator::{calculate_brokerage_fee, CalculationResult, CalculationStep};
+pub use context::{RealEstateContext, RealEstateFlag};
+pub use params::{BrokerageFeeParams, LowCostSpecialParams, TierParam};
+pub use policy::StandardMliitPolicy;
 ```
 
 re-export すべき項目:
@@ -117,6 +130,7 @@ re-export すべき項目:
 - `context` のコンテキスト型とフラグ enum
 - `params` のパラメータ型
 - `policy` の標準ポリシー実装
+- 補助モジュールがある場合は、その主要 API も domain ルートから辿れるようにする
 
 ---
 
@@ -299,29 +313,39 @@ Rust コアと C ABI では、日付は `year: u16, month: u8, day: u8` の **3 
 | 階層 | 配置 | 対象 |
 |---|---|---|
 | ユニットテスト | 各 `src/*.rs` 内の `#[cfg(test)]` | 関数・型単位 |
-| 統合テスト | `crates/j-law-core/tests/<domain>/` | ドメイン全体（Registry 読み込み含む） |
+| 統合テスト | `crates/j-law-core/tests/` | ドメイン全体（Registry 読み込み含む） |
 | バインディングテスト | 各 `crates/j-law-*/tests/` | FFI 経由の動作 |
 
 ### 統合テストの構成
 
 ```
 tests/
+├── consumption_tax.rs
+├── consumption_tax/
+│   └── calculation_examples.rs
 ├── income_tax.rs                        ← エントリファイル（自動検出対象）
 ├── income_tax/
 │   ├── calculation_examples.rs          ← 公式計算例
-│   └── edge_cases.rs                    ← 境界値テスト
+│   ├── deductions_basic_examples.rs
+│   └── full_pipeline_examples.rs
 ├── real_estate.rs
 ├── real_estate/
 │   ├── mlitt_examples.rs
 │   └── edge_cases.rs
-└── stamp_tax/
-    └── calculation_examples.rs
+├── stamp_tax.rs
+├── stamp_tax/
+│   ├── calculation_examples.rs
+│   └── edge_cases.rs
+├── withholding_tax.rs
+└── withholding_tax/
+    ├── calculation_examples.rs
+    └── edge_cases.rs
 ```
 
 ### テスト品質の基準
 
 - **公式資料に基づく**: テストケースは国税庁（NTA）・国交省（MLITT）の公式計算例をソースとする
-- **手計算コメント必須**: テスト関数には期待値の手計算過程をコメントで残す
+- **手計算コメントを推奨**: 期待値の導出が自明でないケースでは、コメントか `breakdown` assertion で根拠を残す
 
 ```rust
 /// 課税所得 5,000,000円
