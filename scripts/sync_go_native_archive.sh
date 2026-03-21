@@ -105,7 +105,7 @@ if [[ "${ACTION}" == "verify" ]]; then
 
   if [[ ! -f "${METADATA_FILE}" ]]; then
     echo "missing vendored native metadata: ${METADATA_FILE}" >&2
-    echo "Run 'make sync-native' (current platform) or repo-root 'make sync-go-native' (all supported platforms) and commit the generated metadata." >&2
+    echo "Run 'make sync-native' or repo-root 'make sync-go-native' (current platform), or repo-root 'make sync-go-native-all' (all supported platforms), and commit the generated metadata." >&2
     exit 1
   fi
 
@@ -113,7 +113,7 @@ if [[ "${ACTION}" == "verify" ]]; then
     || ! grep -Fqx "rustc_version=$(rustc -V)" "${METADATA_FILE}" \
     || ! grep -Fqx "source_fingerprint=${SOURCE_FINGERPRINT}" "${METADATA_FILE}"; then
     echo "vendored native archive is stale: ${DEST_ARCHIVE}" >&2
-    echo "Run 'make sync-native' (current platform) or repo-root 'make sync-go-native' (all supported platforms) and commit the updated archive." >&2
+    echo "Run 'make sync-native' or repo-root 'make sync-go-native' (current platform), or repo-root 'make sync-go-native-all' (all supported platforms), and commit the updated archive." >&2
     exit 1
   fi
 

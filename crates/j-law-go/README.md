@@ -101,7 +101,7 @@ cd crates/j-law-go
 make test
 ```
 
-Rust コアや C ABI を更新して Go 向け配布物を再生成したいメンテナは、リポジトリルートで `make sync-go-native` を実行してください。`crates/j-law-go` 直下の `make sync-native` は現在のプラットフォームのみ更新します。
+Rust コアや C ABI を更新して Go 向け配布物を再生成したいメンテナは、リポジトリルートで `make sync-go-native-all` を実行してください。リポジトリルートの `make sync-go-native` と `crates/j-law-go` 直下の `make sync-native` は現在のプラットフォームのみ更新します。
 
 ## 関連ドキュメント
 
