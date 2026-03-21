@@ -1,6 +1,9 @@
 # J-Law-Core 利用ガイド
 
-このドキュメントは、**現在の実装に基づく公開 API の見取り図**です。詳細なコード例や各言語のセットアップは、対応する binding README を参照してください。
+> [!WARNING]
+> このドキュメントは、**現在の実装に基づく公開 API の見取り図**です。PoC / alpha のため、ここに記載された API や計算結果について法的正確性、完全性、最新性、個別事案への適合性は保証されません。利用前に [プロジェクトステータスと免責](project-status.md) を確認してください。
+
+詳細なコード例や各言語のセットアップは、対応する binding README を参照してください。
 
 ## 対応ドメイン
 
@@ -69,6 +72,7 @@
 
 ## どのドキュメントを見るべきか
 
+- プロジェクトの位置付けと免責: [docs/project-status.md](project-status.md)
 - Rust 全体像: [README.md](../README.md)
 - Python: [crates/j-law-python/README.md](../crates/j-law-python/README.md)
 - JavaScript / WASM: [crates/j-law-wasm/README.md](../crates/j-law-wasm/README.md)
