@@ -195,10 +195,9 @@ fn apply_rate(
     rate_denom: u64,
     policy: &dyn WithholdingTaxPolicy,
 ) -> Result<FinalAmount, JLawError> {
-    let rate = Rate {
-        numer: rate_numer,
-        denom: rate_denom,
-    };
+    let rate = Rate::new(rate_numer, rate_denom).map_err(|_| CalculationError::Overflow {
+        step: "withholding_tax_rate".into(),
+    })?;
     let rounding = policy.tax_rounding();
     Ok(rate
         .apply(

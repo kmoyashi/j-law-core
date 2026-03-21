@@ -35,11 +35,11 @@ impl std::fmt::Display for FinalAmount {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntermediateAmount {
     /// 整数部分（円）。
-    pub whole: u64,
+    pub(crate) whole: u64,
     /// 分子。
-    pub numer: u64,
+    pub(crate) numer: u64,
     /// 分母。`0` は不正値であり、コンストラクタで拒否される。
-    pub denom: u64,
+    pub(crate) denom: u64,
 }
 
 impl IntermediateAmount {
@@ -75,6 +75,21 @@ impl IntermediateAmount {
             rounding.apply_ratio(self.numer, self.denom)?
         };
         Ok(FinalAmount::new(self.whole + frac))
+    }
+
+    /// 整数部分（円）を返す。
+    pub fn whole(&self) -> u64 {
+        self.whole
+    }
+
+    /// 分子を返す。
+    pub fn numer(&self) -> u64 {
+        self.numer
+    }
+
+    /// 分母を返す。
+    pub fn denom(&self) -> u64 {
+        self.denom
     }
 }
 
@@ -155,8 +170,8 @@ mod tests {
     #[test]
     fn from_exact_has_no_fraction() {
         let a = IntermediateAmount::from_exact(100);
-        assert_eq!(a.whole, 100);
-        assert_eq!(a.numer, 0);
+        assert_eq!(a.whole(), 100);
+        assert_eq!(a.numer(), 0);
     }
 
     #[test]
@@ -210,7 +225,7 @@ mod tests {
         let a = IntermediateAmount::try_new(0, 2, 3).unwrap();
         let b = IntermediateAmount::try_new(0, 2, 3).unwrap();
         let c = a.add(&b);
-        assert_eq!(c.whole, 1);
+        assert_eq!(c.whole(), 1);
         // finalize Floor → 1
         assert_eq!(c.finalize(RoundingStrategy::Floor).unwrap().as_yen(), 1);
     }

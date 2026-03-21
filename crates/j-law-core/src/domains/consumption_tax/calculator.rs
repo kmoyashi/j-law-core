@@ -66,10 +66,11 @@ pub fn calculate_consumption_tax(
     let tax_amount = if applied_rate.numer == 0 {
         FinalAmount::new(0)
     } else {
-        let rate = Rate {
-            numer: applied_rate.numer,
-            denom: applied_rate.denom,
-        };
+        let rate = Rate::new(applied_rate.numer, applied_rate.denom).map_err(|_| {
+            CalculationError::Overflow {
+                step: "consumption_tax_rate".into(),
+            }
+        })?;
         // Rate::apply() は端数処理済みの整数を from_exact で包んで返す（numer=0）。
         // そのため .finalize() では端数部が0として評価され、二重端数処理は発生しない。
         rate.apply(

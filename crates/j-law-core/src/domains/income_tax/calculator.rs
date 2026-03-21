@@ -120,10 +120,11 @@ pub(crate) fn calculate_income_tax_inner(
 
     // --- 速算表方式による基準所得税額の計算 ---
     // 税額 = 課税所得金額 × 税率 - 控除額
-    let rate = Rate {
-        numer: bracket.rate_numer,
-        denom: bracket.rate_denom,
-    };
+    let rate = Rate::new(bracket.rate_numer, bracket.rate_denom).map_err(|_| {
+        CalculationError::Overflow {
+            step: "income_tax_rate".into(),
+        }
+    })?;
     let gross_tax = rate
         .apply(
             &IntermediateAmount::from_exact(income),
@@ -156,10 +157,11 @@ pub(crate) fn calculate_income_tax_inner(
 
     let reconstruction_tax_yen = if apply_reconstruction {
         if let Some(rt_params) = &params.reconstruction_tax {
-            let rt_rate = Rate {
-                numer: rt_params.rate_numer,
-                denom: rt_params.rate_denom,
-            };
+            let rt_rate = Rate::new(rt_params.rate_numer, rt_params.rate_denom).map_err(|_| {
+                CalculationError::Overflow {
+                    step: "reconstruction_tax_rate".into(),
+                }
+            })?;
             let rt_rounding = policy.reconstruction_tax_rounding();
             rt_rate
                 .apply(

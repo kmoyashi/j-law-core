@@ -20,9 +20,6 @@ pub enum RegistryError {
         next_start: String,
     },
 
-    #[error("法令データに浮動小数点値が含まれています（整数または分数形式を使用してください）: path={path}")]
-    FloatProhibited { path: String },
-
     #[error("分母にゼロが含まれています: path={path}")]
     ZeroDenominator { path: String },
 
