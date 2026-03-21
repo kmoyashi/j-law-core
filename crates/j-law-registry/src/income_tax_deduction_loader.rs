@@ -23,6 +23,8 @@ use j_law_core::{InputError, JLawError, RegistryError};
 pub fn load_income_tax_deduction_params(
     target_date: LegalDate,
 ) -> Result<IncomeDeductionParams, JLawError> {
+    target_date.validate()?;
+
     let json_str = include_str!("../data/income_tax/deductions.json");
 
     let registry: IncomeTaxDeductionRegistry =

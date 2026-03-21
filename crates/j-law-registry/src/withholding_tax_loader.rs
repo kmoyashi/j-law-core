@@ -18,6 +18,8 @@ use j_law_core::{InputError, JLawError, RegistryError};
 pub fn load_withholding_tax_params(
     target_date: LegalDate,
 ) -> Result<WithholdingTaxParams, JLawError> {
+    target_date.validate()?;
+
     let json_str = include_str!("../data/withholding_tax/withholding_tax.json");
 
     let registry: WithholdingTaxRegistry =

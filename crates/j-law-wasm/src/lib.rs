@@ -355,19 +355,17 @@ fn income_deduction_kind_to_js(kind: IncomeDeductionKind) -> u32 {
 /// 消費税の計算結果。
 ///
 /// Properties:
-/// - `taxAmount`: 消費税額（円）
-/// - `amountWithTax`: 税込金額（円）
-/// - `amountWithoutTax`: 税抜金額（円）
+/// - `taxAmount`: 消費税額（円, JavaScript では BigInt）
+/// - `amountWithTax`: 税込金額（円, JavaScript では BigInt）
+/// - `amountWithoutTax`: 税抜金額（円, JavaScript では BigInt）
 /// - `appliedRateNumer`: 適用税率の分子
 /// - `appliedRateDenom`: 適用税率の分母
 /// - `isReducedRate`: 軽減税率が適用されたか
-///
-/// NOTE: 金額フィールドは u32（最大約42.9億円）。
 #[wasm_bindgen]
 pub struct ConsumptionTaxResult {
-    tax_amount: u32,
-    amount_with_tax: u32,
-    amount_without_tax: u32,
+    tax_amount: u64,
+    amount_with_tax: u64,
+    amount_without_tax: u64,
     applied_rate_numer: u32,
     applied_rate_denom: u32,
     is_reduced_rate: bool,
@@ -376,17 +374,17 @@ pub struct ConsumptionTaxResult {
 #[wasm_bindgen]
 impl ConsumptionTaxResult {
     #[wasm_bindgen(getter, js_name = "taxAmount")]
-    pub fn tax_amount(&self) -> u32 {
+    pub fn tax_amount(&self) -> u64 {
         self.tax_amount
     }
 
     #[wasm_bindgen(getter, js_name = "amountWithTax")]
-    pub fn amount_with_tax(&self) -> u32 {
+    pub fn amount_with_tax(&self) -> u64 {
         self.amount_with_tax
     }
 
     #[wasm_bindgen(getter, js_name = "amountWithoutTax")]
-    pub fn amount_without_tax(&self) -> u32 {
+    pub fn amount_without_tax(&self) -> u64 {
         self.amount_without_tax
     }
 
@@ -409,11 +407,11 @@ impl ConsumptionTaxResult {
 /// 消費税法第29条に基づく消費税額を計算する。
 ///
 /// @param amount - 課税標準額（税抜き・円）。JavaScript の Number 型は 53bit 整数精度のため
-///   u64 を直接受け取れない。法人取引では 42.9 億円（u32 上限）を超える課税標準額が
-///   現実的に発生するため、f64 で受け取り u64 に変換する。
+///   u64 を直接受け取れないため、安全な整数 Number のみ受け付ける。
 /// @param date - 基準日（JavaScript Date オブジェクト。JST で解釈される）
 /// @param isReducedRate - 軽減税率フラグ（2019-10-01以降の飲食料品・新聞等）
 /// @returns ConsumptionTaxResult
+/// @throws 入力値が安全な整数でない場合
 /// @throws 軽減税率フラグが指定されたが対象日に軽減税率が存在しない場合
 #[wasm_bindgen(js_name = "calcConsumptionTax")]
 pub fn calc_consumption_tax(
@@ -422,9 +420,10 @@ pub fn calc_consumption_tax(
     is_reduced_rate: bool,
 ) -> Result<ConsumptionTaxResult, JsValue> {
     let (year, month, day) = extract_jst_date(date);
+    let target_date = LegalDate::new(year, month, day);
 
-    let params = load_consumption_tax_params(LegalDate::new(year, month, day))
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let params =
+        load_consumption_tax_params(target_date).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let mut flags = HashSet::new();
     if is_reduced_rate {
@@ -433,7 +432,7 @@ pub fn calc_consumption_tax(
 
     let ctx = ConsumptionTaxContext {
         amount: f64_to_u64_checked(amount, "amount")?,
-        target_date: LegalDate::new(year, month, day),
+        target_date,
         flags,
         policy: Box::new(StandardConsumptionTaxPolicy),
     };
@@ -442,12 +441,9 @@ pub fn calc_consumption_tax(
         calculate_consumption_tax(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     Ok(ConsumptionTaxResult {
-        tax_amount: yen_u64_to_u32(result.tax_amount.as_yen(), "tax_amount")?,
-        amount_with_tax: yen_u64_to_u32(result.amount_with_tax.as_yen(), "amount_with_tax")?,
-        amount_without_tax: yen_u64_to_u32(
-            result.amount_without_tax.as_yen(),
-            "amount_without_tax",
-        )?,
+        tax_amount: result.tax_amount.as_yen(),
+        amount_with_tax: result.amount_with_tax.as_yen(),
+        amount_without_tax: result.amount_without_tax.as_yen(),
         applied_rate_numer: u32::try_from(result.applied_rate_numer)
             .map_err(|_| JsValue::from_str("applied_rate_numer overflows u32"))?,
         applied_rate_denom: u32::try_from(result.applied_rate_denom)
@@ -1104,12 +1100,14 @@ pub fn calc_stamp_tax(
     flag_values: Option<Box<[JsValue]>>,
 ) -> Result<StampTaxResult, JsValue> {
     let (year, month, day) = extract_jst_date(date);
+    let target_date = LegalDate::new(year, month, day);
     let document_code = document_code
         .parse::<StampTaxDocumentCode>()
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let stated_amount = opt_f64_to_u64_checked(stated_amount, "statedAmount")?;
 
-    let params = load_stamp_tax_params(LegalDate::new(year, month, day))
-        .map_err(|e| JsValue::from_str(&e.to_string()))?;
+    let params =
+        load_stamp_tax_params(target_date).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     let mut flags = HashSet::new();
     if let Some(entries) = flag_values {
@@ -1125,8 +1123,8 @@ pub fn calc_stamp_tax(
 
     let ctx = StampTaxContext {
         document_code,
-        stated_amount: opt_f64_to_u64_checked(stated_amount, "statedAmount")?,
-        target_date: LegalDate::new(year, month, day),
+        stated_amount,
+        target_date,
         flags,
         policy: Box::new(StandardNtaPolicy),
     };

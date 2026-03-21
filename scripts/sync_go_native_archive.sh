@@ -105,7 +105,7 @@ if [[ "${ACTION}" == "verify" ]]; then
 
   if [[ ! -f "${METADATA_FILE}" ]]; then
     echo "missing vendored native metadata: ${METADATA_FILE}" >&2
-    echo "Run 'make sync-native' and commit the generated metadata." >&2
+    echo "Run 'make sync-native' (current platform) or repo-root 'make sync-go-native' (all supported platforms) and commit the generated metadata." >&2
     exit 1
   fi
 
@@ -113,7 +113,7 @@ if [[ "${ACTION}" == "verify" ]]; then
     || ! grep -Fqx "rustc_version=$(rustc -V)" "${METADATA_FILE}" \
     || ! grep -Fqx "source_fingerprint=${SOURCE_FINGERPRINT}" "${METADATA_FILE}"; then
     echo "vendored native archive is stale: ${DEST_ARCHIVE}" >&2
-    echo "Run 'make sync-native' and commit the updated archive." >&2
+    echo "Run 'make sync-native' (current platform) or repo-root 'make sync-go-native' (all supported platforms) and commit the updated archive." >&2
     exit 1
   fi
 
@@ -121,11 +121,12 @@ if [[ "${ACTION}" == "verify" ]]; then
   exit 0
 fi
 
-cargo build \
+cargo rustc \
   -p j-law-c-ffi \
   --release \
   --manifest-path "${WORKSPACE_ROOT}/Cargo.toml" \
-  --target "${TARGET_TRIPLE}"
+  --target "${TARGET_TRIPLE}" \
+  --crate-type staticlib
 
 SOURCE_ARCHIVE="${WORKSPACE_ROOT}/target/${TARGET_TRIPLE}/release/libj_law_c_ffi.a"
 mkdir -p "${DEST_DIR}"

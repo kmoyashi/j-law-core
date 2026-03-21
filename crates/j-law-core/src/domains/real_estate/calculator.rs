@@ -52,6 +52,8 @@ pub fn calculate_brokerage_fee(
     ctx: &RealEstateContext,
     params: &BrokerageFeeParams,
 ) -> Result<CalculationResult, JLawError> {
+    ctx.target_date.validate()?;
+
     let price = ctx.price;
     let tier_rounding = ctx.policy.tier_rounding();
 

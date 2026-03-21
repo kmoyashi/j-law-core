@@ -10,12 +10,25 @@ use j_law_core::{LegalDate, RegistryError};
 ///
 /// # エラー
 /// 不正なデータを検出した場合は起動時にパニックさせてよい（設定ファイルエラー）。
-#[allow(dead_code)] // テストでのみ使用されているが、将来的に他クレートから使用される可能性あり
 pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
     let domain = &registry.domain;
 
-    // 各 tier の denom ゼロチェック
     for entry in &registry.history {
+        if LegalDate::from_date_str(&entry.effective_from).is_none() {
+            return Err(RegistryError::InvalidDateFormat {
+                domain: domain.clone(),
+                value: entry.effective_from.clone(),
+            });
+        }
+        if let Some(until) = &entry.effective_until {
+            if LegalDate::from_date_str(until).is_none() {
+                return Err(RegistryError::InvalidDateFormat {
+                    domain: domain.clone(),
+                    value: until.clone(),
+                });
+            }
+        }
+
         for tier in &entry.params.tiers {
             if tier.rate.denom == 0 {
                 return Err(RegistryError::ZeroDenominator {
@@ -25,19 +38,15 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
         }
     }
 
-    // 期間の重複・空白チェック（日付文字列を辞書順比較）
-    // history は effective_from 昇順であることを前提とする
     let mut sorted = registry.history.clone();
     sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
 
     for [current, next] in sorted.array_windows::<2>() {
         let current_until = match &current.effective_until {
             Some(d) => d.clone(),
-            // active（現行）エントリは期間が終わっていないので次エントリと重複チェック不要
             None => continue,
         };
 
-        // 重複チェック: current.until >= next.from
         if current_until >= next.effective_from {
             return Err(RegistryError::PeriodOverlap {
                 domain: domain.clone(),
@@ -46,8 +55,6 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
             });
         }
 
-        // 空白チェック: current.until の翌日 == next.from であることを検証する。
-        // LegalDate::next_day() による純粋算術ベースの日付演算を使用する。
         let until_date = match LegalDate::from_date_str(&current_until) {
             Some(d) => d,
             None => {
@@ -61,7 +68,7 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
         if expected_next_from != next.effective_from {
             return Err(RegistryError::PeriodGap {
                 domain: domain.clone(),
-                end: current_until.clone(),
+                end: current_until,
                 next_start: next.effective_from.clone(),
             });
         }
@@ -123,7 +130,6 @@ mod tests {
 
     #[test]
     fn gap_detected_simple() {
-        // 2024-06-30 の翌日は 2024-07-01 だが、次エントリが 2024-07-02 → Gap
         let reg: BrokerageFeeRegistry = make_registry(vec![
             make_entry("2019-10-01", Some("2024-06-30")),
             make_entry("2024-07-02", None),
@@ -134,7 +140,6 @@ mod tests {
 
     #[test]
     fn gap_detected_month_boundary() {
-        // 月末境界: 2024-06-30 の翌日は 2024-07-01。2024-08-01 では Gap
         let reg: BrokerageFeeRegistry = make_registry(vec![
             make_entry("2019-10-01", Some("2024-06-30")),
             make_entry("2024-08-01", None),
@@ -145,7 +150,6 @@ mod tests {
 
     #[test]
     fn gap_detected_year_boundary() {
-        // 年末境界: 2023-12-31 の翌日は 2024-01-01。2024-01-02 では Gap
         let reg: BrokerageFeeRegistry = make_registry(vec![
             make_entry("2019-10-01", Some("2023-12-31")),
             make_entry("2024-01-02", None),
@@ -156,7 +160,6 @@ mod tests {
 
     #[test]
     fn valid_year_boundary_no_gap() {
-        // 年末境界: 2023-12-31 の翌日が 2024-01-01 → ギャップなし
         let reg: BrokerageFeeRegistry = make_registry(vec![
             make_entry("2019-10-01", Some("2023-12-31")),
             make_entry("2024-01-01", None),
@@ -166,8 +169,6 @@ mod tests {
 
     #[test]
     fn malformed_date_rejected() {
-        // "2024-00-30" は辞書順で "2024-07-01" より小さいため重複チェックを通過し、
-        // from_date_str で month=0 が弾かれて InvalidDateFormat になる
         let reg: BrokerageFeeRegistry = make_registry(vec![
             make_entry("2019-10-01", Some("2024-00-30")),
             make_entry("2024-07-01", None),
@@ -178,7 +179,6 @@ mod tests {
 
     #[test]
     fn impossible_date_rejected() {
-        // 2月30日は存在しない — from_date_str の厳密バリデーションで拒否される
         let reg: BrokerageFeeRegistry = make_registry(vec![
             make_entry("2019-10-01", Some("2024-02-30")),
             make_entry("2024-07-01", None),
@@ -195,7 +195,7 @@ mod tests {
             label: "tier1".into(),
             price_from: 0,
             price_to_inclusive: Some(2_000_000),
-            rate: Fraction { numer: 5, denom: 0 }, // denom ゼロで異常
+            rate: Fraction { numer: 5, denom: 0 },
         });
         let reg: BrokerageFeeRegistry = make_registry(vec![entry]);
         let err: RegistryError = validate(&reg).unwrap_err();

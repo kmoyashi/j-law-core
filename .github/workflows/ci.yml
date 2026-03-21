@@ -65,6 +65,9 @@ jobs:
             ${{ runner.os }}-cargo-test-
       - name: Run workspace tests
         run: cargo test --workspace
+      - name: Verify all vendored Go native archives
+        working-directory: crates/j-law-go
+        run: make verify-native-all
 
   security:
     name: Security Audit

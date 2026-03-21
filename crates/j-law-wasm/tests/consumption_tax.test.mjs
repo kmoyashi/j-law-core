@@ -24,6 +24,10 @@ const fixtures = JSON.parse(
   readFileSync(resolve(__dirname, "../../../tests/fixtures/consumption_tax.json"), "utf-8")
 );
 
+function asBigInt(value) {
+  return BigInt(value);
+}
+
 // ─── データ駆動テスト ───────────────────────────────────────────────────────
 
 describe("calcConsumptionTax - フィクスチャ駆動", () => {
@@ -35,9 +39,9 @@ describe("calcConsumptionTax - フィクスチャ駆動", () => {
       const r = calcConsumptionTax(amount, date, is_reduced_rate);
       const exp = c.expected;
 
-      assert.equal(r.taxAmount, exp.tax_amount, "taxAmount");
-      assert.equal(r.amountWithTax, exp.amount_with_tax, "amountWithTax");
-      assert.equal(r.amountWithoutTax, exp.amount_without_tax, "amountWithoutTax");
+      assert.equal(r.taxAmount, asBigInt(exp.tax_amount), "taxAmount");
+      assert.equal(r.amountWithTax, asBigInt(exp.amount_with_tax), "amountWithTax");
+      assert.equal(r.amountWithoutTax, asBigInt(exp.amount_without_tax), "amountWithoutTax");
       assert.equal(r.appliedRateNumer, exp.applied_rate_numer, "appliedRateNumer");
       assert.equal(r.appliedRateDenom, exp.applied_rate_denom, "appliedRateDenom");
       assert.equal(r.isReducedRate, exp.is_reduced_rate, "isReducedRate");
@@ -54,7 +58,22 @@ describe("calcConsumptionTax - JS固有テスト", () => {
 
   it("消費税導入前は税額ゼロで正常終了", () => {
     const r = calcConsumptionTax(100_000, new Date(Date.UTC(1988, 0, 1)), false);
-    assert.equal(r.taxAmount, 0);
-    assert.equal(r.amountWithTax, 100_000);
+    assert.equal(r.taxAmount, 0n);
+    assert.equal(r.amountWithTax, 100_000n);
+  });
+
+  it("負数・小数・非有限の amount はエラー", () => {
+    for (const amount of [-1, 100.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      assert.throws(() => calcConsumptionTax(amount, new Date(Date.UTC(2024, 0, 1)), false));
+    }
+  });
+
+  it("u32 を超える税込金額を BigInt で返す", () => {
+    const r = calcConsumptionTax(4_000_000_000, new Date(Date.UTC(2024, 0, 1)), false);
+
+    assert.equal(r.taxAmount, 400_000_000n);
+    assert.equal(r.amountWithTax, 4_400_000_000n);
+    assert.equal(r.amountWithoutTax, 4_000_000_000n);
+    assert.equal(typeof r.amountWithTax, "bigint");
   });
 });

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "date"
 require "ffi"
 require_relative "build_support"
 
@@ -13,6 +14,10 @@ module JLawRuby
       MAX_DEDUCTION_LINES = 8
       LABEL_LEN = 64
       ERROR_BUF_LEN = 256
+      UINT64_MAX = (1 << 64) - 1
+      UINT32_MAX = (1 << 32) - 1
+      UINT16_MAX = (1 << 16) - 1
+      UINT8_MAX = (1 << 8) - 1
       GEM_ROOT = File.expand_path("../..", __dir__)
       LIBRARY_PATH = BuildSupport.resolve_shared_library_path(GEM_ROOT)
 
@@ -236,14 +241,16 @@ module JLawRuby
       end
 
       def calc_brokerage_fee(price, year, month, day, is_low_cost_vacant_house, is_seller)
+        validated_price = validate_u64(price, "price")
+        validated_year, validated_month, validated_day = validate_date_parts(year, month, day)
         result = BrokerageFeeStruct.new
 
         call_with_error do |error_buf|
           j_law_calc_brokerage_fee(
-            price,
-            year,
-            month,
-            day,
+            validated_price,
+            validated_year,
+            validated_month,
+            validated_day,
             bool_to_c_int(is_low_cost_vacant_house),
             bool_to_c_int(is_seller),
             result,
@@ -274,14 +281,16 @@ module JLawRuby
       end
 
       def calc_income_tax(taxable_income, year, month, day, apply_reconstruction_tax)
+        validated_taxable_income = validate_u64(taxable_income, "taxable_income")
+        validated_year, validated_month, validated_day = validate_date_parts(year, month, day)
         result = IncomeTaxStruct.new
 
         call_with_error do |error_buf|
           j_law_calc_income_tax(
-            taxable_income,
-            year,
-            month,
-            day,
+            validated_taxable_income,
+            validated_year,
+            validated_month,
+            validated_day,
             bool_to_c_int(apply_reconstruction_tax),
             result,
             error_buf,
@@ -404,14 +413,16 @@ module JLawRuby
       end
 
       def calc_consumption_tax(amount, year, month, day, is_reduced_rate)
+        validated_amount = validate_u64(amount, "amount")
+        validated_year, validated_month, validated_day = validate_date_parts(year, month, day)
         result = ConsumptionTaxStruct.new
 
         call_with_error do |error_buf|
           j_law_calc_consumption_tax(
-            amount,
-            year,
-            month,
-            day,
+            validated_amount,
+            validated_year,
+            validated_month,
+            validated_day,
             bool_to_c_int(is_reduced_rate),
             result,
             error_buf,
@@ -430,17 +441,21 @@ module JLawRuby
       end
 
       def calc_stamp_tax(document_code, stated_amount, year, month, day, flags_bitset = 0)
+        validated_document_code = validate_u32(document_code, "document_code")
+        validated_stated_amount = stated_amount.nil? ? nil : validate_u64(stated_amount, "stated_amount")
+        validated_year, validated_month, validated_day = validate_date_parts(year, month, day)
+        validated_flags_bitset = validate_u64(flags_bitset, "flags_bitset")
         result = StampTaxStruct.new
 
         call_with_error do |error_buf|
           j_law_calc_stamp_tax(
-            document_code,
-            stated_amount || 0,
-            stated_amount.nil? ? 0 : 1,
-            year,
-            month,
-            day,
-            flags_bitset,
+            validated_document_code,
+            validated_stated_amount || 0,
+            validated_stated_amount.nil? ? 0 : 1,
+            validated_year,
+            validated_month,
+            validated_day,
+            validated_flags_bitset,
             result,
             error_buf,
             ERROR_BUF_LEN
@@ -466,16 +481,21 @@ module JLawRuby
         category,
         is_submission_prize
       )
+        validated_payment_amount = validate_u64(payment_amount, "payment_amount")
+        validated_separated_consumption_tax_amount =
+          validate_u64(separated_consumption_tax_amount, "separated_consumption_tax_amount")
+        validated_year, validated_month, validated_day = validate_date_parts(year, month, day)
+        validated_category = validate_u32(category, "category")
         result = WithholdingTaxStruct.new
 
         call_with_error do |error_buf|
           j_law_calc_withholding_tax(
-            payment_amount,
-            separated_consumption_tax_amount,
-            year,
-            month,
-            day,
-            category,
+            validated_payment_amount,
+            validated_separated_consumption_tax_amount,
+            validated_year,
+            validated_month,
+            validated_day,
+            validated_category,
             bool_to_c_int(is_submission_prize),
             result,
             error_buf,
@@ -525,6 +545,53 @@ module JLawRuby
         !value.zero?
       end
 
+      def validate_u64(value, field)
+        validate_unsigned_integer(value, field, UINT64_MAX)
+      end
+
+      def validate_u32(value, field)
+        validate_unsigned_integer(value, field, UINT32_MAX)
+      end
+
+      def validate_u16(value, field)
+        validate_unsigned_integer(value, field, UINT16_MAX)
+      end
+
+      def validate_u8(value, field)
+        validate_unsigned_integer(value, field, UINT8_MAX)
+      end
+
+      def validate_unsigned_integer(value, field, max_value)
+        unless value.is_a?(Integer)
+          raise TypeError, "#{field} には Integer を指定してください (got #{value.class})"
+        end
+
+        if value.negative?
+          raise ArgumentError, "#{field} には 0 以上の値を指定してください"
+        end
+
+        if value > max_value
+          raise ArgumentError, "#{field} は #{max_value} 以下で指定してください"
+        end
+
+        value
+      end
+
+      def validate_date_parts(year, month, day)
+        validated_year = validate_u16(year, "year")
+        validated_month = validate_u8(month, "month")
+        validated_day = validate_u8(day, "day")
+        Date.new(validated_year, validated_month, validated_day)
+        [validated_year, validated_month, validated_day]
+      rescue Date::Error => e
+        raise ArgumentError,
+              "無効な日付です: #{format_date_parts(validated_year, validated_month, validated_day)} (#{e.message})"
+      end
+
+      def format_date_parts(year, month, day)
+        format("%04d-%02d-%02d", year, month, day)
+      end
+
       def read_struct_array(base_pointer, struct_class, length, max_length: MAX_TIERS)
         safe_length = length.clamp(0, max_length)
         Array.new(safe_length) do |index|
@@ -538,32 +605,45 @@ module JLawRuby
         medical = input[:medical]
         life_insurance = input[:life_insurance]
         donation = input[:donation]
+        year, month, day = validate_date_parts(input[:year], input[:month], input[:day])
 
         struct = IncomeDeductionInputStruct.new
-        struct[:total_income_amount] = input[:total_income_amount]
-        struct[:year] = input[:year]
-        struct[:month] = input[:month]
-        struct[:day] = input[:day]
+        struct[:total_income_amount] = validate_u64(input[:total_income_amount], "total_income_amount")
+        struct[:year] = year
+        struct[:month] = month
+        struct[:day] = day
         struct[:has_spouse] = bool_to_c_int(!spouse.nil?)
-        struct[:spouse_total_income_amount] = spouse&.fetch(:spouse_total_income_amount, 0) || 0
+        struct[:spouse_total_income_amount] =
+          validate_u64(spouse&.fetch(:spouse_total_income_amount, 0) || 0, "spouse_total_income_amount")
         struct[:spouse_is_same_household] = bool_to_c_int(spouse&.fetch(:is_same_household, false) || false)
         struct[:spouse_is_elderly] = bool_to_c_int(spouse&.fetch(:is_elderly, false) || false)
-        struct[:dependent_general_count] = dependent.fetch(:general_count, 0)
-        struct[:dependent_specific_count] = dependent.fetch(:specific_count, 0)
-        struct[:dependent_elderly_cohabiting_count] = dependent.fetch(:elderly_cohabiting_count, 0)
-        struct[:dependent_elderly_other_count] = dependent.fetch(:elderly_other_count, 0)
-        struct[:social_insurance_premium_paid] = input.fetch(:social_insurance_premium_paid, 0)
+        struct[:dependent_general_count] = validate_u64(dependent.fetch(:general_count, 0), "dependent.general_count")
+        struct[:dependent_specific_count] = validate_u64(dependent.fetch(:specific_count, 0), "dependent.specific_count")
+        struct[:dependent_elderly_cohabiting_count] =
+          validate_u64(dependent.fetch(:elderly_cohabiting_count, 0), "dependent.elderly_cohabiting_count")
+        struct[:dependent_elderly_other_count] =
+          validate_u64(dependent.fetch(:elderly_other_count, 0), "dependent.elderly_other_count")
+        struct[:social_insurance_premium_paid] =
+          validate_u64(input.fetch(:social_insurance_premium_paid, 0), "social_insurance_premium_paid")
         struct[:has_medical] = bool_to_c_int(!medical.nil?)
-        struct[:medical_expense_paid] = medical&.fetch(:medical_expense_paid, 0) || 0
-        struct[:medical_reimbursed_amount] = medical&.fetch(:reimbursed_amount, 0) || 0
+        struct[:medical_expense_paid] =
+          validate_u64(medical&.fetch(:medical_expense_paid, 0) || 0, "medical.medical_expense_paid")
+        struct[:medical_reimbursed_amount] =
+          validate_u64(medical&.fetch(:reimbursed_amount, 0) || 0, "medical.reimbursed_amount")
         struct[:has_life_insurance] = bool_to_c_int(!life_insurance.nil?)
-        struct[:life_new_general_paid_amount] = life_insurance&.fetch(:new_general_paid_amount, 0) || 0
-        struct[:life_new_individual_pension_paid_amount] = life_insurance&.fetch(:new_individual_pension_paid_amount, 0) || 0
-        struct[:life_new_care_medical_paid_amount] = life_insurance&.fetch(:new_care_medical_paid_amount, 0) || 0
-        struct[:life_old_general_paid_amount] = life_insurance&.fetch(:old_general_paid_amount, 0) || 0
-        struct[:life_old_individual_pension_paid_amount] = life_insurance&.fetch(:old_individual_pension_paid_amount, 0) || 0
+        struct[:life_new_general_paid_amount] =
+          validate_u64(life_insurance&.fetch(:new_general_paid_amount, 0) || 0, "life_insurance.new_general_paid_amount")
+        struct[:life_new_individual_pension_paid_amount] =
+          validate_u64(life_insurance&.fetch(:new_individual_pension_paid_amount, 0) || 0, "life_insurance.new_individual_pension_paid_amount")
+        struct[:life_new_care_medical_paid_amount] =
+          validate_u64(life_insurance&.fetch(:new_care_medical_paid_amount, 0) || 0, "life_insurance.new_care_medical_paid_amount")
+        struct[:life_old_general_paid_amount] =
+          validate_u64(life_insurance&.fetch(:old_general_paid_amount, 0) || 0, "life_insurance.old_general_paid_amount")
+        struct[:life_old_individual_pension_paid_amount] =
+          validate_u64(life_insurance&.fetch(:old_individual_pension_paid_amount, 0) || 0, "life_insurance.old_individual_pension_paid_amount")
         struct[:has_donation] = bool_to_c_int(!donation.nil?)
-        struct[:donation_qualified_amount] = donation&.fetch(:qualified_donation_amount, 0) || 0
+        struct[:donation_qualified_amount] =
+          validate_u64(donation&.fetch(:qualified_donation_amount, 0) || 0, "donation.qualified_donation_amount")
         struct
       end
 
@@ -573,6 +653,8 @@ module JLawRuby
       end
 
       private_class_method :call_with_error, :bool_to_c_int, :c_int_to_bool,
+                           :validate_u64, :validate_u32, :validate_u16, :validate_u8,
+                           :validate_unsigned_integer, :validate_date_parts, :format_date_parts,
                            :read_struct_array, :read_fixed_string,
                            :build_income_deduction_input_struct
     end

@@ -51,4 +51,12 @@ describe("calcStampTax - JS固有テスト", () => {
       calcStampTax("article17_sales_receipt", 70_000, new Date(Date.UTC(2024, 7, 1)), [1])
     );
   });
+
+  it("負数・小数・非有限の statedAmount はエラー", () => {
+    for (const statedAmount of [-1, 100.5, Number.NaN, Number.POSITIVE_INFINITY]) {
+      assert.throws(() =>
+        calcStampTax("article1_real_estate_transfer", statedAmount, new Date(Date.UTC(2024, 7, 1)))
+      );
+    }
+  });
 });

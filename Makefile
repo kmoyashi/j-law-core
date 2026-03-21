@@ -32,18 +32,18 @@ audit:
 check-versions:
 	./scripts/verify_release_versions.sh
 
-## Go バインディング用の同梱ネイティブアーカイブをソースと同期する
+## Go バインディング用の同梱ネイティブアーカイブを全対応プラットフォーム分ソースと同期する
 ##
-## verify-native で差分がなければスキップし、差分があれば自動リビルドする。
+## verify-native-all で差分がなければスキップし、差分があれば自動リビルドする。
 ## リビルドされた場合はコミットに含めること。
 sync-go-native:
-	@$(MAKE) -C crates/j-law-go verify-native 2>/dev/null \
-		|| $(MAKE) -C crates/j-law-go sync-native
+	@$(MAKE) -C crates/j-law-go verify-native-all 2>/dev/null \
+		|| $(MAKE) -C crates/j-law-go sync-native-all
 
 ## CIチェック一式: フォーマット・リント・テスト・Go native同期を順番に実行する
 ##
 ## プッシュ前に必ずこのコマンドを実行すること。
-## .github/workflows/ci.yml の lint + test-rust + go verify-native ジョブに相当する。
+## .github/workflows/ci.yml の lint + test-rust + Go 配布物検証ステップに相当する。
 ci: check-versions fmt-check clippy test sync-go-native
 
 ## 全言語バインディングテストを Docker で実行する

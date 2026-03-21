@@ -1,3 +1,5 @@
+use crate::InputError;
+
 /// 法令の施行日・基準日を表す日付型。
 ///
 /// 年月日の3要素で特定される暦日（西暦）。
@@ -18,6 +20,42 @@ impl LegalDate {
         Self { year, month, day }
     }
 
+    /// 暦日として妥当な年月日かを検証する。
+    pub fn validate(&self) -> Result<(), InputError> {
+        let date = self.to_date_str();
+
+        if self.year == 0 {
+            return Err(InputError::InvalidDate {
+                date,
+                reason: "年は1以上を指定してください".into(),
+            });
+        }
+
+        if !(1..=12).contains(&self.month) {
+            return Err(InputError::InvalidDate {
+                date,
+                reason: "月は1〜12で指定してください".into(),
+            });
+        }
+
+        if self.day == 0 {
+            return Err(InputError::InvalidDate {
+                date,
+                reason: "日は1以上を指定してください".into(),
+            });
+        }
+
+        let max_day = Self::days_in_month(self.year, self.month);
+        if self.day > max_day {
+            return Err(InputError::InvalidDate {
+                date,
+                reason: format!("指定された月の日数を超えています: max_day={max_day}"),
+            });
+        }
+
+        Ok(())
+    }
+
     /// ISO 8601 形式（"YYYY-MM-DD"）の文字列に変換する。
     ///
     /// Registry JSON の日付文字列との比較に使用する。
@@ -30,19 +68,20 @@ impl LegalDate {
     /// 不正な形式の場合は `None` を返す。
     pub fn from_date_str(s: &str) -> Option<Self> {
         let bytes = s.as_bytes();
-        // "YYYY-MM-DD" = 10 バイト固定
         if bytes.len() != 10 || bytes[4] != b'-' || bytes[7] != b'-' {
             return None;
         }
+
         let year: u16 = s[0..4].parse().ok()?;
         let month: u8 = s[5..7].parse().ok()?;
         let day: u8 = s[8..10].parse().ok()?;
-        if !(1..=12).contains(&month) {
+        if year == 0 || !(1..=12).contains(&month) {
             return None;
         }
         if day < 1 || day > Self::days_in_month(year, month) {
             return None;
         }
+
         Some(Self { year, month, day })
     }
 
@@ -66,7 +105,7 @@ impl LegalDate {
                     28
                 }
             }
-            _ => 0, // 不正な月（呼び出し側で保証）
+            _ => 0,
         }
     }
 
@@ -76,13 +115,10 @@ impl LegalDate {
     pub fn next_day(&self) -> Self {
         let max_day = Self::days_in_month(self.year, self.month);
         if self.day < max_day {
-            // 月内で翌日
             Self::new(self.year, self.month, self.day + 1)
         } else if self.month < 12 {
-            // 翌月1日
             Self::new(self.year, self.month + 1, 1)
         } else {
-            // 翌年1月1日
             Self::new(self.year + 1, 1, 1)
         }
     }
@@ -117,6 +153,44 @@ mod tests {
     }
 
     #[test]
+    fn validate_accepts_leap_day() {
+        assert!(LegalDate::new(2024, 2, 29).validate().is_ok());
+    }
+
+    #[test]
+    fn validate_rejects_invalid_month() {
+        let result = LegalDate::new(2024, 13, 1).validate();
+        assert!(matches!(result, Err(InputError::InvalidDate { .. })));
+        let err_str = match result {
+            Err(err) => err.to_string(),
+            Ok(()) => String::new(),
+        };
+        assert!(err_str.contains("2024-13-01"));
+    }
+
+    #[test]
+    fn validate_rejects_invalid_day() {
+        let result = LegalDate::new(2024, 2, 30).validate();
+        assert!(matches!(result, Err(InputError::InvalidDate { .. })));
+        let err_str = match result {
+            Err(err) => err.to_string(),
+            Ok(()) => String::new(),
+        };
+        assert!(err_str.contains("2024-02-30"));
+    }
+
+    #[test]
+    fn validate_rejects_year_zero() {
+        let result = LegalDate::new(0, 1, 1).validate();
+        assert!(matches!(result, Err(InputError::InvalidDate { .. })));
+        let err_str = match result {
+            Err(err) => err.to_string(),
+            Ok(()) => String::new(),
+        };
+        assert!(err_str.contains("0000-01-01"));
+    }
+
+    #[test]
     fn from_date_str_valid() {
         let d = LegalDate::from_date_str("2024-07-01").unwrap();
         assert_eq!(d, LegalDate::new(2024, 7, 1));
@@ -127,39 +201,29 @@ mod tests {
         assert!(LegalDate::from_date_str("2024-7-1").is_none());
         assert!(LegalDate::from_date_str("20240701").is_none());
         assert!(LegalDate::from_date_str("not-a-date").is_none());
+        assert!(LegalDate::from_date_str("0000-01-01").is_none());
     }
 
     #[test]
     fn from_date_str_rejects_impossible_dates() {
-        // 2月29日は平年では不正
         assert!(LegalDate::from_date_str("2023-02-29").is_none());
-        // 2月29日は閏年では正当
         assert!(LegalDate::from_date_str("2024-02-29").is_some());
-        // 4月31日は存在しない
         assert!(LegalDate::from_date_str("2024-04-31").is_none());
-        // 6月31日は存在しない
         assert!(LegalDate::from_date_str("2024-06-31").is_none());
-        // 月=13 は不正
         assert!(LegalDate::from_date_str("2024-13-01").is_none());
-        // 日=0 は不正
         assert!(LegalDate::from_date_str("2024-01-00").is_none());
     }
 
     #[test]
     fn is_leap_year_cases() {
-        // 400の倍数: 閏年
         assert!(LegalDate::is_leap_year(2000));
-        // 100の倍数だが400の倍数でない: 平年
         assert!(!LegalDate::is_leap_year(1900));
-        // 4の倍数で100の倍数でない: 閏年
         assert!(LegalDate::is_leap_year(2024));
-        // 4の倍数でない: 平年
         assert!(!LegalDate::is_leap_year(2023));
     }
 
     #[test]
     fn next_day_normal() {
-        // 月内の翌日
         assert_eq!(
             LegalDate::new(2024, 7, 15).next_day(),
             LegalDate::new(2024, 7, 16)
@@ -168,7 +232,6 @@ mod tests {
 
     #[test]
     fn next_day_month_end_30() {
-        // 30日月末 → 翌月1日
         assert_eq!(
             LegalDate::new(2024, 6, 30).next_day(),
             LegalDate::new(2024, 7, 1)
@@ -177,7 +240,6 @@ mod tests {
 
     #[test]
     fn next_day_month_end_31() {
-        // 31日月末 → 翌月1日
         assert_eq!(
             LegalDate::new(2024, 7, 31).next_day(),
             LegalDate::new(2024, 8, 1)
@@ -186,7 +248,6 @@ mod tests {
 
     #[test]
     fn next_day_year_end() {
-        // 年末 → 翌年1月1日
         assert_eq!(
             LegalDate::new(2024, 12, 31).next_day(),
             LegalDate::new(2025, 1, 1)
@@ -195,7 +256,6 @@ mod tests {
 
     #[test]
     fn next_day_feb_28_non_leap() {
-        // 平年の2月28日 → 3月1日
         assert_eq!(
             LegalDate::new(2023, 2, 28).next_day(),
             LegalDate::new(2023, 3, 1)
@@ -204,7 +264,6 @@ mod tests {
 
     #[test]
     fn next_day_feb_28_leap() {
-        // 閏年の2月28日 → 2月29日
         assert_eq!(
             LegalDate::new(2024, 2, 28).next_day(),
             LegalDate::new(2024, 2, 29)
@@ -213,7 +272,6 @@ mod tests {
 
     #[test]
     fn next_day_feb_29_leap() {
-        // 閏年の2月29日 → 3月1日
         assert_eq!(
             LegalDate::new(2024, 2, 29).next_day(),
             LegalDate::new(2024, 3, 1)

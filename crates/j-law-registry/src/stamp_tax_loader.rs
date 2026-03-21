@@ -17,6 +17,8 @@ const PATH: &str = "stamp_tax/stamp_tax.json";
 
 /// `stamp_tax.json` をロードして `target_date` に対応するパラメータを返す。
 pub fn load_stamp_tax_params(target_date: LegalDate) -> Result<StampTaxParams, JLawError> {
+    target_date.validate()?;
+
     let json_str = include_str!("../data/stamp_tax/stamp_tax.json");
 
     let registry: StampTaxRegistry =

@@ -13,6 +13,8 @@ use j_law_core::{InputError, JLawError, RegistryError};
 /// # エラー
 /// - `target_date` がどの有効期間にも該当しない → `InputError::DateOutOfRange`
 pub fn load_income_tax_params(target_date: LegalDate) -> Result<IncomeTaxParams, JLawError> {
+    target_date.validate()?;
+
     let json_str = include_str!("../data/income_tax/income_tax.json");
 
     let registry: IncomeTaxRegistry =
@@ -217,6 +219,15 @@ mod tests {
         assert_eq!(first.income_to_inclusive, Some(3_000_000));
         assert_eq!(first.rate_numer, 10);
         assert!(params.reconstruction_tax.is_none());
+    }
+
+    #[test]
+    fn invalid_date_returns_input_error() {
+        let result = load_income_tax_params(LegalDate::new(2024, 2, 30));
+        assert!(matches!(
+            result,
+            Err(JLawError::Input(j_law_core::InputError::InvalidDate { .. }))
+        ));
     }
 
     #[test]
