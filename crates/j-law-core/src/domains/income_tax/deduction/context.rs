@@ -1,4 +1,5 @@
 use crate::types::date::LegalDate;
+use std::fmt;
 
 /// 所得控除計算の入力コンテキスト。
 ///
@@ -19,6 +20,16 @@ pub struct IncomeDeductionContext {
     pub target_date: LegalDate,
     /// 各所得控除の入力値。
     pub deductions: IncomeDeductionInput,
+}
+
+impl fmt::Debug for IncomeDeductionContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IncomeDeductionContext")
+            .field("total_income_amount", &self.total_income_amount)
+            .field("target_date", &self.target_date)
+            .field("deductions", &self.deductions)
+            .finish()
+    }
 }
 
 /// 所得控除全体の入力集合。

@@ -80,6 +80,16 @@ Cargo workspace メンバーは `j-law-core` / `j-law-registry` / `j-law-wasm` /
 
 ### Rust
 
+このクレートは crates.io に公開していないため、git 依存として利用してください。
+
+```toml
+[dependencies]
+j-law-core = { git = "https://github.com/kmoyashi/j-law-core", tag = "v0.0.1" }
+j-law-registry = { git = "https://github.com/kmoyashi/j-law-core", tag = "v0.0.1" }
+```
+
+このリポジトリを手元にクローン済みの場合は、ローカルパス参照も使えます。
+
 ```toml
 [dependencies]
 j-law-core = { path = "crates/j-law-core" }
@@ -92,7 +102,7 @@ use std::collections::HashSet;
 use j_law_core::domains::real_estate::{
     calculator::calculate_brokerage_fee,
     context::RealEstateContext,
-    policy::StandardMliitPolicy,
+    policy::StandardMlitPolicy,
 };
 use j_law_core::LegalDate;
 use j_law_registry::load_brokerage_fee_params;
@@ -102,7 +112,7 @@ let ctx = RealEstateContext {
     price: 5_000_000,
     target_date: date,
     flags: HashSet::new(),
-    policy: Box::new(StandardMliitPolicy),
+    policy: Box::new(StandardMlitPolicy),
 };
 
 let params = load_brokerage_fee_params(date)?;

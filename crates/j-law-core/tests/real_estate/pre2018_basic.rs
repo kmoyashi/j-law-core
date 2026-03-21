@@ -13,7 +13,7 @@
 use std::collections::HashSet;
 
 use j_law_core::domains::real_estate::{
-    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
+    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMlitPolicy,
     RealEstateFlag,
 };
 use j_law_core::LegalDate;
@@ -24,7 +24,7 @@ fn ctx(price: u64, date: LegalDate) -> RealEstateContext {
         price,
         target_date: date,
         flags: HashSet::new(),
-        policy: Box::new(StandardMliitPolicy),
+        policy: Box::new(StandardMlitPolicy),
     }
 }
 
@@ -34,7 +34,7 @@ fn ctx_flags(price: u64, date: LegalDate, flags: &[RealEstateFlag]) -> RealEstat
         price,
         target_date: date,
         flags,
-        policy: Box::new(StandardMliitPolicy),
+        policy: Box::new(StandardMlitPolicy),
     }
 }
 

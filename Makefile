@@ -3,7 +3,7 @@
 # CIで実行される全チェックをローカルでワンコマンドで再現する。
 # コードを変更したら必ず `make ci` を実行してからプッシュすること。
 
-.PHONY: all fmt fmt-check clippy test audit check-versions ci docker-test
+.PHONY: all fmt fmt-check clippy test audit check-versions sync-go-native ci docker-test
 
 ## デフォルト: CIチェック一式を実行
 all: ci
@@ -32,11 +32,19 @@ audit:
 check-versions:
 	./scripts/verify_release_versions.sh
 
-## CIチェック一式: フォーマット・リント・テストを順番に実行する
+## Go バインディング用の同梱ネイティブアーカイブをソースと同期する
+##
+## verify-native で差分がなければスキップし、差分があれば自動リビルドする。
+## リビルドされた場合はコミットに含めること。
+sync-go-native:
+	@$(MAKE) -C crates/j-law-go verify-native 2>/dev/null \
+		|| $(MAKE) -C crates/j-law-go sync-native
+
+## CIチェック一式: フォーマット・リント・テスト・Go native同期を順番に実行する
 ##
 ## プッシュ前に必ずこのコマンドを実行すること。
-## .github/workflows/ci.yml の lint + test-rust ジョブに相当する。
-ci: check-versions fmt-check clippy test
+## .github/workflows/ci.yml の lint + test-rust + go verify-native ジョブに相当する。
+ci: check-versions fmt-check clippy test sync-go-native
 
 ## 全言語バインディングテストを Docker で実行する
 ## GitHub Actions では .github/workflows/ci.yml の言語別マトリクスで直接実行する

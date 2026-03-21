@@ -31,6 +31,8 @@ make docker-test # 全言語バインディングテスト（Docker）
 
 **コードを変更したら必ず `make ci` を実行してからプッシュすること。**
 `make ci` は `.github/workflows/ci.yml` の lint + test-rust ジョブと同等のチェックを行う。
+Go バインディング用のネイティブアーカイブ同期（`sync-go-native`）も含まれており、
+Rust ソース変更時にアーカイブとフィンガープリントが自動で再ビルドされる。
 
 ## 問題解決の姿勢
 

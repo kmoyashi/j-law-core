@@ -222,14 +222,14 @@ fn calculate_rate_amount(
         return Err(InputError::ZeroDenominator.into());
     }
 
-    amount
+    let multiplied = amount
         .checked_mul(numer)
         .ok_or_else(|| CalculationError::Overflow {
             step: overflow_step.into(),
-        })?
-        .checked_div(denom)
-        .ok_or(InputError::ZeroDenominator)
-        .map_err(JLawError::from)
+        })?;
+
+    // SAFETY: denom != 0 はこの関数の先頭ガードで保証済み。
+    Ok(multiplied / denom)
 }
 
 fn zero_line(kind: IncomeDeductionKind, label: &'static str) -> IncomeDeductionLine {

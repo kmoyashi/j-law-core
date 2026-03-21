@@ -26,6 +26,9 @@ pub enum RegistryError {
     #[error("分母にゼロが含まれています: path={path}")]
     ZeroDenominator { path: String },
 
+    #[error("日付の形式が不正です: domain={domain}, value={value}")]
+    InvalidDateFormat { domain: String, value: String },
+
     #[error("JSONファイルが見つかりません: {path}")]
     FileNotFound { path: String },
 

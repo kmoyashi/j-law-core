@@ -1,6 +1,7 @@
 use crate::domains::real_estate::policy::RealEstatePolicy;
 use crate::types::date::LegalDate;
 use std::collections::HashSet;
+use std::fmt;
 
 /// 不動産取引計算に関わる法的フラグ。
 ///
@@ -37,4 +38,15 @@ pub struct RealEstateContext {
     pub flags: HashSet<RealEstateFlag>,
     /// 計算ポリシー（テスト・カスタム計算での差し替えを可能にする）。
     pub policy: Box<dyn RealEstatePolicy>,
+}
+
+impl fmt::Debug for RealEstateContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("RealEstateContext")
+            .field("price", &self.price)
+            .field("target_date", &self.target_date)
+            .field("flags", &self.flags)
+            .field("policy", &"<policy>")
+            .finish()
+    }
 }
