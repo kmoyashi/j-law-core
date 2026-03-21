@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify release tag matches package versions
+        shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
       - if: matrix.os == 'ubuntu-latest'
         uses: docker/setup-qemu-action@v3
@@ -22,6 +23,8 @@ jobs:
         with:
           python-version: "3.11"
       - uses: dtolnay/rust-toolchain@1.94.0
+      - name: Clean Rust build outputs
+        run: cargo clean --manifest-path Cargo.toml
       - name: Build wheels with cibuildwheel
         uses: pypa/cibuildwheel@v2
         env:
@@ -48,6 +51,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify release tag matches package versions
+        shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
       - uses: actions/setup-python@v5
         with:
