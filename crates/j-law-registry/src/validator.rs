@@ -50,7 +50,12 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
         // LegalDate::next_day() による純粋算術ベースの日付演算を使用する。
         let until_date = match LegalDate::from_date_str(&current_until) {
             Some(d) => d,
-            None => continue, // パース失敗は別バリデーションで検出されるためスキップ
+            None => {
+                return Err(RegistryError::InvalidDateFormat {
+                    domain: domain.clone(),
+                    value: current_until.clone(),
+                });
+            }
         };
         let expected_next_from = until_date.next_day().to_date_str();
         if expected_next_from != next.effective_from {
@@ -157,6 +162,29 @@ mod tests {
             make_entry("2024-01-01", None),
         ]);
         assert!(validate(&reg).is_ok());
+    }
+
+    #[test]
+    fn malformed_date_rejected() {
+        // "2024-00-30" は辞書順で "2024-07-01" より小さいため重複チェックを通過し、
+        // from_date_str で month=0 が弾かれて InvalidDateFormat になる
+        let reg: BrokerageFeeRegistry = make_registry(vec![
+            make_entry("2019-10-01", Some("2024-00-30")),
+            make_entry("2024-07-01", None),
+        ]);
+        let err: RegistryError = validate(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::InvalidDateFormat { .. }));
+    }
+
+    #[test]
+    fn impossible_date_rejected() {
+        // 2月30日は存在しない — from_date_str の厳密バリデーションで拒否される
+        let reg: BrokerageFeeRegistry = make_registry(vec![
+            make_entry("2019-10-01", Some("2024-02-30")),
+            make_entry("2024-07-01", None),
+        ]);
+        let err: RegistryError = validate(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::InvalidDateFormat { .. }));
     }
 
     #[test]

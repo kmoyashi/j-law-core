@@ -37,7 +37,10 @@ impl LegalDate {
         let year: u16 = s[0..4].parse().ok()?;
         let month: u8 = s[5..7].parse().ok()?;
         let day: u8 = s[8..10].parse().ok()?;
-        if !(1..=12).contains(&month) || !(1..=31).contains(&day) {
+        if !(1..=12).contains(&month) {
+            return None;
+        }
+        if day < 1 || day > Self::days_in_month(year, month) {
             return None;
         }
         Some(Self { year, month, day })
@@ -124,6 +127,22 @@ mod tests {
         assert!(LegalDate::from_date_str("2024-7-1").is_none());
         assert!(LegalDate::from_date_str("20240701").is_none());
         assert!(LegalDate::from_date_str("not-a-date").is_none());
+    }
+
+    #[test]
+    fn from_date_str_rejects_impossible_dates() {
+        // 2月29日は平年では不正
+        assert!(LegalDate::from_date_str("2023-02-29").is_none());
+        // 2月29日は閏年では正当
+        assert!(LegalDate::from_date_str("2024-02-29").is_some());
+        // 4月31日は存在しない
+        assert!(LegalDate::from_date_str("2024-04-31").is_none());
+        // 6月31日は存在しない
+        assert!(LegalDate::from_date_str("2024-06-31").is_none());
+        // 月=13 は不正
+        assert!(LegalDate::from_date_str("2024-13-01").is_none());
+        // 日=0 は不正
+        assert!(LegalDate::from_date_str("2024-01-00").is_none());
     }
 
     #[test]
