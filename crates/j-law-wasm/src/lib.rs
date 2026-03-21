@@ -121,16 +121,6 @@ fn f64_to_u64_checked(value: f64, field: &str) -> Result<u64, JsValue> {
     Ok(value as u64)
 }
 
-/// u64 の円金額を u32 に変換する。u32::MAX（約 42.9 億円）を超える場合はエラーを返す。
-fn yen_u64_to_u32(value: u64, field: &str) -> Result<u32, JsValue> {
-    u32::try_from(value).map_err(|_| {
-        JsValue::from_str(&format!(
-            "{field}: amount {value} yen exceeds u32 maximum ({max})",
-            max = u32::MAX
-        ))
-    })
-}
-
 /// Optional<f64> の金額を Optional<u64> に変換する。
 fn opt_f64_to_u64_checked(value: Option<f64>, field: &str) -> Result<Option<u64>, JsValue> {
     match value {
@@ -459,46 +449,42 @@ pub fn calc_consumption_tax(
 /// 媒介報酬の計算結果。
 ///
 /// Properties:
-/// - `totalWithoutTax`: 税抜合計額（円）
-/// - `totalWithTax`: 税込合計額（円）
-/// - `taxAmount`: 消費税額（円）
+/// - `totalWithoutTax`: 税抜合計額（円）BigInt
+/// - `totalWithTax`: 税込合計額（円）BigInt
+/// - `taxAmount`: 消費税額（円）BigInt
 /// - `lowCostSpecialApplied`: 低廉な空き家特例が適用されたか
 /// - `breakdown()`: 各ティアの計算内訳（`{ label, baseAmount, rateNumer, rateDenom, result }[]`）
-///
-/// NOTE: 金額フィールドは u32（最大約42.9億円）。
-/// JavaScript の Number 精度制約（53bit整数）との互換性を保つため意図的に u32 を使用している。
-/// u64 が必要な取引には wasm-bindgen の BigInt 対応バインディングを別途検討すること。
 #[wasm_bindgen]
 pub struct BrokerageFeeResult {
-    total_without_tax: u32,
-    total_with_tax: u32,
-    tax_amount: u32,
+    total_without_tax: u64,
+    total_with_tax: u64,
+    tax_amount: u64,
     low_cost_special_applied: bool,
     breakdown_data: Vec<BreakdownStepData>,
 }
 
 struct BreakdownStepData {
     label: String,
-    base_amount: u32,
+    base_amount: u64,
     rate_numer: u32,
     rate_denom: u32,
-    result: u32,
+    result: u64,
 }
 
 #[wasm_bindgen]
 impl BrokerageFeeResult {
     #[wasm_bindgen(getter, js_name = "totalWithoutTax")]
-    pub fn total_without_tax(&self) -> u32 {
+    pub fn total_without_tax(&self) -> u64 {
         self.total_without_tax
     }
 
     #[wasm_bindgen(getter, js_name = "totalWithTax")]
-    pub fn total_with_tax(&self) -> u32 {
+    pub fn total_with_tax(&self) -> u64 {
         self.total_with_tax
     }
 
     #[wasm_bindgen(getter, js_name = "taxAmount")]
-    pub fn tax_amount(&self) -> u32 {
+    pub fn tax_amount(&self) -> u64 {
         self.tax_amount
     }
 
@@ -507,7 +493,6 @@ impl BrokerageFeeResult {
         self.low_cost_special_applied
     }
 
-    /// JavaScript への値返却のため f64 を使用
     pub fn breakdown(&self) -> Array {
         self.breakdown_data
             .iter()
@@ -521,7 +506,7 @@ impl BrokerageFeeResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("baseAmount"),
-                    &JsValue::from_f64(step.base_amount as f64),
+                    &bigint_js_value(step.base_amount),
                 );
                 let _ = js_sys::Reflect::set(
                     &obj,
@@ -536,7 +521,7 @@ impl BrokerageFeeResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("result"),
-                    &JsValue::from_f64(step.result as f64),
+                    &bigint_js_value(step.result),
                 );
                 JsValue::from(obj)
             })
@@ -546,11 +531,12 @@ impl BrokerageFeeResult {
 
 #[wasm_bindgen(js_name = "calcBrokerageFee")]
 pub fn calc_brokerage_fee(
-    price: u32,
+    price: f64,
     date: &js_sys::Date,
     is_low_cost_vacant_house: bool,
     is_seller: bool,
 ) -> Result<BrokerageFeeResult, JsValue> {
+    let price = f64_to_u64_checked(price, "price")?;
     let (year, month, day) = extract_jst_date(date);
 
     let params = load_brokerage_fee_params(LegalDate::new(year, month, day))
@@ -565,7 +551,7 @@ pub fn calc_brokerage_fee(
     }
 
     let ctx = RealEstateContext {
-        price: u64::from(price),
+        price,
         target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardMlitPolicy),
@@ -580,20 +566,20 @@ pub fn calc_brokerage_fee(
         .map(|step| {
             Ok(BreakdownStepData {
                 label: step.label.clone(),
-                base_amount: yen_u64_to_u32(step.base_amount, "breakdown.base_amount")?,
+                base_amount: step.base_amount,
                 rate_numer: u32::try_from(step.rate_numer)
                     .map_err(|_| JsValue::from_str("breakdown.rate_numer overflows u32"))?,
                 rate_denom: u32::try_from(step.rate_denom)
                     .map_err(|_| JsValue::from_str("breakdown.rate_denom overflows u32"))?,
-                result: yen_u64_to_u32(step.result.as_yen(), "breakdown.result")?,
+                result: step.result.as_yen(),
             })
         })
         .collect::<Result<Vec<_>, JsValue>>()?;
 
     Ok(BrokerageFeeResult {
-        total_without_tax: yen_u64_to_u32(result.total_without_tax.as_yen(), "total_without_tax")?,
-        total_with_tax: yen_u64_to_u32(result.total_with_tax.as_yen(), "total_with_tax")?,
-        tax_amount: yen_u64_to_u32(result.tax_amount.as_yen(), "tax_amount")?,
+        total_without_tax: result.total_without_tax.as_yen(),
+        total_with_tax: result.total_with_tax.as_yen(),
+        tax_amount: result.tax_amount.as_yen(),
         low_cost_special_applied: result.low_cost_special_applied,
         breakdown_data,
     })
@@ -606,43 +592,43 @@ pub fn calc_brokerage_fee(
 /// 所得税の計算結果。
 ///
 /// Properties:
-/// - `baseTax`: 基準所得税額（円）
-/// - `reconstructionTax`: 復興特別所得税額（円）
-/// - `totalTax`: 申告納税額（円・100円未満切り捨て）
+/// - `baseTax`: 基準所得税額（円）BigInt
+/// - `reconstructionTax`: 復興特別所得税額（円）BigInt
+/// - `totalTax`: 申告納税額（円・100円未満切り捨て）BigInt
 /// - `reconstructionTaxApplied`: 復興特別所得税が適用されたか
 /// - `breakdown()`: 計算内訳（`{ label, taxableIncome, rateNumer, rateDenom, deduction, result }[]`）
 #[wasm_bindgen]
 pub struct IncomeTaxResult {
-    base_tax: u32,
-    reconstruction_tax: u32,
-    total_tax: u32,
+    base_tax: u64,
+    reconstruction_tax: u64,
+    total_tax: u64,
     reconstruction_tax_applied: bool,
     breakdown_data: Vec<IncomeTaxStepData>,
 }
 
 struct IncomeTaxStepData {
     label: String,
-    taxable_income: u32,
+    taxable_income: u64,
     rate_numer: u32,
     rate_denom: u32,
-    deduction: u32,
-    result: u32,
+    deduction: u64,
+    result: u64,
 }
 
 #[wasm_bindgen]
 impl IncomeTaxResult {
     #[wasm_bindgen(getter, js_name = "baseTax")]
-    pub fn base_tax(&self) -> u32 {
+    pub fn base_tax(&self) -> u64 {
         self.base_tax
     }
 
     #[wasm_bindgen(getter, js_name = "reconstructionTax")]
-    pub fn reconstruction_tax(&self) -> u32 {
+    pub fn reconstruction_tax(&self) -> u64 {
         self.reconstruction_tax
     }
 
     #[wasm_bindgen(getter, js_name = "totalTax")]
-    pub fn total_tax(&self) -> u32 {
+    pub fn total_tax(&self) -> u64 {
         self.total_tax
     }
 
@@ -651,7 +637,6 @@ impl IncomeTaxResult {
         self.reconstruction_tax_applied
     }
 
-    /// JavaScript への値返却のため f64 を使用
     pub fn breakdown(&self) -> Array {
         self.breakdown_data
             .iter()
@@ -665,7 +650,7 @@ impl IncomeTaxResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("taxableIncome"),
-                    &JsValue::from_f64(step.taxable_income as f64),
+                    &bigint_js_value(step.taxable_income),
                 );
                 let _ = js_sys::Reflect::set(
                     &obj,
@@ -680,12 +665,12 @@ impl IncomeTaxResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("deduction"),
-                    &JsValue::from_f64(step.deduction as f64),
+                    &bigint_js_value(step.deduction),
                 );
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("result"),
-                    &JsValue::from_f64(step.result as f64),
+                    &bigint_js_value(step.result),
                 );
                 JsValue::from(obj)
             })
@@ -695,17 +680,19 @@ impl IncomeTaxResult {
 
 /// 所得税法第89条に基づく所得税額を計算する。
 ///
-/// @param taxableIncome - 課税所得金額（円）
+/// @param taxableIncome - 課税所得金額（円）。JavaScript の Number 型は 53bit 整数精度のため
+///   安全な整数 Number のみ受け付ける。
 /// @param date - 基準日（JavaScript Date オブジェクト。JST で解釈される）
 /// @param applyReconstructionTax - 復興特別所得税を適用するか
-/// @returns IncomeTaxResult
+/// @returns IncomeTaxResult（金額フィールドは BigInt）
 /// @throws 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合
 #[wasm_bindgen(js_name = "calcIncomeTax")]
 pub fn calc_income_tax(
-    taxable_income: u32,
+    taxable_income: f64,
     date: &js_sys::Date,
     apply_reconstruction_tax: bool,
 ) -> Result<IncomeTaxResult, JsValue> {
+    let taxable_income = f64_to_u64_checked(taxable_income, "taxableIncome")?;
     let (year, month, day) = extract_jst_date(date);
 
     let params = load_income_tax_params(LegalDate::new(year, month, day))
@@ -717,7 +704,7 @@ pub fn calc_income_tax(
     }
 
     let ctx = IncomeTaxContext {
-        taxable_income: u64::from(taxable_income),
+        taxable_income,
         target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardIncomeTaxPolicy),
@@ -732,24 +719,21 @@ pub fn calc_income_tax(
         .map(|step| {
             Ok(IncomeTaxStepData {
                 label: step.label.clone(),
-                taxable_income: yen_u64_to_u32(step.taxable_income, "breakdown.taxable_income")?,
+                taxable_income: step.taxable_income,
                 rate_numer: u32::try_from(step.rate_numer)
                     .map_err(|_| JsValue::from_str("breakdown.rate_numer overflows u32"))?,
                 rate_denom: u32::try_from(step.rate_denom)
                     .map_err(|_| JsValue::from_str("breakdown.rate_denom overflows u32"))?,
-                deduction: yen_u64_to_u32(step.deduction, "breakdown.deduction")?,
-                result: yen_u64_to_u32(step.result.as_yen(), "breakdown.result")?,
+                deduction: step.deduction,
+                result: step.result.as_yen(),
             })
         })
         .collect::<Result<Vec<_>, JsValue>>()?;
 
     Ok(IncomeTaxResult {
-        base_tax: yen_u64_to_u32(result.base_tax.as_yen(), "base_tax")?,
-        reconstruction_tax: yen_u64_to_u32(
-            result.reconstruction_tax.as_yen(),
-            "reconstruction_tax",
-        )?,
-        total_tax: yen_u64_to_u32(result.total_tax.as_yen(), "total_tax")?,
+        base_tax: result.base_tax.as_yen(),
+        reconstruction_tax: result.reconstruction_tax.as_yen(),
+        total_tax: result.total_tax.as_yen(),
         reconstruction_tax_applied: result.reconstruction_tax_applied,
         breakdown_data,
     })
@@ -1142,10 +1126,10 @@ pub fn calc_stamp_tax(
 /// 源泉徴収税額の計算結果。
 #[wasm_bindgen]
 pub struct WithholdingTaxResult {
-    gross_payment_amount: u32,
-    taxable_payment_amount: u32,
-    tax_amount: u32,
-    net_payment_amount: u32,
+    gross_payment_amount: u64,
+    taxable_payment_amount: u64,
+    tax_amount: u64,
+    net_payment_amount: u64,
     category: String,
     submission_prize_exempted: bool,
     breakdown_data: Vec<BreakdownStepData>,
@@ -1154,22 +1138,22 @@ pub struct WithholdingTaxResult {
 #[wasm_bindgen]
 impl WithholdingTaxResult {
     #[wasm_bindgen(getter, js_name = "grossPaymentAmount")]
-    pub fn gross_payment_amount(&self) -> u32 {
+    pub fn gross_payment_amount(&self) -> u64 {
         self.gross_payment_amount
     }
 
     #[wasm_bindgen(getter, js_name = "taxablePaymentAmount")]
-    pub fn taxable_payment_amount(&self) -> u32 {
+    pub fn taxable_payment_amount(&self) -> u64 {
         self.taxable_payment_amount
     }
 
     #[wasm_bindgen(getter, js_name = "taxAmount")]
-    pub fn tax_amount(&self) -> u32 {
+    pub fn tax_amount(&self) -> u64 {
         self.tax_amount
     }
 
     #[wasm_bindgen(getter, js_name = "netPaymentAmount")]
-    pub fn net_payment_amount(&self) -> u32 {
+    pub fn net_payment_amount(&self) -> u64 {
         self.net_payment_amount
     }
 
@@ -1196,7 +1180,7 @@ impl WithholdingTaxResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("baseAmount"),
-                    &JsValue::from_f64(step.base_amount as f64),
+                    &bigint_js_value(step.base_amount),
                 );
                 let _ = js_sys::Reflect::set(
                     &obj,
@@ -1211,7 +1195,7 @@ impl WithholdingTaxResult {
                 let _ = js_sys::Reflect::set(
                     &obj,
                     &JsValue::from_str("result"),
-                    &JsValue::from_f64(step.result as f64),
+                    &bigint_js_value(step.result),
                 );
                 JsValue::from(obj)
             })
@@ -1221,20 +1205,26 @@ impl WithholdingTaxResult {
 
 /// 所得税法第204条第1項に基づく報酬・料金等の源泉徴収税額を計算する。
 ///
-/// @param paymentAmount - 支払総額（円）
+/// @param paymentAmount - 支払総額（円）。JavaScript の Number 型は 53bit 整数精度のため
+///   安全な整数 Number のみ受け付ける。
 /// @param date - 基準日（JavaScript Date オブジェクト。JST で解釈される）
 /// @param category - `"manuscript_and_lecture" | "professional_fee" | "exclusive_contract_fee"`
 /// @param isSubmissionPrize - 応募作品等の入選賞金・謝金として扱うか
 /// @param separatedConsumptionTaxAmount - 区分表示された消費税額（円）
-/// @returns WithholdingTaxResult
+/// @returns WithholdingTaxResult（金額フィールドは BigInt）
 #[wasm_bindgen(js_name = "calcWithholdingTax")]
 pub fn calc_withholding_tax_js(
-    payment_amount: u32,
+    payment_amount: f64,
     date: &js_sys::Date,
     category: &str,
     is_submission_prize: bool,
-    separated_consumption_tax_amount: u32,
+    separated_consumption_tax_amount: f64,
 ) -> Result<WithholdingTaxResult, JsValue> {
+    let payment_amount = f64_to_u64_checked(payment_amount, "paymentAmount")?;
+    let separated_consumption_tax_amount = f64_to_u64_checked(
+        separated_consumption_tax_amount,
+        "separatedConsumptionTaxAmount",
+    )?;
     let (year, month, day) = extract_jst_date(date);
     let params = load_withholding_tax_params(LegalDate::new(year, month, day))
         .map_err(|e| JsValue::from_str(&e.to_string()))?;
@@ -1247,8 +1237,8 @@ pub fn calc_withholding_tax_js(
     }
 
     let ctx = WithholdingTaxContext {
-        payment_amount: u64::from(payment_amount),
-        separated_consumption_tax_amount: u64::from(separated_consumption_tax_amount),
+        payment_amount,
+        separated_consumption_tax_amount,
         category,
         target_date: LegalDate::new(year, month, day),
         flags,
@@ -1264,30 +1254,21 @@ pub fn calc_withholding_tax_js(
         .map(|step| {
             Ok(BreakdownStepData {
                 label: step.label.clone(),
-                base_amount: yen_u64_to_u32(step.base_amount, "breakdown.base_amount")?,
+                base_amount: step.base_amount,
                 rate_numer: u32::try_from(step.rate_numer)
                     .map_err(|_| JsValue::from_str("breakdown.rate_numer overflows u32"))?,
                 rate_denom: u32::try_from(step.rate_denom)
                     .map_err(|_| JsValue::from_str("breakdown.rate_denom overflows u32"))?,
-                result: yen_u64_to_u32(step.result.as_yen(), "breakdown.result")?,
+                result: step.result.as_yen(),
             })
         })
         .collect::<Result<Vec<_>, JsValue>>()?;
 
     Ok(WithholdingTaxResult {
-        gross_payment_amount: yen_u64_to_u32(
-            result.gross_payment_amount.as_yen(),
-            "gross_payment_amount",
-        )?,
-        taxable_payment_amount: yen_u64_to_u32(
-            result.taxable_payment_amount.as_yen(),
-            "taxable_payment_amount",
-        )?,
-        tax_amount: yen_u64_to_u32(result.tax_amount.as_yen(), "tax_amount")?,
-        net_payment_amount: yen_u64_to_u32(
-            result.net_payment_amount.as_yen(),
-            "net_payment_amount",
-        )?,
+        gross_payment_amount: result.gross_payment_amount.as_yen(),
+        taxable_payment_amount: result.taxable_payment_amount.as_yen(),
+        tax_amount: result.tax_amount.as_yen(),
+        net_payment_amount: result.net_payment_amount.as_yen(),
         category: result.category.to_string(),
         submission_prize_exempted: result.submission_prize_exempted,
         breakdown_data,

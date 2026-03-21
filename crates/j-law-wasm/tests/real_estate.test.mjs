@@ -37,13 +37,13 @@ describe("calcBrokerageFee - フィクスチャ駆動", () => {
       const exp = c.expected;
 
       if ("total_without_tax" in exp) {
-        assert.equal(r.totalWithoutTax, exp.total_without_tax, "totalWithoutTax");
+        assert.equal(r.totalWithoutTax, BigInt(exp.total_without_tax), "totalWithoutTax");
       }
       if ("tax_amount" in exp) {
-        assert.equal(r.taxAmount, exp.tax_amount, "taxAmount");
+        assert.equal(r.taxAmount, BigInt(exp.tax_amount), "taxAmount");
       }
       if ("total_with_tax" in exp) {
-        assert.equal(r.totalWithTax, exp.total_with_tax, "totalWithTax");
+        assert.equal(r.totalWithTax, BigInt(exp.total_with_tax), "totalWithTax");
       }
       if ("low_cost_special_applied" in exp) {
         assert.equal(r.lowCostSpecialApplied, exp.low_cost_special_applied, "lowCostSpecialApplied");
@@ -51,7 +51,7 @@ describe("calcBrokerageFee - フィクスチャ駆動", () => {
       if ("breakdown_results" in exp) {
         const bd = r.breakdown();
         const actual = bd.map((s) => s.result);
-        assert.deepEqual(actual, exp.breakdown_results, "breakdown_results");
+        assert.deepEqual(actual, exp.breakdown_results.map(BigInt), "breakdown_results");
       }
     });
   }

@@ -53,9 +53,9 @@ describe("calcIncomeTax - フィクスチャ駆動", () => {
       const r = calcIncomeTax(taxable_income, date, apply_reconstruction_tax);
       const exp = c.expected;
 
-      assert.equal(r.baseTax, exp.base_tax, "baseTax");
-      assert.equal(r.reconstructionTax, exp.reconstruction_tax, "reconstructionTax");
-      assert.equal(r.totalTax, exp.total_tax, "totalTax");
+      assert.equal(r.baseTax, asBigInt(exp.base_tax), "baseTax");
+      assert.equal(r.reconstructionTax, asBigInt(exp.reconstruction_tax), "reconstructionTax");
+      assert.equal(r.totalTax, asBigInt(exp.total_tax), "totalTax");
       assert.equal(r.reconstructionTaxApplied, exp.reconstruction_tax_applied, "reconstructionTaxApplied");
     });
   }

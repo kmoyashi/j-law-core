@@ -5,6 +5,8 @@ use j_law_core::domains::income_tax::params::{
 use j_law_core::types::date::LegalDate;
 use j_law_core::{InputError, JLawError, RegistryError};
 
+const PATH: &str = "income_tax/income_tax.json";
+
 /// `income_tax.json` をロードして `target_date` に対応するパラメータを返す。
 ///
 /// # 法的根拠
@@ -19,9 +21,10 @@ pub fn load_income_tax_params(target_date: LegalDate) -> Result<IncomeTaxParams,
 
     let registry: IncomeTaxRegistry =
         serde_json::from_str(json_str).map_err(|e| RegistryError::ParseError {
-            path: "income_tax/income_tax.json".into(),
+            path: PATH.into(),
             cause: e.to_string(),
         })?;
+    validate_registry(&registry)?;
 
     let date_str = target_date.to_date_str();
 
@@ -30,6 +33,76 @@ pub fn load_income_tax_params(target_date: LegalDate) -> Result<IncomeTaxParams,
     })?;
 
     Ok(to_params(entry))
+}
+
+/// `IncomeTaxRegistry` の整合性を検証する。
+///
+/// # 検証内容
+/// - 適用期間の重複（Overlap）
+/// - 適用期間の空白（Gap）
+/// - 分母ゼロ（ブラケット rate.denom / reconstruction_tax rate.denom）
+fn validate_registry(registry: &IncomeTaxRegistry) -> Result<(), RegistryError> {
+    let domain = &registry.domain;
+
+    // 分母ゼロチェック
+    for (i, entry) in registry.history.iter().enumerate() {
+        for (j, bracket) in entry.params.brackets.iter().enumerate() {
+            if bracket.rate.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!("{domain}/history[{i}]/brackets[{j}]/rate.denom"),
+                });
+            }
+        }
+        if let Some(rt) = &entry.params.reconstruction_tax {
+            if rt.rate.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!("{domain}/history[{i}]/reconstruction_tax/rate.denom"),
+                });
+            }
+        }
+    }
+
+    // 期間の重複・ギャップチェック
+    let mut sorted = registry.history.clone();
+    sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
+
+    for [current, next] in sorted.array_windows::<2>() {
+        let current_until = match &current.effective_until {
+            Some(d) => d.clone(),
+            None => {
+                return Err(RegistryError::PeriodOverlap {
+                    domain: domain.clone(),
+                    from: next.effective_from.clone(),
+                    until: "open-ended".into(),
+                });
+            }
+        };
+
+        if current_until >= next.effective_from {
+            return Err(RegistryError::PeriodOverlap {
+                domain: domain.clone(),
+                from: next.effective_from.clone(),
+                until: current_until.clone(),
+            });
+        }
+
+        let until_date = LegalDate::from_date_str(&current_until).ok_or_else(|| {
+            RegistryError::InvalidDateFormat {
+                domain: domain.clone(),
+                value: current_until.clone(),
+            }
+        })?;
+        let expected_next_from = until_date.next_day().to_date_str();
+        if expected_next_from != next.effective_from {
+            return Err(RegistryError::PeriodGap {
+                domain: domain.clone(),
+                end: current_until,
+                next_start: next.effective_from.clone(),
+            });
+        }
+    }
+
+    Ok(())
 }
 
 fn find_entry<'a>(
@@ -83,6 +156,98 @@ fn to_params(entry: &IncomeTaxHistoryEntry) -> IncomeTaxParams {
 #[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
+    use crate::income_tax_schema::{
+        IncomeTaxBracketEntry, IncomeTaxHistoryEntry, IncomeTaxParamsEntry, IncomeTaxRegistry,
+        ReconstructionTaxEntry,
+    };
+    use crate::schema::Fraction;
+
+    fn make_registry(entries: Vec<IncomeTaxHistoryEntry>) -> IncomeTaxRegistry {
+        IncomeTaxRegistry {
+            domain: "income_tax".into(),
+            history: entries,
+        }
+    }
+
+    fn make_entry(from: &str, until: Option<&str>) -> IncomeTaxHistoryEntry {
+        IncomeTaxHistoryEntry {
+            effective_from: from.into(),
+            effective_until: until.map(|s| s.into()),
+            params: IncomeTaxParamsEntry {
+                brackets: vec![IncomeTaxBracketEntry {
+                    label: "一律".into(),
+                    income_from: 0,
+                    income_to_inclusive: None,
+                    rate: Fraction {
+                        numer: 10,
+                        denom: 100,
+                    },
+                    deduction: 0,
+                }],
+                reconstruction_tax: None,
+            },
+        }
+    }
+
+    #[test]
+    fn registry_validation_passes_for_current_data() {
+        let json_str = include_str!("../data/income_tax/income_tax.json");
+        let registry: IncomeTaxRegistry = serde_json::from_str(json_str).unwrap();
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_detects_overlap() {
+        let reg = make_registry(vec![
+            make_entry("1989-01-01", Some("1995-01-15")),
+            make_entry("1995-01-01", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_gap() {
+        let reg = make_registry(vec![
+            make_entry("1989-01-01", Some("1994-12-31")),
+            make_entry("1995-01-03", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodGap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_open_ended_before_next() {
+        let reg = make_registry(vec![
+            make_entry("1989-01-01", None),
+            make_entry("1995-01-01", None),
+        ]);
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_zero_denominator_bracket() {
+        let mut reg = make_registry(vec![make_entry("1989-01-01", None)]);
+        reg.history[0].params.brackets[0].rate.denom = 0;
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::ZeroDenominator { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_zero_denominator_reconstruction_tax() {
+        let mut reg = make_registry(vec![make_entry("2013-01-01", None)]);
+        reg.history[0].params.reconstruction_tax = Some(ReconstructionTaxEntry {
+            rate: Fraction {
+                numer: 21,
+                denom: 0,
+            },
+            effective_from_year: 2013,
+            effective_to_year_inclusive: 2037,
+        });
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::ZeroDenominator { .. }));
+    }
 
     // ─── 現行（2015年〜）7段階 ────────────────────────────────────────────────
 

@@ -138,7 +138,7 @@ jobs:
     strategy:
       # Published npm package targets currently supported Node.js release lines.
       matrix:
-        node-version: ["20", "22", "24", "25"]
+        node-version: ["20", "22", "24"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
