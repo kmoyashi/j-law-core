@@ -15,6 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify release tag matches package versions
+        shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
 
       - uses: dtolnay/rust-toolchain@1.94.0
@@ -27,10 +28,12 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
-            target/
           key: ${{ runner.os }}-cargo-wasm-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-wasm-
+
+      - name: Clean Rust build outputs
+        run: cargo clean --manifest-path Cargo.toml
 
       - name: Install wasm-pack
         run: curl -fsSL https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
