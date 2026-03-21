@@ -27,6 +27,7 @@ pub fn load_withholding_tax_params(
             path: "withholding_tax/withholding_tax.json".into(),
             cause: e.to_string(),
         })?;
+    validate_periods(&registry)?;
 
     let date_str = target_date.to_date_str();
     let entry = find_entry(&registry, &date_str).ok_or_else(|| InputError::DateOutOfRange {
@@ -34,6 +35,58 @@ pub fn load_withholding_tax_params(
     })?;
 
     to_params(entry)
+}
+
+/// `WithholdingTaxRegistry` の適用期間の整合性を検証する。
+///
+/// # 検証内容
+/// - 適用期間の重複（Overlap）
+/// - 適用期間の空白（Gap）
+///
+/// 分母ゼロは `to_params()` で個別にチェックする。
+fn validate_periods(registry: &WithholdingTaxRegistry) -> Result<(), RegistryError> {
+    let domain = &registry.domain;
+
+    let mut sorted = registry.history.clone();
+    sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
+
+    for [current, next] in sorted.array_windows::<2>() {
+        let current_until = match &current.effective_until {
+            Some(d) => d.clone(),
+            None => {
+                return Err(RegistryError::PeriodOverlap {
+                    domain: domain.clone(),
+                    from: next.effective_from.clone(),
+                    until: "open-ended".into(),
+                });
+            }
+        };
+
+        if current_until >= next.effective_from {
+            return Err(RegistryError::PeriodOverlap {
+                domain: domain.clone(),
+                from: next.effective_from.clone(),
+                until: current_until.clone(),
+            });
+        }
+
+        let until_date = LegalDate::from_date_str(&current_until).ok_or_else(|| {
+            RegistryError::InvalidDateFormat {
+                domain: domain.clone(),
+                value: current_until.clone(),
+            }
+        })?;
+        let expected_next_from = until_date.next_day().to_date_str();
+        if expected_next_from != next.effective_from {
+            return Err(RegistryError::PeriodGap {
+                domain: domain.clone(),
+                end: current_until,
+                next_start: next.effective_from.clone(),
+            });
+        }
+    }
+
+    Ok(())
 }
 
 fn find_entry<'a>(
@@ -116,8 +169,67 @@ mod tests {
     use super::*;
     use crate::withholding_tax_schema::{
         WithholdingTaxCategoryEntry, WithholdingTaxCitationEntry, WithholdingTaxFraction,
-        WithholdingTaxHistoryEntry, WithholdingTaxParamsEntry, WithholdingTaxTwoTierMethodEntry,
+        WithholdingTaxHistoryEntry, WithholdingTaxParamsEntry, WithholdingTaxRegistry,
+        WithholdingTaxTwoTierMethodEntry,
     };
+
+    fn make_registry(entries: Vec<WithholdingTaxHistoryEntry>) -> WithholdingTaxRegistry {
+        WithholdingTaxRegistry {
+            domain: "withholding_tax".into(),
+            history: entries,
+        }
+    }
+
+    fn make_entry(from: &str, until: Option<&str>) -> WithholdingTaxHistoryEntry {
+        WithholdingTaxHistoryEntry {
+            effective_from: from.into(),
+            effective_until: until.map(|s| s.into()),
+            status: "active".into(),
+            citation: WithholdingTaxCitationEntry {
+                law_name: "所得税法".into(),
+                article: 204,
+                paragraph: Some(1),
+            },
+            params: WithholdingTaxParamsEntry { categories: vec![] },
+        }
+    }
+
+    #[test]
+    fn registry_validation_passes_for_current_data() {
+        let json_str = include_str!("../data/withholding_tax/withholding_tax.json");
+        let registry: WithholdingTaxRegistry = serde_json::from_str(json_str).unwrap();
+        assert!(validate_periods(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_detects_overlap() {
+        let reg = make_registry(vec![
+            make_entry("2013-01-01", Some("2030-01-15")),
+            make_entry("2030-01-01", None),
+        ]);
+        let err = validate_periods(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_gap() {
+        let reg = make_registry(vec![
+            make_entry("2013-01-01", Some("2029-12-31")),
+            make_entry("2030-01-03", None),
+        ]);
+        let err = validate_periods(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodGap { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_open_ended_before_next() {
+        let reg = make_registry(vec![
+            make_entry("2013-01-01", None),
+            make_entry("2030-01-01", None),
+        ]);
+        let err = validate_periods(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
 
     #[test]
     fn load_2026_params() {

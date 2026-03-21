@@ -121,16 +121,6 @@ fn f64_to_u64_checked(value: f64, field: &str) -> Result<u64, JsValue> {
     Ok(value as u64)
 }
 
-/// u64 の円金額を u32 に変換する。u32::MAX（約 42.9 億円）を超える場合はエラーを返す。
-fn yen_u64_to_u32(value: u64, field: &str) -> Result<u32, JsValue> {
-    u32::try_from(value).map_err(|_| {
-        JsValue::from_str(&format!(
-            "{field}: amount {value} yen exceeds u32 maximum ({max})",
-            max = u32::MAX
-        ))
-    })
-}
-
 /// Optional<f64> の金額を Optional<u64> に変換する。
 fn opt_f64_to_u64_checked(value: Option<f64>, field: &str) -> Result<Option<u64>, JsValue> {
     match value {
@@ -1231,8 +1221,10 @@ pub fn calc_withholding_tax_js(
     separated_consumption_tax_amount: f64,
 ) -> Result<WithholdingTaxResult, JsValue> {
     let payment_amount = f64_to_u64_checked(payment_amount, "paymentAmount")?;
-    let separated_consumption_tax_amount =
-        f64_to_u64_checked(separated_consumption_tax_amount, "separatedConsumptionTaxAmount")?;
+    let separated_consumption_tax_amount = f64_to_u64_checked(
+        separated_consumption_tax_amount,
+        "separatedConsumptionTaxAmount",
+    )?;
     let (year, month, day) = extract_jst_date(date);
     let params = load_withholding_tax_params(LegalDate::new(year, month, day))
         .map_err(|e| JsValue::from_str(&e.to_string()))?;

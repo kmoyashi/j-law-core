@@ -170,7 +170,10 @@ mod tests {
                 ministry: "財務省".into(),
             },
             params: ConsumptionTaxParamsEntry {
-                standard_rate: ConsumptionTaxFraction { numer: 10, denom: 100 },
+                standard_rate: ConsumptionTaxFraction {
+                    numer: 10,
+                    denom: 100,
+                },
                 reduced_rate: None,
             },
         }

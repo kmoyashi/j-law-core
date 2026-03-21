@@ -53,14 +53,16 @@ impl Rate {
         let base = amount.whole;
         let result_whole = match order {
             MultiplyOrder::MultiplyFirst => {
-                let product = base.checked_mul(self.numer).ok_or_else(|| {
-                    CalculationError::Overflow {
-                        step: format!("rate_apply: {} * {}", base, self.numer),
-                    }
-                })?;
+                let product =
+                    base.checked_mul(self.numer)
+                        .ok_or_else(|| CalculationError::Overflow {
+                            step: format!("rate_apply: {} * {}", base, self.numer),
+                        })?;
                 rounding.apply_ratio(product, self.denom)?
             }
-            MultiplyOrder::DivideFirst => rounding.apply_ratio(base / self.denom * self.numer, 1)?,
+            MultiplyOrder::DivideFirst => {
+                rounding.apply_ratio(base / self.denom * self.numer, 1)?
+            }
         };
         Ok(IntermediateAmount::from_exact(result_whole))
     }
@@ -200,10 +202,7 @@ mod tests {
     #[test]
     fn overflow_returns_calculation_error() {
         // u64::MAX * 2 はオーバーフローする
-        let rate = Rate {
-            numer: 2,
-            denom: 1,
-        };
+        let rate = Rate { numer: 2, denom: 1 };
         let result = rate.apply(
             &exact(u64::MAX),
             MultiplyOrder::MultiplyFirst,

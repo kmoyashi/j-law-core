@@ -178,7 +178,10 @@ mod tests {
                     label: "一律".into(),
                     income_from: 0,
                     income_to_inclusive: None,
-                    rate: Fraction { numer: 10, denom: 100 },
+                    rate: Fraction {
+                        numer: 10,
+                        denom: 100,
+                    },
                     deduction: 0,
                 }],
                 reconstruction_tax: None,
@@ -235,7 +238,10 @@ mod tests {
     fn registry_validation_detects_zero_denominator_reconstruction_tax() {
         let mut reg = make_registry(vec![make_entry("2013-01-01", None)]);
         reg.history[0].params.reconstruction_tax = Some(ReconstructionTaxEntry {
-            rate: Fraction { numer: 21, denom: 0 },
+            rate: Fraction {
+                numer: 21,
+                denom: 0,
+            },
             effective_from_year: 2013,
             effective_to_year_inclusive: 2037,
         });
