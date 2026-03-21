@@ -1,5 +1,6 @@
+use crate::history_validator::validate_history_periods;
 use crate::schema::BrokerageFeeRegistry;
-use j_law_core::{LegalDate, RegistryError};
+use j_law_core::RegistryError;
 
 /// Registry データの整合性を検証する。
 ///
@@ -13,64 +14,21 @@ use j_law_core::{LegalDate, RegistryError};
 pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
     let domain = &registry.domain;
 
-    for entry in &registry.history {
-        if LegalDate::from_date_str(&entry.effective_from).is_none() {
-            return Err(RegistryError::InvalidDateFormat {
-                domain: domain.clone(),
-                value: entry.effective_from.clone(),
-            });
-        }
-        if let Some(until) = &entry.effective_until {
-            if LegalDate::from_date_str(until).is_none() {
-                return Err(RegistryError::InvalidDateFormat {
-                    domain: domain.clone(),
-                    value: until.clone(),
-                });
-            }
-        }
+    validate_history_periods(
+        domain,
+        "real_estate/brokerage_fee.json",
+        &registry.history,
+        |entry| &entry.effective_from,
+        |entry| entry.effective_until.as_deref(),
+    )?;
 
+    for entry in &registry.history {
         for tier in &entry.params.tiers {
             if tier.rate.denom == 0 {
                 return Err(RegistryError::ZeroDenominator {
                     path: format!("{}/{}/rate.denom", domain, tier.label),
                 });
             }
-        }
-    }
-
-    let mut sorted = registry.history.clone();
-    sorted.sort_by(|a, b| a.effective_from.cmp(&b.effective_from));
-
-    for [current, next] in sorted.array_windows::<2>() {
-        let current_until = match &current.effective_until {
-            Some(d) => d.clone(),
-            None => continue,
-        };
-
-        if current_until >= next.effective_from {
-            return Err(RegistryError::PeriodOverlap {
-                domain: domain.clone(),
-                from: next.effective_from.clone(),
-                until: current_until.clone(),
-            });
-        }
-
-        let until_date = match LegalDate::from_date_str(&current_until) {
-            Some(d) => d,
-            None => {
-                return Err(RegistryError::InvalidDateFormat {
-                    domain: domain.clone(),
-                    value: current_until.clone(),
-                });
-            }
-        };
-        let expected_next_from = until_date.next_day().to_date_str();
-        if expected_next_from != next.effective_from {
-            return Err(RegistryError::PeriodGap {
-                domain: domain.clone(),
-                end: current_until,
-                next_start: next.effective_from.clone(),
-            });
         }
     }
 

@@ -36,6 +36,36 @@ import (
 	"unsafe"
 )
 
+var expectedFFIVersion = uint32(C.J_LAW_C_FFI_VERSION)
+
+func init() {
+	if err := verifyFFIVersion(); err != nil {
+		panic(err)
+	}
+}
+
+func verifyFFIVersion() error {
+	actual := uint32(C.j_law_c_ffi_version())
+	if actual != expectedFFIVersion {
+		return fmt.Errorf(
+			"j-law-c-ffi FFI version mismatch: expected %d, got %d",
+			expectedFFIVersion,
+			actual,
+		)
+	}
+	return nil
+}
+
+func boundedLength(length int, max int) int {
+	if length < 0 {
+		return 0
+	}
+	if length > max {
+		return max
+	}
+	return length
+}
+
 // ─── Go 公開型 ──────────────────────────────────────────────────────────────────
 
 // BreakdownStep は 1 ティアの計算内訳を表す。
@@ -322,7 +352,7 @@ func CalcIncomeTaxAssessment(
 
 // toGoIncomeTaxResult は所得税の C 構造体を Go 構造体に変換する。
 func toGoIncomeTaxResult(c *C.JLawIncomeTaxResult) *IncomeTaxResult {
-	breakdownLen := int(c.breakdown_len)
+	breakdownLen := boundedLength(int(c.breakdown_len), int(C.J_LAW_MAX_TIERS))
 	breakdown := make([]IncomeTaxStep, breakdownLen)
 	for i := 0; i < breakdownLen; i++ {
 		step := &c.breakdown[i]
@@ -346,7 +376,7 @@ func toGoIncomeTaxResult(c *C.JLawIncomeTaxResult) *IncomeTaxResult {
 }
 
 func toGoIncomeDeductionResult(c *C.JLawIncomeDeductionResult) *IncomeDeductionResult {
-	breakdownLen := int(c.breakdown_len)
+	breakdownLen := boundedLength(int(c.breakdown_len), int(C.J_LAW_MAX_DEDUCTION_LINES))
 	breakdown := make([]IncomeDeductionLine, breakdownLen)
 	for i := 0; i < breakdownLen; i++ {
 		line := &c.breakdown[i]
@@ -369,7 +399,7 @@ func toGoIncomeDeductionResult(c *C.JLawIncomeDeductionResult) *IncomeDeductionR
 func toGoIncomeDeductionResultFromAssessment(
 	c *C.JLawIncomeTaxAssessmentResult,
 ) *IncomeDeductionResult {
-	breakdownLen := int(c.deduction_breakdown_len)
+	breakdownLen := boundedLength(int(c.deduction_breakdown_len), int(C.J_LAW_MAX_DEDUCTION_LINES))
 	breakdown := make([]IncomeDeductionLine, breakdownLen)
 	for i := 0; i < breakdownLen; i++ {
 		line := &c.deduction_breakdown[i]
@@ -392,7 +422,7 @@ func toGoIncomeDeductionResultFromAssessment(
 func toGoIncomeTaxResultFromAssessment(
 	c *C.JLawIncomeTaxAssessmentResult,
 ) *IncomeTaxResult {
-	breakdownLen := int(c.tax_breakdown_len)
+	breakdownLen := boundedLength(int(c.tax_breakdown_len), int(C.J_LAW_MAX_TIERS))
 	breakdown := make([]IncomeTaxStep, breakdownLen)
 	for i := 0; i < breakdownLen; i++ {
 		step := &c.tax_breakdown[i]
@@ -465,7 +495,7 @@ func toCIncomeDeductionInput(input IncomeDeductionInput) C.JLawIncomeDeductionIn
 
 // toGoResult は C 構造体を Go 構造体に変換する。
 func toGoResult(c *C.JLawBrokerageFeeResult) *BrokerageFeeResult {
-	breakdownLen := int(c.breakdown_len)
+	breakdownLen := boundedLength(int(c.breakdown_len), int(C.J_LAW_MAX_TIERS))
 	breakdown := make([]BreakdownStep, breakdownLen)
 	for i := 0; i < breakdownLen; i++ {
 		step := &c.breakdown[i]
@@ -552,7 +582,7 @@ func CalcWithholdingTax(
 }
 
 func toGoWithholdingTaxResult(c *C.JLawWithholdingTaxResult) *WithholdingTaxResult {
-	breakdownLen := int(c.breakdown_len)
+	breakdownLen := boundedLength(int(c.breakdown_len), int(C.J_LAW_MAX_TIERS))
 	breakdown := make([]BreakdownStep, breakdownLen)
 	for i := 0; i < breakdownLen; i++ {
 		step := &c.breakdown[i]

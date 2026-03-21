@@ -1,9 +1,12 @@
+use crate::history_validator::validate_history_periods;
 use crate::income_tax_schema::{IncomeTaxHistoryEntry, IncomeTaxRegistry};
 use j_law_core::domains::income_tax::params::{
     IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams,
 };
 use j_law_core::types::date::LegalDate;
 use j_law_core::{InputError, JLawError, RegistryError};
+
+const PATH: &str = "income_tax/income_tax.json";
 
 /// `income_tax.json` をロードして `target_date` に対応するパラメータを返す。
 ///
@@ -19,9 +22,10 @@ pub fn load_income_tax_params(target_date: LegalDate) -> Result<IncomeTaxParams,
 
     let registry: IncomeTaxRegistry =
         serde_json::from_str(json_str).map_err(|e| RegistryError::ParseError {
-            path: "income_tax/income_tax.json".into(),
+            path: PATH.into(),
             cause: e.to_string(),
         })?;
+    validate_registry(&registry)?;
 
     let date_str = target_date.to_date_str();
 
@@ -79,10 +83,52 @@ fn to_params(entry: &IncomeTaxHistoryEntry) -> IncomeTaxParams {
     }
 }
 
+fn validate_registry(registry: &IncomeTaxRegistry) -> Result<(), JLawError> {
+    validate_history_periods(
+        &registry.domain,
+        PATH,
+        &registry.history,
+        |entry| &entry.effective_from,
+        |entry| entry.effective_until.as_deref(),
+    )?;
+
+    for (entry_index, entry) in registry.history.iter().enumerate() {
+        for (bracket_index, bracket) in entry.params.brackets.iter().enumerate() {
+            if bracket.rate.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!(
+                        "{}/history[{entry_index}]/params/brackets[{bracket_index}]/rate.denom",
+                        registry.domain
+                    ),
+                }
+                .into());
+            }
+        }
+
+        if let Some(reconstruction_tax) = &entry.params.reconstruction_tax {
+            if reconstruction_tax.rate.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!(
+                        "{}/history[{entry_index}]/params/reconstruction_tax/rate.denom",
+                        registry.domain
+                    ),
+                }
+                .into());
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 #[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
+
+    fn parsed_registry() -> IncomeTaxRegistry {
+        serde_json::from_str(include_str!("../data/income_tax/income_tax.json")).unwrap()
+    }
 
     // ─── 現行（2015年〜）7段階 ────────────────────────────────────────────────
 
@@ -257,24 +303,43 @@ mod tests {
 
     #[test]
     fn registry_data_integrity_check() {
-        let json_str = include_str!("../data/income_tax/income_tax.json");
-        let registry: IncomeTaxRegistry = serde_json::from_str(json_str).unwrap();
+        let registry = parsed_registry();
+        assert!(validate_registry(&registry).is_ok());
+    }
 
-        // 基本的な整合性チェック
-        assert!(!registry.history.is_empty(), "Registry should not be empty");
+    #[test]
+    fn registry_validation_rejects_period_overlap() {
+        let mut registry = parsed_registry();
+        registry.history[0].effective_until = Some("1995-01-01".into());
 
-        for entry in &registry.history {
-            // 分母ゼロチェック
-            for bracket in &entry.params.brackets {
-                assert_ne!(bracket.rate.denom, 0, "Rate denominator must not be zero");
-            }
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::PeriodOverlap { .. }))
+        ));
+    }
 
-            if let Some(rt) = &entry.params.reconstruction_tax {
-                assert_ne!(
-                    rt.rate.denom, 0,
-                    "Reconstruction tax denominator must not be zero"
-                );
-            }
-        }
+    #[test]
+    fn registry_validation_rejects_period_gap() {
+        let mut registry = parsed_registry();
+        registry.history[0].effective_until = Some("1994-12-30".into());
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::PeriodGap { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_rejects_zero_denominator() {
+        let mut registry = parsed_registry();
+        registry.history[0].params.brackets[0].rate.denom = 0;
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::ZeroDenominator { .. }))
+        ));
     }
 }

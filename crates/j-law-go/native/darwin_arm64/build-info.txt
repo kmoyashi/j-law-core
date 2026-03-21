@@ -1,3 +1,3 @@
 target_triple=aarch64-apple-darwin
 rustc_version=rustc 1.94.0 (4a4ef493e 2026-03-02)
-source_fingerprint=af1cb6464d9b536c45d90958aae6648bd128edee11334aa885752dfba5655bfe
+source_fingerprint=fb9ea1997c3affc8a83a0176365baee8a178f98ee1e9de5aaffad50cc6e9dbdb

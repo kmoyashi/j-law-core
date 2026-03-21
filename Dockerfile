@@ -30,7 +30,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
 RUN wasm-pack build --target nodejs crates/j-law-wasm
-CMD ["node", "--test", "crates/j-law-wasm/tests/real_estate.test.mjs", "crates/j-law-wasm/tests/income_tax.test.mjs", "crates/j-law-wasm/tests/stamp_tax.test.mjs"]
+CMD ["node", "--test", "crates/j-law-wasm/tests/consumption_tax.test.mjs", "crates/j-law-wasm/tests/real_estate.test.mjs", "crates/j-law-wasm/tests/income_tax.test.mjs", "crates/j-law-wasm/tests/stamp_tax.test.mjs", "crates/j-law-wasm/tests/withholding_tax.test.mjs"]
 
 # ---- Ruby テスト ----
 FROM base-rust AS test-ruby

@@ -1,7 +1,10 @@
 use crate::consumption_tax_schema::{ConsumptionTaxHistoryEntry, ConsumptionTaxRegistry};
+use crate::history_validator::validate_history_periods;
 use j_law_core::domains::consumption_tax::params::{ConsumptionTaxParams, ConsumptionTaxRate};
 use j_law_core::types::date::LegalDate;
 use j_law_core::{JLawError, RegistryError};
+
+const PATH: &str = "consumption_tax/consumption_tax.json";
 
 /// `consumption_tax.json` をロードして `target_date` に対応するパラメータを返す。
 ///
@@ -22,9 +25,10 @@ pub fn load_consumption_tax_params(
 
     let registry: ConsumptionTaxRegistry =
         serde_json::from_str(json_str).map_err(|e| RegistryError::ParseError {
-            path: "consumption_tax/consumption_tax.json".into(),
+            path: PATH.into(),
             cause: e.to_string(),
         })?;
+    validate_registry(&registry)?;
 
     let date_str = target_date.to_date_str();
 
@@ -70,10 +74,49 @@ fn to_params(entry: &ConsumptionTaxHistoryEntry) -> ConsumptionTaxParams {
     }
 }
 
+fn validate_registry(registry: &ConsumptionTaxRegistry) -> Result<(), JLawError> {
+    validate_history_periods(
+        &registry.domain,
+        PATH,
+        &registry.history,
+        |entry| &entry.effective_from,
+        |entry| entry.effective_until.as_deref(),
+    )?;
+
+    for (entry_index, entry) in registry.history.iter().enumerate() {
+        if entry.params.standard_rate.denom == 0 {
+            return Err(RegistryError::ZeroDenominator {
+                path: format!(
+                    "{}/history[{entry_index}]/params/standard_rate.denom",
+                    registry.domain
+                ),
+            }
+            .into());
+        }
+        if let Some(reduced_rate) = &entry.params.reduced_rate {
+            if reduced_rate.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!(
+                        "{}/history[{entry_index}]/params/reduced_rate.denom",
+                        registry.domain
+                    ),
+                }
+                .into());
+            }
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 #[allow(clippy::disallowed_methods)] // テストコードでは unwrap 使用を許可
 mod tests {
     use super::*;
+
+    fn parsed_registry() -> ConsumptionTaxRegistry {
+        serde_json::from_str(include_str!("../data/consumption_tax/consumption_tax.json")).unwrap()
+    }
 
     #[test]
     fn load_3pct_1990() {
@@ -163,6 +206,48 @@ mod tests {
         assert!(matches!(
             result,
             Err(JLawError::Input(j_law_core::InputError::InvalidDate { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_accepts_current_data() {
+        let registry = parsed_registry();
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_rejects_period_overlap() {
+        let mut registry = parsed_registry();
+        registry.history[0].effective_until = Some("1997-04-01".into());
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::PeriodOverlap { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_rejects_period_gap() {
+        let mut registry = parsed_registry();
+        registry.history[0].effective_until = Some("1997-03-30".into());
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::PeriodGap { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_rejects_zero_denominator() {
+        let mut registry = parsed_registry();
+        registry.history[0].params.standard_rate.denom = 0;
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::ZeroDenominator { .. }))
         ));
     }
 }

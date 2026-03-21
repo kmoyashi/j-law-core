@@ -1,5 +1,6 @@
 pub mod consumption_tax_loader;
 pub(crate) mod consumption_tax_schema;
+mod history_validator;
 pub mod income_tax_deduction_loader;
 pub(crate) mod income_tax_deduction_schema;
 pub mod income_tax_loader;

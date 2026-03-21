@@ -1,5 +1,6 @@
 use std::str::FromStr;
 
+use crate::history_validator::validate_history_periods;
 use crate::withholding_tax_schema::{WithholdingTaxHistoryEntry, WithholdingTaxRegistry};
 use j_law_core::domains::withholding_tax::params::{
     WithholdingTaxCategoryParams, WithholdingTaxMethod, WithholdingTaxParams,
@@ -7,6 +8,8 @@ use j_law_core::domains::withholding_tax::params::{
 use j_law_core::domains::withholding_tax::WithholdingTaxCategory;
 use j_law_core::types::date::LegalDate;
 use j_law_core::{InputError, JLawError, RegistryError};
+
+const PATH: &str = "withholding_tax/withholding_tax.json";
 
 /// `withholding_tax.json` をロードして `target_date` に対応するパラメータを返す。
 ///
@@ -24,9 +27,10 @@ pub fn load_withholding_tax_params(
 
     let registry: WithholdingTaxRegistry =
         serde_json::from_str(json_str).map_err(|e| RegistryError::ParseError {
-            path: "withholding_tax/withholding_tax.json".into(),
+            path: PATH.into(),
             cause: e.to_string(),
         })?;
+    validate_registry(&registry)?;
 
     let date_str = target_date.to_date_str();
     let entry = find_entry(&registry, &date_str).ok_or_else(|| InputError::DateOutOfRange {
@@ -110,6 +114,22 @@ fn parse_category_code(code: &str) -> Result<WithholdingTaxCategory, JLawError> 
     })
 }
 
+fn validate_registry(registry: &WithholdingTaxRegistry) -> Result<(), JLawError> {
+    validate_history_periods(
+        &registry.domain,
+        PATH,
+        &registry.history,
+        |entry| &entry.effective_from,
+        |entry| entry.effective_until.as_deref(),
+    )?;
+
+    for entry in &registry.history {
+        let _ = to_params(entry)?;
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 #[allow(clippy::disallowed_methods)]
 mod tests {
@@ -118,6 +138,10 @@ mod tests {
         WithholdingTaxCategoryEntry, WithholdingTaxCitationEntry, WithholdingTaxFraction,
         WithholdingTaxHistoryEntry, WithholdingTaxParamsEntry, WithholdingTaxTwoTierMethodEntry,
     };
+
+    fn parsed_registry() -> WithholdingTaxRegistry {
+        serde_json::from_str(include_str!("../data/withholding_tax/withholding_tax.json")).unwrap()
+    }
 
     #[test]
     fn load_2026_params() {
@@ -193,6 +217,40 @@ mod tests {
         assert!(matches!(
             result,
             Err(JLawError::Registry(RegistryError::ParseError { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_accepts_current_data() {
+        let registry = parsed_registry();
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_rejects_invalid_date() {
+        let mut registry = parsed_registry();
+        registry.history[0].effective_from = "2013-02-30".into();
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::InvalidDateFormat { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_rejects_period_overlap() {
+        let mut registry = parsed_registry();
+        let mut second = registry.history[0].clone();
+        registry.history[0].effective_until = Some("2020-01-01".into());
+        second.effective_from = "2020-01-01".into();
+        second.effective_until = None;
+        registry.history.push(second);
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::PeriodOverlap { .. }))
         ));
     }
 }

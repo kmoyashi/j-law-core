@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
+use crate::history_validator::validate_history_periods;
 use crate::stamp_tax_schema::{
     StampTaxBracketEntry, StampTaxDocumentParamsEntry, StampTaxHistoryEntry, StampTaxRegistry,
     StampTaxSpecialRuleEntry,
@@ -26,6 +27,7 @@ pub fn load_stamp_tax_params(target_date: LegalDate) -> Result<StampTaxParams, J
             path: PATH.into(),
             cause: e.to_string(),
         })?;
+    validate_registry(&registry)?;
 
     let date_str = target_date.to_date_str();
 
@@ -148,6 +150,8 @@ fn to_special_rule(
     document_code: StampTaxDocumentCode,
     entry: &StampTaxSpecialRuleEntry,
 ) -> Result<StampTaxSpecialRule, JLawError> {
+    validate_special_rule_dates(document_code, entry)?;
+
     let required_flags = entry
         .required_flags
         .iter()
@@ -184,6 +188,66 @@ fn to_special_rule(
         no_amount_tax_amount: entry.no_amount_tax_amount,
         no_amount_rule_label: entry.no_amount_rule_label.clone(),
     })
+}
+
+fn validate_registry(registry: &StampTaxRegistry) -> Result<(), JLawError> {
+    validate_history_periods(
+        &registry.domain,
+        PATH,
+        &registry.history,
+        |entry| &entry.effective_from,
+        |entry| entry.effective_until.as_deref(),
+    )?;
+
+    for entry in &registry.history {
+        let _ = to_params(entry)?;
+    }
+
+    Ok(())
+}
+
+fn validate_special_rule_dates(
+    document_code: StampTaxDocumentCode,
+    entry: &StampTaxSpecialRuleEntry,
+) -> Result<(), JLawError> {
+    let path = format!("{PATH}/{document_code}/special_rules/{}", entry.code);
+    let effective_from =
+        parse_optional_date(&path, "effective_from", entry.effective_from.as_deref())?;
+    let effective_until =
+        parse_optional_date(&path, "effective_until", entry.effective_until.as_deref())?;
+
+    if let (Some(from), Some(until)) = (effective_from, effective_until) {
+        if from.to_date_str() > until.to_date_str() {
+            return Err(RegistryError::ParseError {
+                path,
+                cause: format!(
+                    "special rule effective_from exceeds effective_until: {} > {}",
+                    from.to_date_str(),
+                    until.to_date_str()
+                ),
+            }
+            .into());
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_optional_date(
+    path: &str,
+    field: &str,
+    value: Option<&str>,
+) -> Result<Option<LegalDate>, JLawError> {
+    match value {
+        Some(date) => LegalDate::from_date_str(date).map(Some).ok_or_else(|| {
+            RegistryError::ParseError {
+                path: format!("{path}/{field}"),
+                cause: format!("invalid ISO date: {date}"),
+            }
+            .into()
+        }),
+        None => Ok(None),
+    }
 }
 
 fn to_brackets(entries: &[StampTaxBracketEntry]) -> Result<Vec<StampTaxBracket>, JLawError> {
@@ -245,6 +309,10 @@ fn registry_parse_error(err: impl Into<JLawError>) -> JLawError {
 mod tests {
     use super::*;
 
+    fn parsed_registry() -> StampTaxRegistry {
+        serde_json::from_str(include_str!("../data/stamp_tax/stamp_tax.json")).unwrap()
+    }
+
     #[test]
     fn load_2024_params() {
         let params = load_stamp_tax_params(LegalDate::new(2024, 1, 1)).unwrap();
@@ -262,6 +330,41 @@ mod tests {
         assert!(matches!(
             result,
             Err(JLawError::Input(InputError::DateOutOfRange { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_accepts_current_data() {
+        let registry = parsed_registry();
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_rejects_invalid_history_date() {
+        let mut registry = parsed_registry();
+        registry.history[0].effective_from = "2014-04-31".into();
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::InvalidDateFormat { .. }))
+        ));
+    }
+
+    #[test]
+    fn registry_validation_rejects_invalid_special_rule_date() {
+        let mut registry = parsed_registry();
+        let document = registry.history[0]
+            .params
+            .documents
+            .get_mut("article1_real_estate_transfer")
+            .unwrap();
+        document.special_rules[0].effective_until = Some("2027-02-30".into());
+
+        let result = validate_registry(&registry);
+        assert!(matches!(
+            result,
+            Err(JLawError::Registry(RegistryError::ParseError { .. }))
         ));
     }
 }
