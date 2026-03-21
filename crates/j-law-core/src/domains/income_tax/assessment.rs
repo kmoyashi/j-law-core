@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::fmt;
 
 use crate::domains::income_tax::calculator::{calculate_income_tax_inner, IncomeTaxResult};
 use crate::domains::income_tax::context::IncomeTaxFlag;
@@ -23,6 +24,16 @@ pub struct IncomeTaxAssessmentContext {
     pub flags: HashSet<IncomeTaxFlag>,
     /// 計算ポリシー。
     pub policy: Box<dyn IncomeTaxPolicy>,
+}
+
+impl fmt::Debug for IncomeTaxAssessmentContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IncomeTaxAssessmentContext")
+            .field("deduction_context", &self.deduction_context)
+            .field("flags", &self.flags)
+            .field("policy", &"<policy>")
+            .finish()
+    }
 }
 
 /// 所得控除と所得税額の通し計算結果。

@@ -14,12 +14,11 @@ on:
   release:
     types: [published]
 
-permissions:
-  contents: write # 生成コミットとタグの push に必要
-
 jobs:
   build-native:
     name: Build Go native archive (${{ matrix.platform_dir }})
+    permissions:
+      contents: read
     runs-on: ${{ matrix.runs_on }}
     strategy:
       fail-fast: false
@@ -85,6 +84,8 @@ jobs:
     name: Create Go module tag
     needs: build-native
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 生成コミットとタグの push に必要
     steps:
       - uses: actions/checkout@v4
         with:

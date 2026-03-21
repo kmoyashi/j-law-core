@@ -20,7 +20,7 @@ use j_law_core::domains::income_tax::{
     policy::StandardIncomeTaxPolicy,
 };
 use j_law_core::domains::real_estate::{
-    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
+    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMlitPolicy,
     RealEstateFlag,
 };
 use j_law_core::domains::stamp_tax::{
@@ -345,7 +345,7 @@ pub unsafe extern "C" fn j_law_calc_brokerage_fee(
         price,
         target_date: LegalDate::new(year, month, day),
         flags,
-        policy: Box::new(StandardMliitPolicy),
+        policy: Box::new(StandardMlitPolicy),
     };
 
     // 計算実行

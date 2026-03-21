@@ -1,6 +1,7 @@
 use crate::domains::income_tax::policy::IncomeTaxPolicy;
 use crate::types::date::LegalDate;
 use std::collections::HashSet;
+use std::fmt;
 
 /// 所得税計算に関わる法的フラグ。
 ///
@@ -35,6 +36,17 @@ pub struct IncomeTaxContext {
     pub flags: HashSet<IncomeTaxFlag>,
     /// 計算ポリシー（テスト・カスタム計算での差し替えを可能にする）。
     pub policy: Box<dyn IncomeTaxPolicy>,
+}
+
+impl fmt::Debug for IncomeTaxContext {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("IncomeTaxContext")
+            .field("taxable_income", &self.taxable_income)
+            .field("target_date", &self.target_date)
+            .field("flags", &self.flags)
+            .field("policy", &"<policy>")
+            .finish()
+    }
 }
 
 #[cfg(test)]

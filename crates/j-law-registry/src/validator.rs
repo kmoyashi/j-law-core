@@ -1,5 +1,5 @@
 use crate::schema::BrokerageFeeRegistry;
-use j_law_core::RegistryError;
+use j_law_core::{LegalDate, RegistryError};
 
 /// Registry データの整合性を検証する。
 ///
@@ -46,14 +46,20 @@ pub fn validate(registry: &BrokerageFeeRegistry) -> Result<(), RegistryError> {
             });
         }
 
-        // 空白チェック: current.until の翌日 != next.from
-        // 簡易実装: "YYYY-MM-DD" 文字列で1日差を検証するのは複雑なため、
-        // ここでは until と next.from が連続していない（until < next.from - 1日相当）場合を Gap とする。
-        // 正確には日付ライブラリが必要だが、依存を増やさないため文字列比較のみとする。
-        // Gap = current_until < next.effective_from の間に1日以上の空白がある場合
-        // "2024-06-30" の次は "2024-07-01" が正常。文字列が連続していない場合は Gap とみなす。
-        // NOTE: この簡易実装は月末・年末の境界で誤検知する可能性あり。
-        //       本番実装では chrono クレートの追加を検討する。
+        // 空白チェック: current.until の翌日 == next.from であることを検証する。
+        // LegalDate::next_day() による純粋算術ベースの日付演算を使用する。
+        let until_date = match LegalDate::from_date_str(&current_until) {
+            Some(d) => d,
+            None => continue, // パース失敗は別バリデーションで検出されるためスキップ
+        };
+        let expected_next_from = until_date.next_day().to_date_str();
+        if expected_next_from != next.effective_from {
+            return Err(RegistryError::PeriodGap {
+                domain: domain.clone(),
+                end: current_until.clone(),
+                next_start: next.effective_from.clone(),
+            });
+        }
     }
 
     Ok(())
@@ -108,6 +114,49 @@ mod tests {
         ]);
         let err: RegistryError = validate(&reg).unwrap_err();
         assert!(matches!(err, RegistryError::PeriodOverlap { .. }));
+    }
+
+    #[test]
+    fn gap_detected_simple() {
+        // 2024-06-30 の翌日は 2024-07-01 だが、次エントリが 2024-07-02 → Gap
+        let reg: BrokerageFeeRegistry = make_registry(vec![
+            make_entry("2019-10-01", Some("2024-06-30")),
+            make_entry("2024-07-02", None),
+        ]);
+        let err: RegistryError = validate(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodGap { .. }));
+    }
+
+    #[test]
+    fn gap_detected_month_boundary() {
+        // 月末境界: 2024-06-30 の翌日は 2024-07-01。2024-08-01 では Gap
+        let reg: BrokerageFeeRegistry = make_registry(vec![
+            make_entry("2019-10-01", Some("2024-06-30")),
+            make_entry("2024-08-01", None),
+        ]);
+        let err: RegistryError = validate(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodGap { .. }));
+    }
+
+    #[test]
+    fn gap_detected_year_boundary() {
+        // 年末境界: 2023-12-31 の翌日は 2024-01-01。2024-01-02 では Gap
+        let reg: BrokerageFeeRegistry = make_registry(vec![
+            make_entry("2019-10-01", Some("2023-12-31")),
+            make_entry("2024-01-02", None),
+        ]);
+        let err: RegistryError = validate(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::PeriodGap { .. }));
+    }
+
+    #[test]
+    fn valid_year_boundary_no_gap() {
+        // 年末境界: 2023-12-31 の翌日が 2024-01-01 → ギャップなし
+        let reg: BrokerageFeeRegistry = make_registry(vec![
+            make_entry("2019-10-01", Some("2023-12-31")),
+            make_entry("2024-01-01", None),
+        ]);
+        assert!(validate(&reg).is_ok());
     }
 
     #[test]

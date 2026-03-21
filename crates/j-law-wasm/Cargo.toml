@@ -4,6 +4,7 @@ version = "0.0.1"
 edition = "2021"
 rust-version = "1.94"
 license = "MIT"
+publish = false
 description = "日本法令計算の PoC を JavaScript から利用するためのアルファ版 WebAssembly バインディング"
 repository = "https://github.com/kmoyashi/j-law-core"
 homepage = "https://github.com/kmoyashi/j-law-core"
@@ -20,6 +21,9 @@ disallowed_methods = "warn"
 crate-type = ["cdylib", "rlib"]
 
 [package.metadata.wasm-pack.profile.release]
+# wasm-opt のインストールを省略するため false に設定。
+# wasm-opt はビルド時間の短縮・バイナリサイズ削減に有効だが、
+# Dockerテスト環境での別途インストールが必要になるため無効化している。
 wasm-opt = false
 
 [dependencies]

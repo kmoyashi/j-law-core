@@ -24,7 +24,7 @@ use ::j_law_core::domains::income_tax::{
     policy::StandardIncomeTaxPolicy,
 };
 use ::j_law_core::domains::real_estate::{
-    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMliitPolicy,
+    calculator::calculate_brokerage_fee, context::RealEstateContext, policy::StandardMlitPolicy,
     RealEstateFlag,
 };
 use ::j_law_core::domains::stamp_tax::{
@@ -105,6 +105,38 @@ fn invalid_deduction_input(field: &str, reason: &str) -> JsValue {
 
 fn bigint_js_value(value: u64) -> JsValue {
     js_sys::BigInt::from(value).into()
+}
+
+/// f64 引数として渡された金額（円）を u64 に変換する。
+///
+/// - 非負の安全整数（`Number.isSafeInteger` かつ >= 0）でない場合はエラーを返す。
+/// - JavaScript の `Number.MAX_SAFE_INTEGER`（2^53 - 1）を超える値はエラー。
+fn f64_to_u64_checked(value: f64, field: &str) -> Result<u64, JsValue> {
+    let js_val = JsValue::from_f64(value);
+    if !Number::is_safe_integer(&js_val) || value < 0.0 {
+        return Err(JsValue::from_str(&format!(
+            "{field}: must be a non-negative safe integer (got {value})"
+        )));
+    }
+    Ok(value as u64)
+}
+
+/// u64 の円金額を u32 に変換する。u32::MAX（約 42.9 億円）を超える場合はエラーを返す。
+fn yen_u64_to_u32(value: u64, field: &str) -> Result<u32, JsValue> {
+    u32::try_from(value).map_err(|_| {
+        JsValue::from_str(&format!(
+            "{field}: amount {value} yen exceeds u32 maximum ({max})",
+            max = u32::MAX
+        ))
+    })
+}
+
+/// Optional<f64> の金額を Optional<u64> に変換する。
+fn opt_f64_to_u64_checked(value: Option<f64>, field: &str) -> Result<Option<u64>, JsValue> {
+    match value {
+        None => Ok(None),
+        Some(v) => f64_to_u64_checked(v, field).map(Some),
+    }
 }
 
 fn parse_js_u64(value: &JsValue, field: &str) -> Result<u64, JsValue> {
@@ -400,7 +432,7 @@ pub fn calc_consumption_tax(
     }
 
     let ctx = ConsumptionTaxContext {
-        amount: amount as u64,
+        amount: f64_to_u64_checked(amount, "amount")?,
         target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardConsumptionTaxPolicy),
@@ -410,11 +442,16 @@ pub fn calc_consumption_tax(
         calculate_consumption_tax(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     Ok(ConsumptionTaxResult {
-        tax_amount: result.tax_amount.as_yen() as u32,
-        amount_with_tax: result.amount_with_tax.as_yen() as u32,
-        amount_without_tax: result.amount_without_tax.as_yen() as u32,
-        applied_rate_numer: result.applied_rate_numer as u32,
-        applied_rate_denom: result.applied_rate_denom as u32,
+        tax_amount: yen_u64_to_u32(result.tax_amount.as_yen(), "tax_amount")?,
+        amount_with_tax: yen_u64_to_u32(result.amount_with_tax.as_yen(), "amount_with_tax")?,
+        amount_without_tax: yen_u64_to_u32(
+            result.amount_without_tax.as_yen(),
+            "amount_without_tax",
+        )?,
+        applied_rate_numer: u32::try_from(result.applied_rate_numer)
+            .map_err(|_| JsValue::from_str("applied_rate_numer overflows u32"))?,
+        applied_rate_denom: u32::try_from(result.applied_rate_denom)
+            .map_err(|_| JsValue::from_str("applied_rate_denom overflows u32"))?,
         is_reduced_rate: result.is_reduced_rate,
     })
 }
@@ -532,10 +569,10 @@ pub fn calc_brokerage_fee(
     }
 
     let ctx = RealEstateContext {
-        price: price as u64,
+        price: u64::from(price),
         target_date: LegalDate::new(year, month, day),
         flags,
-        policy: Box::new(StandardMliitPolicy),
+        policy: Box::new(StandardMlitPolicy),
     };
 
     let result =
@@ -544,19 +581,23 @@ pub fn calc_brokerage_fee(
     let breakdown_data = result
         .breakdown
         .iter()
-        .map(|step| BreakdownStepData {
-            label: step.label.clone(),
-            base_amount: step.base_amount as u32,
-            rate_numer: step.rate_numer as u32,
-            rate_denom: step.rate_denom as u32,
-            result: step.result.as_yen() as u32,
+        .map(|step| {
+            Ok(BreakdownStepData {
+                label: step.label.clone(),
+                base_amount: yen_u64_to_u32(step.base_amount, "breakdown.base_amount")?,
+                rate_numer: u32::try_from(step.rate_numer)
+                    .map_err(|_| JsValue::from_str("breakdown.rate_numer overflows u32"))?,
+                rate_denom: u32::try_from(step.rate_denom)
+                    .map_err(|_| JsValue::from_str("breakdown.rate_denom overflows u32"))?,
+                result: yen_u64_to_u32(step.result.as_yen(), "breakdown.result")?,
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>, JsValue>>()?;
 
     Ok(BrokerageFeeResult {
-        total_without_tax: result.total_without_tax.as_yen() as u32,
-        total_with_tax: result.total_with_tax.as_yen() as u32,
-        tax_amount: result.tax_amount.as_yen() as u32,
+        total_without_tax: yen_u64_to_u32(result.total_without_tax.as_yen(), "total_without_tax")?,
+        total_with_tax: yen_u64_to_u32(result.total_with_tax.as_yen(), "total_with_tax")?,
+        tax_amount: yen_u64_to_u32(result.tax_amount.as_yen(), "tax_amount")?,
         low_cost_special_applied: result.low_cost_special_applied,
         breakdown_data,
     })
@@ -680,7 +721,7 @@ pub fn calc_income_tax(
     }
 
     let ctx = IncomeTaxContext {
-        taxable_income: taxable_income as u64,
+        taxable_income: u64::from(taxable_income),
         target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardIncomeTaxPolicy),
@@ -692,20 +733,27 @@ pub fn calc_income_tax(
     let breakdown_data = result
         .breakdown
         .iter()
-        .map(|step| IncomeTaxStepData {
-            label: step.label.clone(),
-            taxable_income: step.taxable_income as u32,
-            rate_numer: step.rate_numer as u32,
-            rate_denom: step.rate_denom as u32,
-            deduction: step.deduction as u32,
-            result: step.result.as_yen() as u32,
+        .map(|step| {
+            Ok(IncomeTaxStepData {
+                label: step.label.clone(),
+                taxable_income: yen_u64_to_u32(step.taxable_income, "breakdown.taxable_income")?,
+                rate_numer: u32::try_from(step.rate_numer)
+                    .map_err(|_| JsValue::from_str("breakdown.rate_numer overflows u32"))?,
+                rate_denom: u32::try_from(step.rate_denom)
+                    .map_err(|_| JsValue::from_str("breakdown.rate_denom overflows u32"))?,
+                deduction: yen_u64_to_u32(step.deduction, "breakdown.deduction")?,
+                result: yen_u64_to_u32(step.result.as_yen(), "breakdown.result")?,
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>, JsValue>>()?;
 
     Ok(IncomeTaxResult {
-        base_tax: result.base_tax.as_yen() as u32,
-        reconstruction_tax: result.reconstruction_tax.as_yen() as u32,
-        total_tax: result.total_tax.as_yen() as u32,
+        base_tax: yen_u64_to_u32(result.base_tax.as_yen(), "base_tax")?,
+        reconstruction_tax: yen_u64_to_u32(
+            result.reconstruction_tax.as_yen(),
+            "reconstruction_tax",
+        )?,
+        total_tax: yen_u64_to_u32(result.total_tax.as_yen(), "total_tax")?,
         reconstruction_tax_applied: result.reconstruction_tax_applied,
         breakdown_data,
     })
@@ -973,15 +1021,19 @@ pub fn calc_income_tax_assessment(
         .tax
         .breakdown
         .iter()
-        .map(|step| IncomeTaxAssessmentStepData {
-            label: step.label.clone(),
-            taxable_income: step.taxable_income,
-            rate_numer: step.rate_numer as u32,
-            rate_denom: step.rate_denom as u32,
-            deduction: step.deduction,
-            result: step.result.as_yen(),
+        .map(|step| {
+            Ok(IncomeTaxAssessmentStepData {
+                label: step.label.clone(),
+                taxable_income: step.taxable_income,
+                rate_numer: u32::try_from(step.rate_numer)
+                    .map_err(|_| JsValue::from_str("tax_breakdown.rate_numer overflows u32"))?,
+                rate_denom: u32::try_from(step.rate_denom)
+                    .map_err(|_| JsValue::from_str("tax_breakdown.rate_denom overflows u32"))?,
+                deduction: step.deduction,
+                result: step.result.as_yen(),
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>, JsValue>>()?;
 
     Ok(IncomeTaxAssessmentResult {
         total_income_amount: result.deductions.total_income_amount.as_yen(),
@@ -1073,7 +1125,7 @@ pub fn calc_stamp_tax(
 
     let ctx = StampTaxContext {
         document_code,
-        stated_amount: stated_amount.map(|value| value as u64),
+        stated_amount: opt_f64_to_u64_checked(stated_amount, "statedAmount")?,
         target_date: LegalDate::new(year, month, day),
         flags,
         policy: Box::new(StandardNtaPolicy),
@@ -1083,7 +1135,7 @@ pub fn calc_stamp_tax(
         calculate_stamp_tax(&ctx, &params).map_err(|e| JsValue::from_str(&e.to_string()))?;
 
     Ok(StampTaxResult {
-        tax_amount: result.tax_amount.as_yen() as u64,
+        tax_amount: result.tax_amount.as_yen(),
         rule_label: result.rule_label,
         applied_special_rule: result.applied_special_rule,
     })
@@ -1197,8 +1249,8 @@ pub fn calc_withholding_tax_js(
     }
 
     let ctx = WithholdingTaxContext {
-        payment_amount: payment_amount as u64,
-        separated_consumption_tax_amount: separated_consumption_tax_amount as u64,
+        payment_amount: u64::from(payment_amount),
+        separated_consumption_tax_amount: u64::from(separated_consumption_tax_amount),
         category,
         target_date: LegalDate::new(year, month, day),
         flags,
@@ -1211,20 +1263,33 @@ pub fn calc_withholding_tax_js(
     let breakdown_data = result
         .breakdown
         .iter()
-        .map(|step| BreakdownStepData {
-            label: step.label.clone(),
-            base_amount: step.base_amount as u32,
-            rate_numer: step.rate_numer as u32,
-            rate_denom: step.rate_denom as u32,
-            result: step.result.as_yen() as u32,
+        .map(|step| {
+            Ok(BreakdownStepData {
+                label: step.label.clone(),
+                base_amount: yen_u64_to_u32(step.base_amount, "breakdown.base_amount")?,
+                rate_numer: u32::try_from(step.rate_numer)
+                    .map_err(|_| JsValue::from_str("breakdown.rate_numer overflows u32"))?,
+                rate_denom: u32::try_from(step.rate_denom)
+                    .map_err(|_| JsValue::from_str("breakdown.rate_denom overflows u32"))?,
+                result: yen_u64_to_u32(step.result.as_yen(), "breakdown.result")?,
+            })
         })
-        .collect();
+        .collect::<Result<Vec<_>, JsValue>>()?;
 
     Ok(WithholdingTaxResult {
-        gross_payment_amount: result.gross_payment_amount.as_yen() as u32,
-        taxable_payment_amount: result.taxable_payment_amount.as_yen() as u32,
-        tax_amount: result.tax_amount.as_yen() as u32,
-        net_payment_amount: result.net_payment_amount.as_yen() as u32,
+        gross_payment_amount: yen_u64_to_u32(
+            result.gross_payment_amount.as_yen(),
+            "gross_payment_amount",
+        )?,
+        taxable_payment_amount: yen_u64_to_u32(
+            result.taxable_payment_amount.as_yen(),
+            "taxable_payment_amount",
+        )?,
+        tax_amount: yen_u64_to_u32(result.tax_amount.as_yen(), "tax_amount")?,
+        net_payment_amount: yen_u64_to_u32(
+            result.net_payment_amount.as_yen(),
+            "net_payment_amount",
+        )?,
         category: result.category.to_string(),
         submission_prize_exempted: result.submission_prize_exempted,
         breakdown_data,

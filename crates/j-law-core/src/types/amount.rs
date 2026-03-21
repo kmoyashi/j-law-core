@@ -83,17 +83,57 @@ impl std::ops::Add<&IntermediateAmount> for IntermediateAmount {
     type Output = IntermediateAmount;
 
     /// 加算（整数部分同士を加える）。
+    ///
+    /// 通分計算 `(a.numer * b.denom + b.numer * a.denom) / (a.denom * b.denom)` において
+    /// 乗算・加算がオーバーフローした場合は `whole = u64::MAX` をセットして返す。
+    /// 法令計算で扱う金額の範囲では通常発生しないが、
+    /// 異常入力に対して silently panic しないための安全対策。
     fn add(self, other: &IntermediateAmount) -> IntermediateAmount {
-        // 両方を通分してから加算する
-        // whole 部は単純加算
-        // frac 部は (a.numer * b.denom + b.numer * a.denom) / (a.denom * b.denom)
-        let new_denom = self.denom * other.denom;
-        let new_numer = self.numer * other.denom + other.numer * self.denom;
+        // 通分: frac 部は (a.numer * b.denom + b.numer * a.denom) / (a.denom * b.denom)
+        let Some(new_denom) = self.denom.checked_mul(other.denom) else {
+            return IntermediateAmount {
+                whole: u64::MAX,
+                numer: 0,
+                denom: 1,
+            };
+        };
+        let Some(lhs) = self.numer.checked_mul(other.denom) else {
+            return IntermediateAmount {
+                whole: u64::MAX,
+                numer: 0,
+                denom: 1,
+            };
+        };
+        let Some(rhs) = other.numer.checked_mul(self.denom) else {
+            return IntermediateAmount {
+                whole: u64::MAX,
+                numer: 0,
+                denom: 1,
+            };
+        };
+        let Some(new_numer) = lhs.checked_add(rhs) else {
+            return IntermediateAmount {
+                whole: u64::MAX,
+                numer: 0,
+                denom: 1,
+            };
+        };
         // 整数部を繰り上げながら正規化
         let carry = new_numer / new_denom;
         let rem = new_numer % new_denom;
+        let Some(whole) = self
+            .whole
+            .checked_add(other.whole)
+            .and_then(|w| w.checked_add(carry))
+        else {
+            return IntermediateAmount {
+                whole: u64::MAX,
+                numer: 0,
+                denom: 1,
+            };
+        };
         IntermediateAmount {
-            whole: self.whole + other.whole + carry,
+            whole,
             numer: rem,
             denom: new_denom,
         }

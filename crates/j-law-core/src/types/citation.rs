@@ -1,3 +1,5 @@
+use crate::types::date::LegalDate;
+
 /// 法令の条文参照情報。
 ///
 /// `pub` な型・関数の docコメントに埋め込むことで、
@@ -14,8 +16,8 @@ pub struct LegalCitation {
     pub paragraph: Option<u16>,
     /// 号番号（省略可）。
     pub item: Option<u16>,
-    /// 施行日 `(year, month, day)`。
-    pub effective_date: (u16, u8, u8),
+    /// 施行日。
+    pub effective_date: LegalDate,
 }
 
 impl LegalCitation {
@@ -24,7 +26,7 @@ impl LegalCitation {
         law_id: &str,
         law_name: &str,
         article: u16,
-        effective_date: (u16, u8, u8),
+        effective_date: LegalDate,
     ) -> Self {
         Self {
             law_id: law_id.to_owned(),
@@ -56,7 +58,12 @@ mod tests {
 
     #[test]
     fn display_article_only() {
-        let c = LegalCitation::article_only("reitaku-46", "宅地建物取引業法", 46, (2024, 7, 1));
+        let c = LegalCitation::article_only(
+            "reitaku-46",
+            "宅地建物取引業法",
+            46,
+            LegalDate::new(2024, 7, 1),
+        );
         assert_eq!(c.to_string(), "宅地建物取引業法 第46条");
     }
 
@@ -68,7 +75,7 @@ mod tests {
             article: 46,
             paragraph: Some(1),
             item: Some(2),
-            effective_date: (2024, 7, 1),
+            effective_date: LegalDate::new(2024, 7, 1),
         };
         assert_eq!(c.to_string(), "宅地建物取引業法 第46条第1項第2号");
     }

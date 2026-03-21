@@ -28,7 +28,18 @@ pub struct Rate {
 impl Rate {
     /// `amount` にこのレートを適用して新しい `IntermediateAmount` を返す。
     ///
-    /// `amount` の整数部のみに適用し、端数部は無視する（呼び出し前に finalize 推奨）。
+    /// `amount` の整数部（`whole`）のみに適用し、端数部（`numer`/`denom`）は無視する。
+    ///
+    /// # Important
+    /// `amount.numer` / `amount.denom` が非ゼロ（端数あり）の場合、
+    /// その端数部分は計算に含まれず**黙って切り捨てられます**。
+    /// 端数を保持した状態でレートを適用したい場合は、
+    /// 事前に `amount.finalize(rounding)` を呼び出して整数化してください。
+    ///
+    /// # Panics
+    /// このメソッド自体はパニックしませんが、
+    /// `MultiplyOrder::MultiplyFirst` の場合は乗算がオーバーフローする可能性があります。
+    /// 大きな金額には `MultiplyOrder::DivideFirst` の使用を検討してください。
     ///
     /// # エラー
     /// `self.denom == 0` の場合は `InputError::ZeroDenominator` を返す。

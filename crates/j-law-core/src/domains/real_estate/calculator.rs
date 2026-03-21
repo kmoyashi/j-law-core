@@ -144,6 +144,8 @@ pub(crate) fn compute_tier_base(price: u64, from: u64, to_inclusive: Option<u64>
     if from == 0 {
         capped
     } else {
+        // `price_from` は前ティア上限の翌円を表す（例: tier2 は 2_000_001 から始まる）。
+        // そのため、このティアの課税対象金額は `capped - (from - 1)` で求まる。
         capped - (from - 1)
     }
 }
