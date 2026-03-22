@@ -5,7 +5,7 @@ require_relative "lib/j_law_ruby/build_support"
 Gem::Specification.new do |spec|
   binary_gem_build = JLawRuby::BuildSupport.binary_gem_build?
 
-  spec.name    = "j_law_ruby"
+  spec.name    = "j-law-ruby"
   spec.version = "0.0.2"
   spec.authors = ["j-law-core contributors"]
   spec.email   = []
