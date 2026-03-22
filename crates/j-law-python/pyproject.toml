@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "j-law-python"
-version = "0.0.3"
+version = "0.0.4"
 description = "日本法令計算の PoC を Python から利用するためのアルファ版バインディング"
 readme = "README.md"
 license = { text = "MIT" }
