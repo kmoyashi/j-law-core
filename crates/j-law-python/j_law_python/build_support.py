@@ -46,9 +46,37 @@ def packaged_shared_library_path(package_root: Path = PACKAGE_ROOT) -> Path:
     return package_root / "j_law_python" / "native" / shared_library_filename()
 
 
+def _target_machine() -> str:
+    """Return the target machine architecture, respecting cross-compilation env vars.
+
+    cibuildwheel sets ARCHFLAGS (e.g. ``-arch x86_64``) on macOS when
+    cross-compiling, which takes precedence over the host machine architecture.
+    """
+    archflags = os.environ.get("ARCHFLAGS", "")
+    if "-arch x86_64" in archflags:
+        return "x86_64"
+    if "-arch arm64" in archflags:
+        return "arm64"
+    return platform.machine().lower()
+
+
+def _is_musl_linux() -> bool:
+    """Return True when the current Linux environment uses musl libc.
+
+    cibuildwheel sets AUDITWHEEL_PLAT to a value like
+    ``musllinux_1_2_x86_64`` inside musllinux containers, which is the
+    most reliable indicator.  As a fallback we look for the musl dynamic
+    linker that is present on Alpine and similar distributions.
+    """
+    if "musl" in os.environ.get("AUDITWHEEL_PLAT", ""):
+        return True
+    import glob
+    return bool(glob.glob("/lib/ld-musl-*.so*"))
+
+
 def rust_target_triple() -> str | None:
     system = platform.system()
-    machine = platform.machine().lower()
+    machine = _target_machine()
 
     if system == "Darwin":
         if machine in {"arm64", "aarch64"}:
@@ -56,10 +84,11 @@ def rust_target_triple() -> str | None:
         if machine in {"x86_64", "amd64"}:
             return "x86_64-apple-darwin"
     if system == "Linux":
+        musl = _is_musl_linux()
         if machine in {"x86_64", "amd64"}:
-            return "x86_64-unknown-linux-gnu"
+            return "x86_64-unknown-linux-musl" if musl else "x86_64-unknown-linux-gnu"
         if machine in {"arm64", "aarch64"}:
-            return "aarch64-unknown-linux-gnu"
+            return "aarch64-unknown-linux-musl" if musl else "aarch64-unknown-linux-gnu"
     if system == "Windows":
         if machine in {"x86_64", "amd64"}:
             return "x86_64-pc-windows-msvc"
