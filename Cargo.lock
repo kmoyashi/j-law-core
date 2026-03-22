@@ -22,7 +22,7 @@ checksum = "92ecc6618181def0457392ccd0ee51198e065e016d1d527a7ac1b6dc7c1f09d2"
 
 [[package]]
 name = "j-law-c-ffi"
-version = "0.0.2"
+version = "0.0.1"
 dependencies = [
  "j-law-core",
  "j-law-registry",
@@ -30,7 +30,7 @@ dependencies = [
 
 [[package]]
 name = "j-law-core"
-version = "0.0.2"
+version = "0.0.1"
 dependencies = [
  "j-law-registry",
  "serde",
@@ -40,7 +40,7 @@ dependencies = [
 
 [[package]]
 name = "j-law-registry"
-version = "0.0.2"
+version = "0.0.1"
 dependencies = [
  "j-law-core",
  "serde",
@@ -49,7 +49,7 @@ dependencies = [
 
 [[package]]
 name = "j-law-wasm"
-version = "0.0.2"
+version = "0.0.1"
 dependencies = [
  "j-law-core",
  "j-law-registry",

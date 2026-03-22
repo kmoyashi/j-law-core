@@ -46,8 +46,30 @@ jobs:
             exit 1
           fi
 
+      - uses: dtolnay/rust-toolchain@1.94.0
+        with:
+          targets: aarch64-apple-darwin, x86_64-apple-darwin, x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+            target/
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-release-
+
       - name: Bump versions
         run: ./scripts/bump_version.sh "$VERSION"
+
+      - name: Sync Cargo.lock with bumped versions
+        run: cargo update --workspace
+
+      - name: Rebuild Go native archives
+        working-directory: crates/j-law-go
+        run: make sync-native-all
 
       - name: Verify version alignment
         run: ./scripts/verify_release_versions.sh "v${VERSION}"
