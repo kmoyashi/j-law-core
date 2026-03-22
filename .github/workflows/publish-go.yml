@@ -87,9 +87,17 @@ jobs:
     permissions:
       contents: write # 生成コミットとタグの push に必要
     steps:
+      - name: Generate GitHub App token
+        id: app-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -110,7 +118,7 @@ jobs:
 
       - name: Create Go module tag
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           VERSION="${{ github.event.release.tag_name }}"
           VERSION="${VERSION#v}"  # 先頭の "v" を除去
