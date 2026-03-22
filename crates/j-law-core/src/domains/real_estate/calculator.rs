@@ -11,7 +11,7 @@ use crate::types::rate::{MultiplyOrder, Rate};
 
 /// 1ティアの計算ステップ（内訳明細用）。
 #[derive(Debug, Clone)]
-pub struct CalculationStep {
+pub struct BrokerageFeeStep {
     pub label: String,
     pub base_amount: u64,
     pub rate_numer: u64,
@@ -21,7 +21,7 @@ pub struct CalculationStep {
 
 /// 媒介報酬の計算結果。
 #[derive(Debug, Clone)]
-pub struct CalculationResult {
+pub struct BrokerageFeeResult {
     /// 税込合計額。
     pub total_with_tax: FinalAmount,
     /// 税抜合計額。
@@ -29,7 +29,7 @@ pub struct CalculationResult {
     /// 消費税額。
     pub tax_amount: FinalAmount,
     /// 各ティアの計算内訳。
-    pub breakdown: Vec<CalculationStep>,
+    pub breakdown: Vec<BrokerageFeeStep>,
     /// 適用されたフラグ。
     pub applied_flags: HashSet<RealEstateFlag>,
     /// 低廉な空き家特例が適用されたか。
@@ -51,14 +51,14 @@ pub struct CalculationResult {
 pub fn calculate_brokerage_fee(
     ctx: &RealEstateContext,
     params: &BrokerageFeeParams,
-) -> Result<CalculationResult, JLawError> {
+) -> Result<BrokerageFeeResult, JLawError> {
     ctx.target_date.validate()?;
 
     let price = ctx.price;
     let tier_rounding = ctx.policy.tier_rounding();
 
     // --- ティア計算 ---
-    let mut breakdown: Vec<CalculationStep> = Vec::new();
+    let mut breakdown: Vec<BrokerageFeeStep> = Vec::new();
     let mut subtotal = 0u64;
 
     for tier in &params.tiers {
@@ -67,10 +67,11 @@ pub fn calculate_brokerage_fee(
             continue;
         }
 
-        let rate = Rate {
-            numer: tier.rate_numer,
-            denom: tier.rate_denom,
-        };
+        let rate = Rate::new(tier.rate_numer, tier.rate_denom).map_err(|_| {
+            CalculationError::Overflow {
+                step: tier.label.clone(),
+            }
+        })?;
         let amount = IntermediateAmount::from_exact(tier_base);
         let tier_result = rate.apply(&amount, MultiplyOrder::MultiplyFirst, tier_rounding)?;
         let tier_final = tier_result.finalize(tier_rounding)?;
@@ -81,7 +82,7 @@ pub fn calculate_brokerage_fee(
             }
         })?;
 
-        breakdown.push(CalculationStep {
+        breakdown.push(BrokerageFeeStep {
             label: tier.label.clone(),
             base_amount: tier_base,
             rate_numer: tier.rate_numer,
@@ -124,7 +125,7 @@ pub fn calculate_brokerage_fee(
     };
     let tax_result = calculate_consumption_tax(&tax_ctx, &params.consumption_tax)?;
 
-    Ok(CalculationResult {
+    Ok(BrokerageFeeResult {
         total_with_tax: tax_result.amount_with_tax,
         total_without_tax,
         tax_amount: tax_result.tax_amount,

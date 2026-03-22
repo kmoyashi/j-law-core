@@ -21,12 +21,30 @@ pub enum MultiplyOrder {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Rate {
     /// 分子。
-    pub numer: u64,
+    pub(crate) numer: u64,
     /// 分母。0 は不正値。
-    pub denom: u64,
+    pub(crate) denom: u64,
 }
 
 impl Rate {
+    /// 分数比率を作る。`denom == 0` の場合はエラーを返す。
+    pub fn new(numer: u64, denom: u64) -> Result<Self, InputError> {
+        if denom == 0 {
+            return Err(InputError::ZeroDenominator);
+        }
+        Ok(Self { numer, denom })
+    }
+
+    /// 分子を返す。
+    pub fn numer(&self) -> u64 {
+        self.numer
+    }
+
+    /// 分母を返す。
+    pub fn denom(&self) -> u64 {
+        self.denom
+    }
+
     /// `amount` にこのレートを適用して新しい `IntermediateAmount` を返す。
     ///
     /// `amount` の整数部（`whole`）のみに適用し、端数部（`numer`/`denom`）は無視する。
@@ -80,10 +98,7 @@ mod tests {
     #[test]
     fn rate_5_percent_multiply_first() {
         // 2_000_000 × 5/100 = 100_000
-        let rate = Rate {
-            numer: 5,
-            denom: 100,
-        };
+        let rate = Rate::new(5, 100).unwrap();
         let result = rate
             .apply(
                 &exact(2_000_000),
@@ -100,10 +115,7 @@ mod tests {
     #[test]
     fn rate_4_percent_tier2() {
         // (4_000_000 - 2_000_000) × 4/100 = 80_000
-        let rate = Rate {
-            numer: 4,
-            denom: 100,
-        };
+        let rate = Rate::new(4, 100).unwrap();
         let result = rate
             .apply(
                 &exact(2_000_000),
@@ -120,10 +132,7 @@ mod tests {
     #[test]
     fn rate_3_percent_tier3() {
         // (5_000_000 - 4_000_000) × 3/100 = 30_000
-        let rate = Rate {
-            numer: 3,
-            denom: 100,
-        };
+        let rate = Rate::new(3, 100).unwrap();
         let result = rate
             .apply(
                 &exact(1_000_000),
@@ -145,7 +154,7 @@ mod tests {
         // 差が出るケース: 7 × 3/4
         // MultiplyFirst: floor(21/4) = 5
         // DivideFirst:   floor(7/4) * 3 = 1 * 3 = 3
-        let rate = Rate { numer: 3, denom: 4 };
+        let rate = Rate::new(3, 4).unwrap();
         let mf = rate
             .apply(
                 &exact(7),
@@ -167,10 +176,7 @@ mod tests {
     #[test]
     fn tax_10_percent() {
         // 210_000 × 10/100 = 21_000
-        let rate = Rate {
-            numer: 10,
-            denom: 100,
-        };
+        let rate = Rate::new(10, 100).unwrap();
         let result = rate
             .apply(
                 &exact(210_000),
@@ -186,23 +192,19 @@ mod tests {
 
     #[test]
     fn zero_denominator_returns_error() {
-        let rate = Rate { numer: 1, denom: 0 };
-        let result = rate.apply(
-            &exact(100),
-            MultiplyOrder::MultiplyFirst,
-            RoundingStrategy::Floor,
-        );
+        // Rate::new(1, 0) はエラーを返す
+        let result = Rate::new(1, 0);
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            crate::error::JLawError::Input(crate::error::InputError::ZeroDenominator)
+            crate::error::InputError::ZeroDenominator
         ));
     }
 
     #[test]
     fn overflow_returns_calculation_error() {
         // u64::MAX * 2 はオーバーフローする
-        let rate = Rate { numer: 2, denom: 1 };
+        let rate = Rate::new(2, 1).unwrap();
         let result = rate.apply(
             &exact(u64::MAX),
             MultiplyOrder::MultiplyFirst,
