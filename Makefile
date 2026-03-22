@@ -3,7 +3,7 @@
 # CIで実行される全チェックをローカルでワンコマンドで再現する。
 # コードを変更したら必ず `make ci` を実行してからプッシュすること。
 
-.PHONY: all fmt fmt-check clippy test audit check-versions sync-go-native sync-go-native-all ci docker-test
+.PHONY: all fmt fmt-check clippy test audit check-versions bump-version sync-go-native sync-go-native-all ci docker-test
 
 ## デフォルト: CIチェック一式を実行
 all: ci
@@ -31,6 +31,11 @@ audit:
 ## 公開パッケージのバージョン整合性を確認する
 check-versions:
 	./scripts/verify_release_versions.sh
+
+## 全公開パッケージのバージョンを一括更新する (例: make bump-version V=0.1.0)
+bump-version:
+	@test -n "$(V)" || (echo "usage: make bump-version V=<version>" >&2; exit 1)
+	./scripts/bump_version.sh "$(V)"
 
 ## Go バインディング用の現在のプラットフォーム向け同梱ネイティブアーカイブをソースと同期する
 ##

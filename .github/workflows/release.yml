@@ -1,0 +1,61 @@
+name: Release
+
+# 手動トリガーでバージョン更新・タグ作成・GitHub Release 公開を行う。
+# GitHub Release の公開をトリガーとして、各バインディングの publish ワークフローが自動実行される。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "リリースバージョン (例: 0.1.0)"
+        required: true
+        type: string
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ inputs.version }}"
+          VERSION="${VERSION#v}"
+          if ! echo "$VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::version must be in semver format (e.g. 0.1.0)"
+            exit 1
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - name: Check tag does not already exist
+        run: |
+          if git ls-remote --tags origin "refs/tags/v${VERSION}" | grep -q .; then
+            echo "::error::tag v${VERSION} already exists"
+            exit 1
+          fi
+
+      - name: Bump versions
+        run: ./scripts/bump_version.sh "$VERSION"
+
+      - name: Verify version alignment
+        run: ./scripts/verify_release_versions.sh "v${VERSION}"
+
+      - name: Commit, tag, and push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: release v${VERSION}"
+          git tag "v${VERSION}"
+          git push origin HEAD "v${VERSION}"
+
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${VERSION}" \
+            --title "v${VERSION}" \
+            --generate-notes
