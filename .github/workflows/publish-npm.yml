@@ -1,16 +1,17 @@
 name: Publish npm (WASM)
 
 # GitHub Releases が公開されたときに npm へ公開する。
-# 事前準備: リポジトリの Settings > Secrets に NPM_TOKEN を登録すること。
-# npm の Access Token は https://www.npmjs.com/settings/<user>/tokens で発行。
+# 事前準備: npm 側で Trusted Publisher (Provenance) を有効化すること。
+#   1. npmjs.com のパッケージ設定 > Publishing access > Require provenance を推奨
+#   2. GitHub environment "npm" を作成（任意: 保護ルールを追加）
 
 on:
   release:
     types: [published]
 
 jobs:
-  publish:
-    name: Publish to npm
+  build:
+    name: Build WASM package
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -49,8 +50,30 @@ jobs:
       - name: Run WASM binding tests
         run: node --test crates/j-law-wasm/tests/*.test.mjs
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: crates/j-law-wasm/pkg
+
+  publish:
+    name: Publish to npm
+    needs: [build]
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: npm-package
+          path: pkg
+
       - name: Publish to npm
-        run: npm publish --access public
-        working-directory: crates/j-law-wasm/pkg
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
+        working-directory: pkg
