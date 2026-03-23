@@ -13,14 +13,14 @@ jobs:
     name: Build source gem
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify release tag matches package versions
         shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
 
       - uses: dtolnay/rust-toolchain@1.94.0
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry/index
@@ -50,7 +50,7 @@ jobs:
         working-directory: crates/j-law-ruby
         run: bundle exec rake build_source_gem
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ruby-source-gem
           path: crates/j-law-ruby/*.gem
@@ -78,14 +78,14 @@ jobs:
             label: windows amd64
             artifact_name: windows-amd64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify release tag matches package versions
         shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
 
       - uses: dtolnay/rust-toolchain@1.94.0
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry/index
@@ -128,7 +128,7 @@ jobs:
           gem install --local "$gem_path"
           ruby -e 'require "date"; require "j_law_ruby"; abort "smoke test failed" unless JLawRuby::ConsumptionTax.calc_consumption_tax(100_000, Date.new(2024, 1, 1), false).tax_amount == 10_000'
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: ruby-binary-gem-${{ matrix.artifact_name }}
           path: crates/j-law-ruby/*.gem
@@ -142,7 +142,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           merge-multiple: true
           path: gems
