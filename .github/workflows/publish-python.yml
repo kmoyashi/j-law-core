@@ -6,12 +6,20 @@ on:
 
 jobs:
   build-wheels:
-    name: Build wheels (${{ matrix.os }})
+    name: Build wheels (${{ matrix.os }}${{ matrix.arch && format(' {0}', matrix.arch) || '' }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        include:
+          - os: ubuntu-latest
+          - os: macos-latest
+            arch: x86_64
+            macos_deployment_target: "10.12"
+          - os: macos-latest
+            arch: arm64
+            macos_deployment_target: "11.0"
+          - os: windows-latest
     steps:
       - uses: actions/checkout@v5
       - name: Verify release tag matches package versions
@@ -23,8 +31,8 @@ jobs:
         with:
           python-version: "3.11"
       - uses: dtolnay/rust-toolchain@1.94.0
-      - name: Add macOS cross-compilation target
-        if: matrix.os == 'macos-latest'
+      - name: Add macOS cross-compilation target (x86_64)
+        if: matrix.arch == 'x86_64'
         run: rustup target add x86_64-apple-darwin
       - name: Clean Rust build outputs
         run: cargo clean --manifest-path Cargo.toml
@@ -34,20 +42,19 @@ jobs:
           CIBW_BUILD_FRONTEND: build
           CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-* cp314-*"
           CIBW_ARCHS_LINUX: "x86_64 aarch64"
-          CIBW_ARCHS_MACOS: "x86_64 arm64"
+          CIBW_ARCHS_MACOS: "${{ matrix.arch || '' }}"
           CIBW_ARCHS_WINDOWS: "AMD64"
           CIBW_PROJECT_REQUIRES_PYTHON: ">=3.10"
           CIBW_TEST_COMMAND: 'python -c "import datetime; from j_law_python.consumption_tax import calc_consumption_tax; assert calc_consumption_tax(100_000, datetime.date(2024, 1, 1)).tax_amount == 10_000"'
           CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && $HOME/.cargo/bin/rustup toolchain install 1.94.0 --profile minimal && $HOME/.cargo/bin/rustup default 1.94.0"
           CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=1.94.0"
-          CIBW_ENVIRONMENT_MACOS: >-
-            MACOSX_DEPLOYMENT_TARGET=$([[ "$ARCHFLAGS" == *arm64* || ( -z "$ARCHFLAGS" && "$(uname -m)" == "arm64" ) ]] && echo '11.0' || echo '10.12')
+          CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos_deployment_target || '' }}"
         with:
           package-dir: crates/j-law-python
           output-dir: dist
       - uses: actions/upload-artifact@v6
         with:
-          name: wheels-${{ matrix.os }}
+          name: wheels-${{ matrix.os }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
           path: dist
 
   sdist:
