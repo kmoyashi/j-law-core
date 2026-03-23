@@ -218,7 +218,16 @@ def build_shared_library(
     if profile == "release":
         command.append("--release")
 
-    subprocess.run(command, check=True, cwd=manifest.parent)
+    env = None
+    if target is not None and target.endswith("-linux-musl"):
+        # musl ターゲットはデフォルトで crt_static_allows_dylibs = false のため
+        # cdylib クレートタイプが無効化される。
+        # -C target-feature=-crt-static で動的リンクを有効にして cdylib をビルド可能にする。
+        env = os.environ.copy()
+        existing = env.get("RUSTFLAGS", "")
+        env["RUSTFLAGS"] = (existing + " -C target-feature=-crt-static").strip()
+
+    subprocess.run(command, check=True, cwd=manifest.parent, env=env)
 
     built_library = built_shared_library_path(manifest, profile, target=target)
     if not built_library.is_file():

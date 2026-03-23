@@ -23,6 +23,9 @@ jobs:
         with:
           python-version: "3.11"
       - uses: dtolnay/rust-toolchain@1.94.0
+      - name: Add macOS cross-compilation target
+        if: matrix.os == 'macos-latest'
+        run: rustup target add x86_64-apple-darwin
       - name: Clean Rust build outputs
         run: cargo clean --manifest-path Cargo.toml
       - name: Build wheels with cibuildwheel
