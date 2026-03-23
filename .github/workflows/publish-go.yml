@@ -37,7 +37,7 @@ jobs:
             rust_target: aarch64-apple-darwin
             platform_dir: darwin_arm64
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify release tag matches package versions
         shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
@@ -46,7 +46,7 @@ jobs:
         with:
           targets: ${{ matrix.rust_target }}
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry/index
@@ -60,7 +60,7 @@ jobs:
       - name: Clean Rust build outputs
         run: cargo clean --manifest-path Cargo.toml
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: crates/j-law-go/go.mod
           cache-dependency-path: crates/j-law-go/go.mod
@@ -74,7 +74,7 @@ jobs:
         working-directory: crates/j-law-go
         run: go test ./...
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: j-law-go-native-${{ matrix.platform_dir }}
           path: crates/j-law-go/native/${{ matrix.platform_dir }}/libj_law_c_ffi.a
@@ -94,12 +94,12 @@ jobs:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           path: /tmp/j-law-go-native
 

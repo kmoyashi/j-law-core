@@ -14,7 +14,7 @@ jobs:
     name: Build WASM package
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Verify release tag matches package versions
         shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
@@ -23,7 +23,7 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry/index
@@ -39,7 +39,7 @@ jobs:
       - name: Install wasm-pack
         run: curl -fsSL https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
@@ -50,7 +50,7 @@ jobs:
       - name: Run WASM binding tests
         run: node --test crates/j-law-wasm/tests/*.test.mjs
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: npm-package
           path: crates/j-law-wasm/pkg
@@ -64,12 +64,12 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: npm-package
           path: pkg
