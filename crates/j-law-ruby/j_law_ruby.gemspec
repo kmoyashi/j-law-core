@@ -6,7 +6,7 @@ Gem::Specification.new do |spec|
   binary_gem_build = JLawRuby::BuildSupport.binary_gem_build?
 
   spec.name    = "j-law-ruby"
-  spec.version = "0.0.4"
+  spec.version = "0.0.5"
   spec.authors = ["j-law-core contributors"]
   spec.email   = []
   spec.summary = "日本法令計算のPoCをRubyから利用するためのアルファ版バインディング"
