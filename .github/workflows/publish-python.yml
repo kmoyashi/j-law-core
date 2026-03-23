@@ -40,6 +40,8 @@ jobs:
           CIBW_TEST_COMMAND: 'python -c "import datetime; from j_law_python.consumption_tax import calc_consumption_tax; assert calc_consumption_tax(100_000, datetime.date(2024, 1, 1)).tax_amount == 10_000"'
           CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && $HOME/.cargo/bin/rustup toolchain install 1.94.0 --profile minimal && $HOME/.cargo/bin/rustup default 1.94.0"
           CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=1.94.0"
+          CIBW_ENVIRONMENT_MACOS: >-
+            MACOSX_DEPLOYMENT_TARGET=$([[ "$ARCHFLAGS" == *arm64* || ( -z "$ARCHFLAGS" && "$(uname -m)" == "arm64" ) ]] && echo '11.0' || echo '10.12')
         with:
           package-dir: crates/j-law-python
           output-dir: dist
