@@ -22,6 +22,10 @@ type dependentFixture struct {
 	ElderlyOtherCount      uint64 `json:"elderly_other_count"`
 }
 
+type specificRelativeFixture struct {
+	TotalIncomeAmount uint64 `json:"total_income_amount"`
+}
+
 type medicalFixture struct {
 	MedicalExpensePaid uint64 `json:"medical_expense_paid"`
 	ReimbursedAmount   uint64 `json:"reimbursed_amount"`
@@ -40,15 +44,16 @@ type donationFixture struct {
 }
 
 type incomeTaxDeductionFixtureInput struct {
-	TotalIncomeAmount          uint64                `json:"total_income_amount"`
-	Date                       string                `json:"date"`
-	Spouse                     *spouseFixture        `json:"spouse"`
-	Dependent                  dependentFixture      `json:"dependent"`
-	SocialInsurancePremiumPaid uint64                `json:"social_insurance_premium_paid"`
-	Medical                    *medicalFixture       `json:"medical"`
-	LifeInsurance              *lifeInsuranceFixture `json:"life_insurance"`
-	Donation                   *donationFixture      `json:"donation"`
-	ApplyReconstructionTax     bool                  `json:"apply_reconstruction_tax"`
+	TotalIncomeAmount          uint64                    `json:"total_income_amount"`
+	Date                       string                    `json:"date"`
+	Spouse                     *spouseFixture            `json:"spouse"`
+	Dependent                  dependentFixture          `json:"dependent"`
+	SpecificRelatives          []specificRelativeFixture `json:"specific_relatives"`
+	SocialInsurancePremiumPaid uint64                    `json:"social_insurance_premium_paid"`
+	Medical                    *medicalFixture           `json:"medical"`
+	LifeInsurance              *lifeInsuranceFixture     `json:"life_insurance"`
+	Donation                   *donationFixture          `json:"donation"`
+	ApplyReconstructionTax     bool                      `json:"apply_reconstruction_tax"`
 }
 
 type incomeTaxDeductionFixtureExpected struct {
@@ -97,6 +102,11 @@ func toIncomeDeductionInput(tc incomeTaxDeductionFixtureInput) jlawcore.IncomeDe
 			ElderlyOtherCount:      tc.Dependent.ElderlyOtherCount,
 		},
 		SocialInsurancePremiumPaid: tc.SocialInsurancePremiumPaid,
+	}
+	for _, relative := range tc.SpecificRelatives {
+		input.SpecificRelatives = append(input.SpecificRelatives, jlawcore.SpecificRelativeDeductionInput{
+			TotalIncomeAmount: relative.TotalIncomeAmount,
+		})
 	}
 	if tc.Spouse != nil {
 		input.Spouse = &jlawcore.SpouseDeductionInput{
@@ -180,5 +190,51 @@ func TestIncomeTaxAssessmentFixtures(t *testing.T) {
 				t.Errorf("TotalTax: got %d, want %d", result.Tax.TotalTax, tc.Expected.TotalTax)
 			}
 		})
+	}
+}
+
+// kindSpecificRelative は J_LAW_INCOME_DEDUCTION_KIND_SPECIFIC_RELATIVE（特定親族特別控除）。
+const kindSpecificRelative = 8
+
+func TestSpecificRelativeLineAppearsFrom2025(t *testing.T) {
+	kinds := func(date time.Time) []uint32 {
+		result, err := jlawcore.CalcIncomeDeductions(jlawcore.IncomeDeductionInput{
+			TotalIncomeAmount: 5_000_000,
+			Date:              date,
+			SpecificRelatives: []jlawcore.SpecificRelativeDeductionInput{{TotalIncomeAmount: 700_000}},
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		out := make([]uint32, 0, len(result.Breakdown))
+		for _, line := range result.Breakdown {
+			out = append(out, line.Kind)
+		}
+		return out
+	}
+
+	for _, kind := range kinds(time.Date(2024, time.December, 31, 0, 0, 0, 0, time.UTC)) {
+		if kind == kindSpecificRelative {
+			t.Fatalf("2024年分に特定親族特別控除の内訳が含まれています")
+		}
+	}
+	got := kinds(time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC))
+	if len(got) < 4 || got[3] != kindSpecificRelative {
+		t.Fatalf("2026年分の内訳4行目が特定親族特別控除ではありません: %v", got)
+	}
+}
+
+func TestSpecificRelativesRejectMoreThanMax(t *testing.T) {
+	relatives := make([]jlawcore.SpecificRelativeDeductionInput, 9)
+	for i := range relatives {
+		relatives[i].TotalIncomeAmount = 700_000
+	}
+	_, err := jlawcore.CalcIncomeDeductions(jlawcore.IncomeDeductionInput{
+		TotalIncomeAmount: 5_000_000,
+		Date:              time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC),
+		SpecificRelatives: relatives,
+	})
+	if err == nil {
+		t.Fatal("expected error for more than 8 specific relatives")
 	}
 }

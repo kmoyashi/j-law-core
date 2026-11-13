@@ -91,6 +91,7 @@ fn deduction_params_2024() -> IncomeDeductionParams {
                 elderly_cohabiting_deduction_amount: 580_000,
                 elderly_other_deduction_amount: 480_000,
             },
+            specific_relative: None,
         },
         expense: ExpenseDeductionParams {
             social_insurance: SocialInsuranceDeductionParams,
@@ -201,7 +202,11 @@ fn ctx(
         total_income_amount,
         target_date: LegalDate::new(2024, 1, 1),
         deductions: IncomeDeductionInput {
-            personal: PersonalDeductionInput { spouse, dependent },
+            personal: PersonalDeductionInput {
+                spouse,
+                dependent,
+                specific_relatives: vec![],
+            },
             expense: ExpenseDeductionInput {
                 social_insurance_premium_paid,
                 medical: None,
@@ -303,6 +308,7 @@ fn medical_life_insurance_and_donation_deductions_are_calculated() {
                 personal: PersonalDeductionInput {
                     spouse: None,
                     dependent: DependentDeductionInput::default(),
+                    specific_relatives: vec![],
                 },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid: 150_000,

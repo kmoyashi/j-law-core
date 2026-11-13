@@ -7,6 +7,26 @@
 
 ## [Unreleased]
 
+### Fixed
+
+- **所得控除が2025年分以後の税制改正を反映していなかった問題を修正**
+  - 2025年分以後も基礎控除48万円・配偶者の所得要件48万円以下で計算していた
+  - 令和7年度改正（令和7年法律第13号）: 2025年分の基礎控除（最大95万円）、配偶者・扶養親族の所得要件58万円以下
+  - 令和8年度改正（令和8年法律第12号）: 2026・2027年分の基礎控除（最大104万円）、2028年分以後の基礎控除（最大99万円）、所得要件62万円以下
+
+### Added
+
+- **特定親族特別控除**（所得税法 第84条の2、2025年分以後）
+  - Rust: `SpecificRelativeDeductionInput` / `SpecificRelativeDeductionParams` / `IncomeDeductionKind::SpecificRelative`
+  - 全言語バインディングに特定親族の入力を追加（Python `specific_relatives` / WASM `specificRelatives` / Ruby `specific_relatives:` / Go `SpecificRelatives`）
+- 所得控除 registry の区分テーブル（基礎控除・配偶者控除・特定親族特別控除）の連続性検証と `RegistryError::InvalidBracketTable`
+
+### Changed
+
+- **Breaking**: C FFI バージョンを 5 に更新。`JLawIncomeDeductionInput` の末尾に `specific_relative_count` / `specific_relative_total_income_amounts[J_LAW_MAX_SPECIFIC_RELATIVES]` を追加
+- **Breaking (Rust)**: `PersonalDeductionParams` に `specific_relative`、`PersonalDeductionInput` に `specific_relatives` フィールドを追加
+- 2025年分以後の所得控除内訳に「特定親族特別控除」行（kind = 8）を扶養控除の直後に追加（2024年分以前の内訳は変更なし）
+
 ## [0.0.1] - 2026-03-21
 
 ### Added

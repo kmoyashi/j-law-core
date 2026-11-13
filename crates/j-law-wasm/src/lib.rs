@@ -19,7 +19,7 @@ use ::j_law_core::domains::income_tax::{
         DependentDeductionInput, DonationDeductionInput, ExpenseDeductionInput,
         IncomeDeductionContext, IncomeDeductionInput, IncomeDeductionKind,
         LifeInsuranceDeductionInput, MedicalDeductionInput, PersonalDeductionInput,
-        SpouseDeductionInput,
+        SpecificRelativeDeductionInput, SpouseDeductionInput,
     },
     policy::StandardIncomeTaxPolicy,
 };
@@ -207,6 +207,37 @@ fn get_required_date(obj: &JsValue, keys: &[&str]) -> Result<js_sys::Date, JsVal
     }
 }
 
+/// `specificRelatives`（特定親族ごとの `{ totalIncomeAmount }` 配列）を読み取る。
+fn get_specific_relatives(input: &JsValue) -> Result<Vec<SpecificRelativeDeductionInput>, JsValue> {
+    let Some(value) = get_optional_object(input, &["specificRelatives", "specific_relatives"])?
+    else {
+        return Ok(Vec::new());
+    };
+    if !Array::is_array(&value) {
+        return Err(invalid_deduction_input(
+            "specificRelatives",
+            "must be an array of { totalIncomeAmount }",
+        ));
+    }
+    Array::from(&value)
+        .iter()
+        .map(|relative| {
+            if !relative.is_object() {
+                return Err(invalid_deduction_input(
+                    "specificRelatives",
+                    "each element must be an object with totalIncomeAmount",
+                ));
+            }
+            Ok(SpecificRelativeDeductionInput {
+                total_income_amount: get_required_u64(
+                    &relative,
+                    &["totalIncomeAmount", "total_income_amount"],
+                )?,
+            })
+        })
+        .collect()
+}
+
 fn to_income_deduction_context(input: &JsValue) -> Result<IncomeDeductionContext, JsValue> {
     let total_income_amount =
         get_required_u64(input, &["totalIncomeAmount", "total_income_amount"])?;
@@ -308,7 +339,11 @@ fn to_income_deduction_context(input: &JsValue) -> Result<IncomeDeductionContext
         total_income_amount,
         target_date: LegalDate::new(year, month, day),
         deductions: IncomeDeductionInput {
-            personal: PersonalDeductionInput { spouse, dependent },
+            personal: PersonalDeductionInput {
+                spouse,
+                dependent,
+                specific_relatives: get_specific_relatives(input)?,
+            },
             expense: ExpenseDeductionInput {
                 social_insurance_premium_paid: get_optional_u64(
                     input,
@@ -335,6 +370,7 @@ fn income_deduction_kind_to_js(kind: IncomeDeductionKind) -> u32 {
         IncomeDeductionKind::Medical => 5,
         IncomeDeductionKind::LifeInsurance => 6,
         IncomeDeductionKind::Donation => 7,
+        IncomeDeductionKind::SpecificRelative => 8,
     }
 }
 

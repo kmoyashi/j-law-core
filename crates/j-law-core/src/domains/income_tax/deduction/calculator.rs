@@ -15,7 +15,9 @@ use crate::types::amount::FinalAmount;
 /// 所得税法 第78条（寄附金控除）
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 pub fn calculate_income_deductions(
     ctx: &IncomeDeductionContext,
     params: &IncomeDeductionParams,
@@ -90,6 +92,7 @@ mod tests {
                     elderly_cohabiting_deduction_amount: 580_000,
                     elderly_other_deduction_amount: 480_000,
                 },
+                specific_relative: None,
             },
             expense: ExpenseDeductionParams {
                 social_insurance: SocialInsuranceDeductionParams,
@@ -140,6 +143,7 @@ mod tests {
                 personal: PersonalDeductionInput {
                     spouse: None,
                     dependent: DependentDeductionInput::default(),
+                    specific_relatives: vec![],
                 },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid,

@@ -27,7 +27,8 @@
         },
         "donation": {
           "qualified_donation_amount": 500000
-        }
+        },
+        "specific_relatives": []
       },
       "expected": {
         "total_income_amount": 6000000,
@@ -56,13 +57,162 @@
         "social_insurance_premium_paid": 200000,
         "medical": null,
         "life_insurance": null,
-        "donation": null
+        "donation": null,
+        "specific_relatives": []
       },
       "expected": {
         "total_income_amount": 8000000,
         "total_deductions": 3230000,
         "taxable_income_before_truncation": 4770000,
         "taxable_income": 4770000
+      }
+    },
+    {
+      "id": "basic_2025_low_income",
+      "description": "令和7年分: 合計所得金額132万円以下の基礎控除は95万円",
+      "input": {
+        "total_income_amount": 1000000,
+        "date": "2025-06-30",
+        "spouse": null,
+        "dependent": {
+          "general_count": 0,
+          "specific_count": 0,
+          "elderly_cohabiting_count": 0,
+          "elderly_other_count": 0
+        },
+        "specific_relatives": [],
+        "social_insurance_premium_paid": 0,
+        "medical": null,
+        "life_insurance": null,
+        "donation": null
+      },
+      "expected": {
+        "total_income_amount": 1000000,
+        "total_deductions": 950000,
+        "taxable_income_before_truncation": 50000,
+        "taxable_income": 50000
+      }
+    },
+    {
+      "id": "basic_2026_up_to_4_89m",
+      "description": "令和8年分: 合計所得金額489万円以下の基礎控除は104万円",
+      "input": {
+        "total_income_amount": 4000000,
+        "date": "2026-06-30",
+        "spouse": null,
+        "dependent": {
+          "general_count": 0,
+          "specific_count": 0,
+          "elderly_cohabiting_count": 0,
+          "elderly_other_count": 0
+        },
+        "specific_relatives": [],
+        "social_insurance_premium_paid": 500000,
+        "medical": null,
+        "life_insurance": null,
+        "donation": null
+      },
+      "expected": {
+        "total_income_amount": 4000000,
+        "total_deductions": 1540000,
+        "taxable_income_before_truncation": 2460000,
+        "taxable_income": 2460000
+      }
+    },
+    {
+      "id": "basic_2028_low_income",
+      "description": "令和10年分以後: 合計所得金額132万円以下の基礎控除は99万円",
+      "input": {
+        "total_income_amount": 1000000,
+        "date": "2028-06-30",
+        "spouse": null,
+        "dependent": {
+          "general_count": 0,
+          "specific_count": 0,
+          "elderly_cohabiting_count": 0,
+          "elderly_other_count": 0
+        },
+        "specific_relatives": [],
+        "social_insurance_premium_paid": 0,
+        "medical": null,
+        "life_insurance": null,
+        "donation": null
+      },
+      "expected": {
+        "total_income_amount": 1000000,
+        "total_deductions": 990000,
+        "taxable_income_before_truncation": 10000,
+        "taxable_income": 10000
+      }
+    },
+    {
+      "id": "spouse_and_specific_relatives_2025",
+      "description": "令和7年分: 配偶者の所得要件58万円以下・特定親族特別控除（58万円超）",
+      "input": {
+        "total_income_amount": 5000000,
+        "date": "2025-06-30",
+        "spouse": {
+          "spouse_total_income_amount": 580000,
+          "is_same_household": true,
+          "is_elderly": false
+        },
+        "dependent": {
+          "general_count": 0,
+          "specific_count": 0,
+          "elderly_cohabiting_count": 0,
+          "elderly_other_count": 0
+        },
+        "specific_relatives": [
+          {
+            "total_income_amount": 600000
+          },
+          {
+            "total_income_amount": 1100000
+          }
+        ],
+        "social_insurance_premium_paid": 0,
+        "medical": null,
+        "life_insurance": null,
+        "donation": null
+      },
+      "expected": {
+        "total_income_amount": 5000000,
+        "total_deductions": 1850000,
+        "taxable_income_before_truncation": 3150000,
+        "taxable_income": 3150000
+      }
+    },
+    {
+      "id": "specific_relatives_2026",
+      "description": "令和8年分: 特定親族特別控除は62万円超が対象（60万円の親族は0円）",
+      "input": {
+        "total_income_amount": 5000000,
+        "date": "2026-06-30",
+        "spouse": null,
+        "dependent": {
+          "general_count": 0,
+          "specific_count": 0,
+          "elderly_cohabiting_count": 0,
+          "elderly_other_count": 0
+        },
+        "specific_relatives": [
+          {
+            "total_income_amount": 600000
+          },
+          {
+            "total_income_amount": 700000
+          }
+        ],
+        "social_insurance_premium_paid": 0,
+        "medical": null,
+        "life_insurance": null,
+        "donation": null
+      },
+      "expected": {
+        "total_income_amount": 5000000,
+        "total_deductions": 1300000,
+        "taxable_income_before_truncation": 3700000,
+        "taxable_income": 3700000
       }
     }
   ],
@@ -95,13 +245,41 @@
         "donation": {
           "qualified_donation_amount": 500000
         },
-        "apply_reconstruction_tax": true
+        "apply_reconstruction_tax": true,
+        "specific_relatives": []
       },
       "expected": {
         "taxable_income": 4407000,
         "base_tax": 453900,
         "reconstruction_tax": 9531,
         "total_tax": 463400
+      }
+    },
+    {
+      "id": "basic_2026_assessment",
+      "description": "令和8年分: 基礎控除104万円を反映した通し計算",
+      "input": {
+        "total_income_amount": 3000000,
+        "date": "2026-06-30",
+        "spouse": null,
+        "dependent": {
+          "general_count": 0,
+          "specific_count": 0,
+          "elderly_cohabiting_count": 0,
+          "elderly_other_count": 0
+        },
+        "specific_relatives": [],
+        "social_insurance_premium_paid": 450000,
+        "medical": null,
+        "life_insurance": null,
+        "donation": null,
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "taxable_income": 1510000,
+        "base_tax": 75500,
+        "reconstruction_tax": 1585,
+        "total_tax": 77000
       }
     }
   ]

@@ -9,9 +9,10 @@ module JLawRuby
     module CFFI
       extend FFI::Library
 
-      FFI_VERSION = 4
+      FFI_VERSION = 5
       MAX_TIERS = 8
       MAX_DEDUCTION_LINES = 8
+      MAX_SPECIFIC_RELATIVES = 8
       LABEL_LEN = 64
       ERROR_BUF_LEN = 256
       UINT64_MAX = (1 << 64) - 1
@@ -139,7 +140,9 @@ module JLawRuby
                :life_old_general_paid_amount, :uint64,
                :life_old_individual_pension_paid_amount, :uint64,
                :has_donation, :int,
-               :donation_qualified_amount, :uint64
+               :donation_qualified_amount, :uint64,
+               :specific_relative_count, :uint64,
+               :specific_relative_total_income_amounts, [:uint64, MAX_SPECIFIC_RELATIVES]
       end
 
       class IncomeDeductionStruct < FFI::Struct
@@ -644,6 +647,16 @@ module JLawRuby
         struct[:has_donation] = bool_to_c_int(!donation.nil?)
         struct[:donation_qualified_amount] =
           validate_u64(donation&.fetch(:qualified_donation_amount, 0) || 0, "donation.qualified_donation_amount")
+        specific_relatives = input.fetch(:specific_relatives, nil) || []
+        if specific_relatives.length > MAX_SPECIFIC_RELATIVES
+          raise ArgumentError,
+                "specific_relative_count は #{MAX_SPECIFIC_RELATIVES} 以下で指定してください"
+        end
+        struct[:specific_relative_count] = specific_relatives.length
+        specific_relatives.each_with_index do |relative, index|
+          struct[:specific_relative_total_income_amounts][index] =
+            validate_u64(relative.fetch(:total_income_amount), "specific_relatives[#{index}].total_income_amount")
+        end
         struct
       end
 

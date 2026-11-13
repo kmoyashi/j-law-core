@@ -127,6 +127,33 @@ describe("calcIncomeDeductions - JS固有テスト", () => {
     }
   });
 
+  it("特定親族特別控除の内訳は2025年分以後のみ含まれる", () => {
+    const kinds = (date) =>
+      calcIncomeDeductions({
+        totalIncomeAmount: 5_000_000,
+        date,
+        specificRelatives: [{ totalIncomeAmount: 700_000 }],
+      })
+        .breakdown()
+        .map((line) => line.kind);
+
+    assert.ok(!kinds(new Date(Date.UTC(2024, 11, 31))).includes(8));
+    const kinds2026 = kinds(new Date(Date.UTC(2026, 0, 1)));
+    assert.equal(kinds2026[3], 8);
+  });
+
+  it("specificRelatives が配列でない場合はエラー", () => {
+    assert.throws(
+      () =>
+        calcIncomeDeductions({
+          totalIncomeAmount: 5_000_000,
+          date: new Date(Date.UTC(2026, 0, 1)),
+          specificRelatives: { totalIncomeAmount: 700_000 },
+        }),
+      /specificRelatives/
+    );
+  });
+
   it("u32 を超える金額を BigInt で返す", () => {
     const r = calcIncomeDeductions({
       total_income_amount: 10_000_000_000n,

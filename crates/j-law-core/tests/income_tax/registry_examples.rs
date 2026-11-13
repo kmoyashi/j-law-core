@@ -26,6 +26,7 @@ fn registry_loaded_deductions_flow_into_income_tax_assessment() {
                 personal: PersonalDeductionInput {
                     spouse: None,
                     dependent: DependentDeductionInput::default(),
+                    specific_relatives: vec![],
                 },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid: 150_000,

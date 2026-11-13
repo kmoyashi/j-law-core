@@ -7,7 +7,9 @@
 /// 所得税法 第78条（寄附金控除）
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 #[derive(Debug, Clone)]
 pub struct IncomeDeductionParams {
     /// 人的控除パラメータ。
@@ -21,6 +23,7 @@ pub struct IncomeDeductionParams {
 /// # 法的根拠
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
 #[derive(Debug, Clone)]
 pub struct PersonalDeductionParams {
@@ -30,6 +33,10 @@ pub struct PersonalDeductionParams {
     pub spouse: SpouseDeductionParams,
     /// 扶養控除のパラメータ。
     pub dependent: DependentDeductionParams,
+    /// 特定親族特別控除のパラメータ。
+    ///
+    /// 制度創設前（2024年分以前）は `None`。
+    pub specific_relative: Option<SpecificRelativeDeductionParams>,
 }
 
 /// 基礎控除のパラメータ。
@@ -44,8 +51,14 @@ pub struct BasicDeductionParams {
 
 /// 基礎控除の所得閾値テーブル。
 ///
+/// 2025年分以後は、所得税法第86条の本則額に租税特別措置法第41条の16の2の
+/// 加算額を加えた額を `deduction_amount` として保持する。
+/// 同条の加算は居住者についてのみ適用されるため、本ライブラリの基礎控除計算は
+/// 居住者を前提とする。
+///
 /// # 法的根拠
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 #[derive(Debug, Clone)]
 pub struct BasicDeductionBracket {
     /// ブラケットの表示名。
@@ -202,4 +215,30 @@ pub struct DependentDeductionParams {
     pub elderly_cohabiting_deduction_amount: u64,
     /// 同居老親等以外の老人扶養親族1人当たりの控除額（円）。
     pub elderly_other_deduction_amount: u64,
+}
+
+/// 特定親族特別控除のパラメータ。
+///
+/// # 法的根拠
+/// 所得税法 第84条の2（特定親族特別控除）
+#[derive(Debug, Clone)]
+pub struct SpecificRelativeDeductionParams {
+    /// 特定親族の合計所得金額に応じた控除額テーブル。
+    pub brackets: Vec<SpecificRelativeDeductionBracket>,
+}
+
+/// 特定親族特別控除の所得閾値テーブル。
+///
+/// # 法的根拠
+/// 所得税法 第84条の2（特定親族特別控除）
+#[derive(Debug, Clone)]
+pub struct SpecificRelativeDeductionBracket {
+    /// ブラケットの表示名。
+    pub label: String,
+    /// 特定親族の合計所得金額の下限（円・この金額以上）。
+    pub income_from: u64,
+    /// 特定親族の合計所得金額の上限（円・この金額以下）。`None` は上限なし。
+    pub income_to_inclusive: Option<u64>,
+    /// 当該ブラケットで適用する控除額（円）。
+    pub deduction_amount: u64,
 }

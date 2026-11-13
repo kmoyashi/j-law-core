@@ -171,6 +171,17 @@ type DependentDeductionInput struct {
 	ElderlyOtherCount      uint64
 }
 
+// SpecificRelativeDeductionInput は特定親族特別控除の入力（特定親族1人分）を表す。
+//
+// 法的根拠: 所得税法 第84条の2
+//
+// WARNING: 特定親族への該当性（年齢19歳以上23歳未満・生計を一にする等）の
+// 事実認定はライブラリの責任範囲外です。呼び出し元が正しく判断した上で指定してください。
+type SpecificRelativeDeductionInput struct {
+	// TotalIncomeAmount は特定親族の合計所得金額（円）。
+	TotalIncomeAmount uint64
+}
+
 // MedicalDeductionInput は医療費控除の入力を表す。
 type MedicalDeductionInput struct {
 	MedicalExpensePaid uint64
@@ -193,10 +204,12 @@ type DonationDeductionInput struct {
 
 // IncomeDeductionInput は所得控除計算の入力を表す。
 type IncomeDeductionInput struct {
-	TotalIncomeAmount          uint64
-	Date                       time.Time
-	Spouse                     *SpouseDeductionInput
-	Dependent                  DependentDeductionInput
+	TotalIncomeAmount uint64
+	Date              time.Time
+	Spouse            *SpouseDeductionInput
+	Dependent         DependentDeductionInput
+	// SpecificRelatives は特定親族特別控除の対象となる特定親族（最大 8 人）。
+	SpecificRelatives          []SpecificRelativeDeductionInput
 	SocialInsurancePremiumPaid uint64
 	Medical                    *MedicalDeductionInput
 	LifeInsurance              *LifeInsuranceDeductionInput
@@ -458,6 +471,14 @@ func toCIncomeDeductionInput(input IncomeDeductionInput) C.JLawIncomeDeductionIn
 	if input.Donation != nil {
 		cInput.has_donation = 1
 		cInput.donation_qualified_amount = C.uint64_t(input.Donation.QualifiedDonationAmount)
+	}
+	// 上限超過時は人数だけをそのまま渡し、C FFI 側で入力エラーとして扱う。
+	cInput.specific_relative_count = C.uint64_t(len(input.SpecificRelatives))
+	for i, relative := range input.SpecificRelatives {
+		if i >= C.J_LAW_MAX_SPECIFIC_RELATIVES {
+			break
+		}
+		cInput.specific_relative_total_income_amounts[i] = C.uint64_t(relative.TotalIncomeAmount)
 	}
 
 	return cInput
