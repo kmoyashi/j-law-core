@@ -36,6 +36,7 @@ hash_stdin() {
 collect_fingerprint_inputs() {
   {
     printf '%s\n' \
+      "${SCRIPT_DIR}/sync_go_native_archive.sh" \
       "${WORKSPACE_ROOT}/Cargo.lock" \
       "${WORKSPACE_ROOT}/Cargo.toml" \
       "${WORKSPACE_ROOT}/crates/j-law-c-ffi/Cargo.toml" \
@@ -88,6 +89,63 @@ DEST_ARCHIVE="${DEST_DIR}/libj_law_c_ffi.a"
 METADATA_FILE="${DEST_DIR}/build-info.txt"
 SOURCE_FINGERPRINT="$(compute_source_fingerprint)"
 
+# rustup の llvm-tools コンポーネントに含まれる LLVM ツールのパスを返す。
+llvm_tool() {
+  local name="$1"
+  local host
+  local path
+
+  host="$(rustc -vV | sed -n 's/^host: //p')"
+  path="$(rustc --print sysroot)/lib/rustlib/${host}/bin/${name}"
+  if [[ ! -x "${path}" ]]; then
+    echo "${name} was not found: ${path}" >&2
+    echo "Run 'rustup component add llvm-tools' and retry." >&2
+    exit 1
+  fi
+  printf '%s' "${path}"
+}
+
+# Go 1.26.11 以降の cgo は、#cgo LDFLAGS に渡すアーカイブに LTO 用セクション
+# （ELF の .llvmbc / .llvmcmd、Mach-O の __LLVM セグメント）が含まれているとビルドを拒否する。
+# Rust の標準ライブラリはビットコードを埋め込んだ状態で配布されているため、
+# staticlib を生成した後にこれらのセクションを取り除く。
+# 機械語（.text 等）には手を加えないため、リンク結果と動作は変わらない。
+strip_lto_sections() {
+  local archive="$1"
+  local objcopy
+
+  objcopy="$(llvm_tool llvm-objcopy)"
+  case "${TARGET_TRIPLE}" in
+    *-apple-darwin)
+      "${objcopy}" \
+        --remove-section=__LLVM,__bitcode \
+        --remove-section=__LLVM,__cmdline \
+        "${archive}"
+      ;;
+    *)
+      "${objcopy}" \
+        --remove-section=.llvmbc \
+        --remove-section=.llvmcmd \
+        "${archive}"
+      ;;
+  esac
+}
+
+assert_no_lto_sections() {
+  local archive="$1"
+  local readobj
+  local found
+
+  readobj="$(llvm_tool llvm-readobj)"
+  found="$("${readobj}" --sections "${archive}" \
+    | grep -E 'Name: \.(llvmbc|llvmcmd|llvm\.lto|gnu\.lto_|gnu\.debuglto_)|Segment: __(LLVM|GNU_LTO) ' \
+    | head -n 1 || true)"
+  if [[ -n "${found}" ]]; then
+    echo "LTO section remains in ${archive}: ${found}" >&2
+    exit 1
+  fi
+}
+
 write_metadata() {
   mkdir -p "${DEST_DIR}"
   cat > "${METADATA_FILE}" <<EOF
@@ -131,6 +189,8 @@ cargo rustc \
 SOURCE_ARCHIVE="${WORKSPACE_ROOT}/target/${TARGET_TRIPLE}/release/libj_law_c_ffi.a"
 mkdir -p "${DEST_DIR}"
 cp "${SOURCE_ARCHIVE}" "${DEST_ARCHIVE}"
+strip_lto_sections "${DEST_ARCHIVE}"
+assert_no_lto_sections "${DEST_ARCHIVE}"
 write_metadata
 
 echo "synced ${DEST_ARCHIVE}"

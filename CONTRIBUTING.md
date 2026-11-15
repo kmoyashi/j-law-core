@@ -29,6 +29,7 @@ J-Law-Core へのコントリビューションを歓迎します。
 
 - Rust 1.94.0 toolchain（`rustup` 経由でインストール）
 - `cargo fmt` / `cargo clippy`（Rust 1.94.0 toolchain に同梱）
+- `llvm-tools`（`rustup component add llvm-tools`）: Go 向け同梱アーカイブの再生成（`make sync-go-native` / `make sync-go-native-all`）で、Go 1.26.11 以降が拒否する LTO 用セクションを取り除くために使用
 
 ### ビルドとテスト
 
