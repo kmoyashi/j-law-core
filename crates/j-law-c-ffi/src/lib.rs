@@ -259,6 +259,18 @@ fn write_income_tax_breakdown(
     len as c_int
 }
 
+/// 所得控除の内訳が C 側の固定長配列に収まるかを検証する。
+///
+/// 収まらない内訳を黙って切り捨てると控除額の合計と内訳が食い違うため、エラーとして扱う。
+fn ensure_deduction_breakdown_fits(len: usize) -> Result<(), String> {
+    if len > J_LAW_MAX_DEDUCTION_LINES {
+        return Err(format!(
+            "所得控除の内訳が {len} 行あり、J_LAW_MAX_DEDUCTION_LINES ({J_LAW_MAX_DEDUCTION_LINES}) を超えています"
+        ));
+    }
+    Ok(())
+}
+
 fn write_income_deduction_breakdown(
     breakdown: &[j_law_core::domains::income_tax::IncomeDeductionLine],
     out_breakdown: &mut [JLawIncomeDeductionLine; J_LAW_MAX_DEDUCTION_LINES],
@@ -803,6 +815,10 @@ pub unsafe extern "C" fn j_law_calc_income_deductions(
             return 1;
         }
     };
+    if let Err(message) = ensure_deduction_breakdown_fits(result.breakdown.len()) {
+        write_error_msg(&message, error_buf, error_buf_len);
+        return 1;
+    }
 
     let out = &mut *out_result;
     out.total_income_amount = result.total_income_amount.as_yen();
@@ -889,6 +905,10 @@ pub unsafe extern "C" fn j_law_calc_income_tax_assessment(
             return 1;
         }
     };
+    if let Err(message) = ensure_deduction_breakdown_fits(result.deductions.breakdown.len()) {
+        write_error_msg(&message, error_buf, error_buf_len);
+        return 1;
+    }
 
     let out = &mut *out_result;
     out.total_income_amount = result.deductions.total_income_amount.as_yen();
@@ -1421,6 +1441,48 @@ mod tests {
             "特定親族特別控除"
         );
         assert_eq!(result.breakdown[3].amount, 630_000 + 410_000);
+    }
+
+    #[test]
+    fn income_deductions_2026_with_every_deduction_fit_in_c_breakdown() {
+        // 2025年分以後に core が返し得る最大行数（人的4 + 支出系4）が C 側の上限に収まること。
+        let mut input = sample_income_deduction_input();
+        input.year = 2026;
+        input.has_spouse = 1;
+        input.spouse_total_income_amount = 0;
+        input.spouse_is_same_household = 1;
+        input.dependent_general_count = 1;
+        input.specific_relative_count = J_LAW_MAX_SPECIFIC_RELATIVES as u64;
+        input.specific_relative_total_income_amounts = [700_000; J_LAW_MAX_SPECIFIC_RELATIVES];
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeTaxAssessmentResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_tax_assessment(
+                &input,
+                1,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0, "{}", error_buf_to_string(&error_buf));
+        assert_eq!(
+            result.deduction_breakdown_len as usize,
+            J_LAW_MAX_DEDUCTION_LINES
+        );
+        assert_eq!(result.deduction_breakdown[3].kind, 8);
+        assert_eq!(
+            result.deduction_breakdown[3].amount,
+            630_000 * J_LAW_MAX_SPECIFIC_RELATIVES as u64
+        );
+    }
+
+    #[test]
+    fn deduction_breakdown_overflow_is_an_error() {
+        assert!(ensure_deduction_breakdown_fits(J_LAW_MAX_DEDUCTION_LINES).is_ok());
+        assert!(ensure_deduction_breakdown_fits(J_LAW_MAX_DEDUCTION_LINES + 1).is_err());
     }
 
     #[test]

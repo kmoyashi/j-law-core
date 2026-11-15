@@ -29,7 +29,9 @@
 
 - **Breaking**: C FFI バージョンを 5 に更新。`JLawIncomeDeductionInput` の末尾に `specific_relative_count` / `specific_relative_total_income_amounts[J_LAW_MAX_SPECIFIC_RELATIVES]` を追加
 - **Breaking (Rust)**: `PersonalDeductionParams` に `specific_relative`、`PersonalDeductionInput` に `specific_relatives` フィールドを追加
-- 2025年分以後の所得控除内訳に「特定親族特別控除」行（kind = 8）を扶養控除の直後に追加（2024年分以前の内訳は変更なし）
+- **Breaking (Rust)**: `IncomeDeductionKind::SpecificRelative` と `RegistryError::InvalidBracketTable` を追加（これらの enum を網羅的に `match` しているコードは更新が必要）
+- 2025年分以後の所得控除内訳に「特定親族特別控除」行（kind = 8）を扶養控除の直後に追加（2024年分以前の内訳は変更なし）。社会保険料控除以降の行の位置が1つずれるため、内訳は `kind` で参照すること
+- C FFI: 所得控除の内訳が `J_LAW_MAX_DEDUCTION_LINES` を超える場合、切り捨てずにエラーを返す
 
 ## [0.0.1] - 2026-03-21
 

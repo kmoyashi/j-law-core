@@ -87,8 +87,9 @@
 | Ruby | `specific_relatives: [{ total_income_amount: ... }]` |
 | Go | `IncomeDeductionInput.SpecificRelatives []SpecificRelativeDeductionInput` |
 
-- C ABI 経由の binding（Python / Ruby / Go）では最大 8 人まで指定できます。
+- C ABI 経由の binding（Python / Ruby / Go）では最大 8 人まで指定でき、9 人以上はエラーになります。Rust と JavaScript / WASM には上限がありません。
 - 内訳（breakdown）の「特定親族特別控除」行（kind = 8）は、制度がある2025年分以後のみ扶養控除の直後に含まれます。2024年分以前の内訳は従来どおり7行です。
+- そのため社会保険料控除以降の行の位置は年分によって1つずれます。内訳から特定の控除を取り出すときは、位置ではなく `kind` で検索してください。
 - 合計所得金額が控除対象範囲外の特定親族は 0 円です。所得要件以下の親族は特定扶養親族として扶養控除の人数に計上してください。
 
 #### 未対応・前提

@@ -154,6 +154,21 @@ def test_specific_relative_line_appears_from_2025():
     assert kinds(datetime.date(2026, 1, 1))[3] == 8
 
 
+def test_income_tax_deductions_accept_max_specific_relatives():
+    result = calc_income_deductions(
+        IncomeDeductionInput(
+            total_income_amount=5_000_000,
+            date=datetime.date(2026, 1, 1),
+            specific_relatives=tuple(
+                SpecificRelativeDeductionInput(total_income_amount=700_000)
+                for _ in range(8)
+            ),
+        )
+    )
+    specific = [line for line in result.breakdown if line.kind == 8]
+    assert specific[0].amount == 630_000 * 8
+
+
 def test_income_tax_deductions_reject_too_many_specific_relatives():
     with pytest.raises(ValueError, match="specific_relative_count"):
         calc_income_deductions(

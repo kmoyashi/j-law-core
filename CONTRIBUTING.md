@@ -33,6 +33,8 @@ J-Law-Core へのコントリビューションを歓迎します。
 
 ### ビルドとテスト
 
+`make ci` は Rust ソースや registry を変更したとき Go 向け同梱アーカイブも再生成するため、事前に `rustup component add llvm-tools` を実行しておいてください。
+
 ```bash
 # コードを自動フォーマット
 make fmt

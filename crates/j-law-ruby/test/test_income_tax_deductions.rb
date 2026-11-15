@@ -98,6 +98,16 @@ class TestSpecificRelativeDeduction < Minitest::Test
     assert_equal 8, kinds(Date.new(2026, 1, 1))[3]
   end
 
+  def test_accepts_max_specific_relatives
+    result = JLawRuby::IncomeTax.calc_income_deductions(
+      5_000_000,
+      Date.new(2026, 1, 1),
+      specific_relatives: Array.new(8) { { total_income_amount: 700_000 } }
+    )
+    specific = result.breakdown.find { |line| line[:kind] == 8 }
+    assert_equal 630_000 * 8, specific[:amount]
+  end
+
   def test_rejects_too_many_specific_relatives
     error = assert_raises(ArgumentError) do
       JLawRuby::IncomeTax.calc_income_deductions(

@@ -215,8 +215,10 @@ fn validate_registry(registry: &IncomeTaxDeductionRegistry) -> Result<(), JLawEr
 
 /// 所得区分テーブルが空白・重複なく連続しているかを検証する。
 ///
-/// 特定親族特別控除の下限は扶養親族等の所得要件（配偶者控除の所得要件と同額）の
-/// 直後でなければならない。所得要件の改正時に片方だけ更新する誤りを検出する。
+/// 特定親族特別控除の下限は扶養親族の所得要件の直後でなければならない。
+/// registry は扶養親族の所得要件を持たないため、現行法で同額の
+/// 配偶者控除の所得要件（`qualifying_spouse_income_max`）で代用して照合する。
+/// 所得要件の改正時に片方だけ更新する誤りを検出する。
 fn validate_bracket_tables(registry: &IncomeTaxDeductionRegistry) -> Result<(), RegistryError> {
     for (entry_index, entry) in registry.history.iter().enumerate() {
         let personal = &entry.params.personal;

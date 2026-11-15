@@ -251,7 +251,12 @@ typedef struct {
     uint64_t life_old_individual_pension_paid_amount;
     int      has_donation;
     uint64_t donation_qualified_amount;
-    /** 特定親族の人数（最大 J_LAW_MAX_SPECIFIC_RELATIVES）。 */
+    /**
+     * 特定親族（所得税法 第84条の2）の人数（最大 J_LAW_MAX_SPECIFIC_RELATIVES）。
+     * WARNING: 特定親族への該当性（年齢19歳以上23歳未満・生計を一にする・
+     * 控除対象扶養親族に該当しない等）の事実認定はライブラリの責任範囲外です。
+     * 呼び出し元が正しく判断した上で指定してください。
+     */
     uint64_t specific_relative_count;
     /** 特定親族ごとの合計所得金額（円）。先頭 specific_relative_count 件が有効。 */
     uint64_t specific_relative_total_income_amounts[J_LAW_MAX_SPECIFIC_RELATIVES];

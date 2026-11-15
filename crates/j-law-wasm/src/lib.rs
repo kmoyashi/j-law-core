@@ -208,6 +208,15 @@ fn get_required_date(obj: &JsValue, keys: &[&str]) -> Result<js_sys::Date, JsVal
 }
 
 /// `specificRelatives`（特定親族ごとの `{ totalIncomeAmount }` 配列）を読み取る。
+///
+/// C ABI 経由の binding と異なり、人数の上限はない。
+///
+/// WARNING: 特定親族への該当性（年齢19歳以上23歳未満・生計を一にする・
+/// 控除対象扶養親族に該当しない等）の事実認定はライブラリの責任範囲外です。
+/// 呼び出し元が正しく判断した上で指定してください。
+///
+/// # 法的根拠
+/// 所得税法 第84条の2（特定親族特別控除）
 fn get_specific_relatives(input: &JsValue) -> Result<Vec<SpecificRelativeDeductionInput>, JsValue> {
     let Some(value) = get_optional_object(input, &["specificRelatives", "specific_relatives"])?
     else {
