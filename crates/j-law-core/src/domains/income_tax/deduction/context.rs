@@ -12,7 +12,9 @@ use std::fmt;
 /// 所得税法 第78条（寄附金控除）
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 pub struct IncomeDeductionContext {
     /// 総所得金額等（円）。
     pub total_income_amount: u64,
@@ -41,7 +43,9 @@ impl fmt::Debug for IncomeDeductionContext {
 /// 所得税法 第78条（寄附金控除）
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 #[derive(Debug, Clone, Default)]
 pub struct IncomeDeductionInput {
     /// 人的控除の入力。
@@ -55,6 +59,7 @@ pub struct IncomeDeductionInput {
 /// # 法的根拠
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
 #[derive(Debug, Clone, Default)]
 pub struct PersonalDeductionInput {
@@ -62,6 +67,8 @@ pub struct PersonalDeductionInput {
     pub spouse: Option<SpouseDeductionInput>,
     /// 扶養控除の入力。
     pub dependent: DependentDeductionInput,
+    /// 特定親族特別控除の対象となる特定親族ごとの入力。
+    pub specific_relatives: Vec<SpecificRelativeDeductionInput>,
 }
 
 /// 配偶者控除の入力。
@@ -110,6 +117,25 @@ pub struct DependentDeductionInput {
     ///
     /// 同居老親等以外の老人扶養親族の人数。
     pub elderly_other_count: u16,
+}
+
+/// 特定親族特別控除の入力（特定親族1人分）。
+///
+/// 特定親族の合計所得金額が控除対象範囲（2025年分は58万円超123万円以下、
+/// 2026年分以後は62万円超123万円以下）を外れる場合、その特定親族に係る控除額は0円になる。
+/// 合計所得金額が下限以下の親族は特定扶養親族として
+/// [`DependentDeductionInput::specific_count`] に計上すること。
+///
+/// # 法的根拠
+/// 所得税法 第84条の2（特定親族特別控除）
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct SpecificRelativeDeductionInput {
+    /// WARNING: この入力の事実認定はライブラリの責任範囲外です。
+    /// 呼び出し元が正しく判断した上で指定してください。
+    ///
+    /// 特定親族（生計を一にする年齢19歳以上23歳未満の親族で、
+    /// 控除対象扶養親族に該当しないもの）の合計所得金額（円）。
+    pub total_income_amount: u64,
 }
 
 /// 支出系控除の入力。

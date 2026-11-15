@@ -14,6 +14,7 @@ from j_law_python.income_tax import (
     IncomeDeductionInput,
     LifeInsuranceDeductionInput,
     MedicalDeductionInput,
+    SpecificRelativeDeductionInput,
     SpouseDeductionInput,
     calc_income_deductions,
     calc_income_tax_assessment,
@@ -52,6 +53,12 @@ def _build_input(raw: dict) -> IncomeDeductionInput:
             specific_count=dependent_raw.get("specific_count", 0),
             elderly_cohabiting_count=dependent_raw.get("elderly_cohabiting_count", 0),
             elderly_other_count=dependent_raw.get("elderly_other_count", 0),
+        ),
+        specific_relatives=tuple(
+            SpecificRelativeDeductionInput(
+                total_income_amount=relative["total_income_amount"]
+            )
+            for relative in raw.get("specific_relatives") or []
         ),
         social_insurance_premium_paid=raw.get("social_insurance_premium_paid", 0),
         medical=(
@@ -127,4 +134,50 @@ def test_income_tax_deductions_reject_invalid_date_type():
     with pytest.raises(TypeError):
         calc_income_deductions(  # type: ignore[arg-type]
             IncomeDeductionInput(total_income_amount=1, date="2024-01-01")
+        )
+
+
+def test_specific_relative_line_appears_from_2025():
+    def kinds(date: datetime.date) -> list[int]:
+        result = calc_income_deductions(
+            IncomeDeductionInput(
+                total_income_amount=5_000_000,
+                date=date,
+                specific_relatives=(
+                    SpecificRelativeDeductionInput(total_income_amount=700_000),
+                ),
+            )
+        )
+        return [line.kind for line in result.breakdown]
+
+    assert 8 not in kinds(datetime.date(2024, 12, 31))
+    assert kinds(datetime.date(2026, 1, 1))[3] == 8
+
+
+def test_income_tax_deductions_accept_max_specific_relatives():
+    result = calc_income_deductions(
+        IncomeDeductionInput(
+            total_income_amount=5_000_000,
+            date=datetime.date(2026, 1, 1),
+            specific_relatives=tuple(
+                SpecificRelativeDeductionInput(total_income_amount=700_000)
+                for _ in range(8)
+            ),
+        )
+    )
+    specific = [line for line in result.breakdown if line.kind == 8]
+    assert specific[0].amount == 630_000 * 8
+
+
+def test_income_tax_deductions_reject_too_many_specific_relatives():
+    with pytest.raises(ValueError, match="specific_relative_count"):
+        calc_income_deductions(
+            IncomeDeductionInput(
+                total_income_amount=5_000_000,
+                date=datetime.date(2026, 1, 1),
+                specific_relatives=tuple(
+                    SpecificRelativeDeductionInput(total_income_amount=700_000)
+                    for _ in range(9)
+                ),
+            )
         )

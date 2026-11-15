@@ -155,8 +155,8 @@
     },
     {
       "effective_from": "2020-01-01",
-      "effective_until": null,
-      "status": "active",
+      "effective_until": "2024-12-31",
+      "status": "superseded",
       "citation": {
         "law_id": "shotoku-deduction",
         "law_name": "所得税法",
@@ -233,6 +233,782 @@
             "specific_deduction_amount": 630000,
             "elderly_cohabiting_deduction_amount": 580000,
             "elderly_other_deduction_amount": 480000
+          }
+        },
+        "expense": {
+          "social_insurance": {},
+          "medical": {
+            "income_threshold_rate": { "numer": 5, "denom": 100 },
+            "threshold_cap_amount": 100000,
+            "deduction_cap_amount": 2000000
+          },
+          "life_insurance": {
+            "new_contract_brackets": [
+              {
+                "label": "2万円以下",
+                "paid_from": 0,
+                "paid_to_inclusive": 20000,
+                "rate": { "numer": 1, "denom": 1 },
+                "addition_amount": 0,
+                "deduction_cap_amount": 20000
+              },
+              {
+                "label": "2万円超4万円以下",
+                "paid_from": 20001,
+                "paid_to_inclusive": 40000,
+                "rate": { "numer": 1, "denom": 2 },
+                "addition_amount": 10000,
+                "deduction_cap_amount": 30000
+              },
+              {
+                "label": "4万円超8万円以下",
+                "paid_from": 40001,
+                "paid_to_inclusive": 80000,
+                "rate": { "numer": 1, "denom": 4 },
+                "addition_amount": 20000,
+                "deduction_cap_amount": 40000
+              },
+              {
+                "label": "8万円超",
+                "paid_from": 80001,
+                "paid_to_inclusive": null,
+                "rate": { "numer": 0, "denom": 1 },
+                "addition_amount": 40000,
+                "deduction_cap_amount": 40000
+              }
+            ],
+            "old_contract_brackets": [
+              {
+                "label": "2万5千円以下",
+                "paid_from": 0,
+                "paid_to_inclusive": 25000,
+                "rate": { "numer": 1, "denom": 1 },
+                "addition_amount": 0,
+                "deduction_cap_amount": 25000
+              },
+              {
+                "label": "2万5千円超5万円以下",
+                "paid_from": 25001,
+                "paid_to_inclusive": 50000,
+                "rate": { "numer": 1, "denom": 2 },
+                "addition_amount": 12500,
+                "deduction_cap_amount": 37500
+              },
+              {
+                "label": "5万円超10万円以下",
+                "paid_from": 50001,
+                "paid_to_inclusive": 100000,
+                "rate": { "numer": 1, "denom": 4 },
+                "addition_amount": 25000,
+                "deduction_cap_amount": 50000
+              },
+              {
+                "label": "10万円超",
+                "paid_from": 100001,
+                "paid_to_inclusive": null,
+                "rate": { "numer": 0, "denom": 1 },
+                "addition_amount": 50000,
+                "deduction_cap_amount": 50000
+              }
+            ],
+            "mixed_contract_cap_amount": 40000,
+            "new_contract_cap_amount": 40000,
+            "old_contract_cap_amount": 50000,
+            "combined_cap_amount": 120000
+          },
+          "donation": {
+            "income_cap_rate": { "numer": 40, "denom": 100 },
+            "non_deductible_amount": 2000
+          }
+        }
+      }
+    },
+    {
+      "effective_from": "2025-01-01",
+      "effective_until": "2025-12-31",
+      "status": "superseded",
+      "citation": {
+        "law_id": "shotoku-deduction",
+        "law_name": "所得税法",
+        "article": 86,
+        "paragraph": 1,
+        "amendment": "令和7年法律第13号",
+        "special_measure": "租税特別措置法第41条の16の2",
+        "related_articles": [
+          "所得税法第83条",
+          "所得税法第84条の2"
+        ],
+        "ministry": "財務省",
+        "sources": [
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1199.htm",
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1177.htm",
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1191.htm"
+        ]
+      },
+      "params": {
+        "personal": {
+          "basic": {
+            "brackets": [
+              {
+                "label": "132万円以下",
+                "income_from": 0,
+                "income_to_inclusive": 1320000,
+                "deduction_amount": 950000
+              },
+              {
+                "label": "132万円超336万円以下",
+                "income_from": 1320001,
+                "income_to_inclusive": 3360000,
+                "deduction_amount": 880000
+              },
+              {
+                "label": "336万円超489万円以下",
+                "income_from": 3360001,
+                "income_to_inclusive": 4890000,
+                "deduction_amount": 680000
+              },
+              {
+                "label": "489万円超655万円以下",
+                "income_from": 4890001,
+                "income_to_inclusive": 6550000,
+                "deduction_amount": 630000
+              },
+              {
+                "label": "655万円超2350万円以下",
+                "income_from": 6550001,
+                "income_to_inclusive": 23500000,
+                "deduction_amount": 580000
+              },
+              {
+                "label": "2350万円超2400万円以下",
+                "income_from": 23500001,
+                "income_to_inclusive": 24000000,
+                "deduction_amount": 480000
+              },
+              {
+                "label": "2400万円超2450万円以下",
+                "income_from": 24000001,
+                "income_to_inclusive": 24500000,
+                "deduction_amount": 320000
+              },
+              {
+                "label": "2450万円超2500万円以下",
+                "income_from": 24500001,
+                "income_to_inclusive": 25000000,
+                "deduction_amount": 160000
+              },
+              {
+                "label": "2500万円超",
+                "income_from": 25000001,
+                "income_to_inclusive": null,
+                "deduction_amount": 0
+              }
+            ]
+          },
+          "spouse": {
+            "qualifying_spouse_income_max": 580000,
+            "taxpayer_income_brackets": [
+              {
+                "label": "900万円以下",
+                "taxpayer_income_from": 0,
+                "taxpayer_income_to_inclusive": 9000000,
+                "deduction_amount": 380000,
+                "elderly_deduction_amount": 480000
+              },
+              {
+                "label": "900万円超950万円以下",
+                "taxpayer_income_from": 9000001,
+                "taxpayer_income_to_inclusive": 9500000,
+                "deduction_amount": 260000,
+                "elderly_deduction_amount": 320000
+              },
+              {
+                "label": "950万円超1000万円以下",
+                "taxpayer_income_from": 9500001,
+                "taxpayer_income_to_inclusive": 10000000,
+                "deduction_amount": 130000,
+                "elderly_deduction_amount": 160000
+              },
+              {
+                "label": "1000万円超",
+                "taxpayer_income_from": 10000001,
+                "taxpayer_income_to_inclusive": null,
+                "deduction_amount": 0,
+                "elderly_deduction_amount": 0
+              }
+            ]
+          },
+          "dependent": {
+            "general_deduction_amount": 380000,
+            "specific_deduction_amount": 630000,
+            "elderly_cohabiting_deduction_amount": 580000,
+            "elderly_other_deduction_amount": 480000
+          },
+          "specific_relative": {
+            "brackets": [
+              {
+                "label": "58万円超85万円以下",
+                "income_from": 580001,
+                "income_to_inclusive": 850000,
+                "deduction_amount": 630000
+              },
+              {
+                "label": "85万円超90万円以下",
+                "income_from": 850001,
+                "income_to_inclusive": 900000,
+                "deduction_amount": 610000
+              },
+              {
+                "label": "90万円超95万円以下",
+                "income_from": 900001,
+                "income_to_inclusive": 950000,
+                "deduction_amount": 510000
+              },
+              {
+                "label": "95万円超100万円以下",
+                "income_from": 950001,
+                "income_to_inclusive": 1000000,
+                "deduction_amount": 410000
+              },
+              {
+                "label": "100万円超105万円以下",
+                "income_from": 1000001,
+                "income_to_inclusive": 1050000,
+                "deduction_amount": 310000
+              },
+              {
+                "label": "105万円超110万円以下",
+                "income_from": 1050001,
+                "income_to_inclusive": 1100000,
+                "deduction_amount": 210000
+              },
+              {
+                "label": "110万円超115万円以下",
+                "income_from": 1100001,
+                "income_to_inclusive": 1150000,
+                "deduction_amount": 110000
+              },
+              {
+                "label": "115万円超120万円以下",
+                "income_from": 1150001,
+                "income_to_inclusive": 1200000,
+                "deduction_amount": 60000
+              },
+              {
+                "label": "120万円超123万円以下",
+                "income_from": 1200001,
+                "income_to_inclusive": 1230000,
+                "deduction_amount": 30000
+              }
+            ]
+          }
+        },
+        "expense": {
+          "social_insurance": {},
+          "medical": {
+            "income_threshold_rate": { "numer": 5, "denom": 100 },
+            "threshold_cap_amount": 100000,
+            "deduction_cap_amount": 2000000
+          },
+          "life_insurance": {
+            "new_contract_brackets": [
+              {
+                "label": "2万円以下",
+                "paid_from": 0,
+                "paid_to_inclusive": 20000,
+                "rate": { "numer": 1, "denom": 1 },
+                "addition_amount": 0,
+                "deduction_cap_amount": 20000
+              },
+              {
+                "label": "2万円超4万円以下",
+                "paid_from": 20001,
+                "paid_to_inclusive": 40000,
+                "rate": { "numer": 1, "denom": 2 },
+                "addition_amount": 10000,
+                "deduction_cap_amount": 30000
+              },
+              {
+                "label": "4万円超8万円以下",
+                "paid_from": 40001,
+                "paid_to_inclusive": 80000,
+                "rate": { "numer": 1, "denom": 4 },
+                "addition_amount": 20000,
+                "deduction_cap_amount": 40000
+              },
+              {
+                "label": "8万円超",
+                "paid_from": 80001,
+                "paid_to_inclusive": null,
+                "rate": { "numer": 0, "denom": 1 },
+                "addition_amount": 40000,
+                "deduction_cap_amount": 40000
+              }
+            ],
+            "old_contract_brackets": [
+              {
+                "label": "2万5千円以下",
+                "paid_from": 0,
+                "paid_to_inclusive": 25000,
+                "rate": { "numer": 1, "denom": 1 },
+                "addition_amount": 0,
+                "deduction_cap_amount": 25000
+              },
+              {
+                "label": "2万5千円超5万円以下",
+                "paid_from": 25001,
+                "paid_to_inclusive": 50000,
+                "rate": { "numer": 1, "denom": 2 },
+                "addition_amount": 12500,
+                "deduction_cap_amount": 37500
+              },
+              {
+                "label": "5万円超10万円以下",
+                "paid_from": 50001,
+                "paid_to_inclusive": 100000,
+                "rate": { "numer": 1, "denom": 4 },
+                "addition_amount": 25000,
+                "deduction_cap_amount": 50000
+              },
+              {
+                "label": "10万円超",
+                "paid_from": 100001,
+                "paid_to_inclusive": null,
+                "rate": { "numer": 0, "denom": 1 },
+                "addition_amount": 50000,
+                "deduction_cap_amount": 50000
+              }
+            ],
+            "mixed_contract_cap_amount": 40000,
+            "new_contract_cap_amount": 40000,
+            "old_contract_cap_amount": 50000,
+            "combined_cap_amount": 120000
+          },
+          "donation": {
+            "income_cap_rate": { "numer": 40, "denom": 100 },
+            "non_deductible_amount": 2000
+          }
+        }
+      }
+    },
+    {
+      "effective_from": "2026-01-01",
+      "effective_until": "2027-12-31",
+      "status": "active",
+      "citation": {
+        "law_id": "shotoku-deduction",
+        "law_name": "所得税法",
+        "article": 86,
+        "paragraph": 1,
+        "amendment": "令和8年法律第12号",
+        "special_measure": "租税特別措置法第41条の16の2",
+        "related_articles": [
+          "所得税法第83条",
+          "所得税法第84条の2"
+        ],
+        "ministry": "財務省",
+        "sources": [
+          "https://www.nta.go.jp/publication/pamph/gensen/2026kaisei.pdf",
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1199.htm",
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1177.htm",
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1191.htm"
+        ]
+      },
+      "params": {
+        "personal": {
+          "basic": {
+            "brackets": [
+              {
+                "label": "489万円以下",
+                "income_from": 0,
+                "income_to_inclusive": 4890000,
+                "deduction_amount": 1040000
+              },
+              {
+                "label": "489万円超655万円以下",
+                "income_from": 4890001,
+                "income_to_inclusive": 6550000,
+                "deduction_amount": 670000
+              },
+              {
+                "label": "655万円超2350万円以下",
+                "income_from": 6550001,
+                "income_to_inclusive": 23500000,
+                "deduction_amount": 620000
+              },
+              {
+                "label": "2350万円超2400万円以下",
+                "income_from": 23500001,
+                "income_to_inclusive": 24000000,
+                "deduction_amount": 480000
+              },
+              {
+                "label": "2400万円超2450万円以下",
+                "income_from": 24000001,
+                "income_to_inclusive": 24500000,
+                "deduction_amount": 320000
+              },
+              {
+                "label": "2450万円超2500万円以下",
+                "income_from": 24500001,
+                "income_to_inclusive": 25000000,
+                "deduction_amount": 160000
+              },
+              {
+                "label": "2500万円超",
+                "income_from": 25000001,
+                "income_to_inclusive": null,
+                "deduction_amount": 0
+              }
+            ]
+          },
+          "spouse": {
+            "qualifying_spouse_income_max": 620000,
+            "taxpayer_income_brackets": [
+              {
+                "label": "900万円以下",
+                "taxpayer_income_from": 0,
+                "taxpayer_income_to_inclusive": 9000000,
+                "deduction_amount": 380000,
+                "elderly_deduction_amount": 480000
+              },
+              {
+                "label": "900万円超950万円以下",
+                "taxpayer_income_from": 9000001,
+                "taxpayer_income_to_inclusive": 9500000,
+                "deduction_amount": 260000,
+                "elderly_deduction_amount": 320000
+              },
+              {
+                "label": "950万円超1000万円以下",
+                "taxpayer_income_from": 9500001,
+                "taxpayer_income_to_inclusive": 10000000,
+                "deduction_amount": 130000,
+                "elderly_deduction_amount": 160000
+              },
+              {
+                "label": "1000万円超",
+                "taxpayer_income_from": 10000001,
+                "taxpayer_income_to_inclusive": null,
+                "deduction_amount": 0,
+                "elderly_deduction_amount": 0
+              }
+            ]
+          },
+          "dependent": {
+            "general_deduction_amount": 380000,
+            "specific_deduction_amount": 630000,
+            "elderly_cohabiting_deduction_amount": 580000,
+            "elderly_other_deduction_amount": 480000
+          },
+          "specific_relative": {
+            "brackets": [
+              {
+                "label": "62万円超85万円以下",
+                "income_from": 620001,
+                "income_to_inclusive": 850000,
+                "deduction_amount": 630000
+              },
+              {
+                "label": "85万円超90万円以下",
+                "income_from": 850001,
+                "income_to_inclusive": 900000,
+                "deduction_amount": 610000
+              },
+              {
+                "label": "90万円超95万円以下",
+                "income_from": 900001,
+                "income_to_inclusive": 950000,
+                "deduction_amount": 510000
+              },
+              {
+                "label": "95万円超100万円以下",
+                "income_from": 950001,
+                "income_to_inclusive": 1000000,
+                "deduction_amount": 410000
+              },
+              {
+                "label": "100万円超105万円以下",
+                "income_from": 1000001,
+                "income_to_inclusive": 1050000,
+                "deduction_amount": 310000
+              },
+              {
+                "label": "105万円超110万円以下",
+                "income_from": 1050001,
+                "income_to_inclusive": 1100000,
+                "deduction_amount": 210000
+              },
+              {
+                "label": "110万円超115万円以下",
+                "income_from": 1100001,
+                "income_to_inclusive": 1150000,
+                "deduction_amount": 110000
+              },
+              {
+                "label": "115万円超120万円以下",
+                "income_from": 1150001,
+                "income_to_inclusive": 1200000,
+                "deduction_amount": 60000
+              },
+              {
+                "label": "120万円超123万円以下",
+                "income_from": 1200001,
+                "income_to_inclusive": 1230000,
+                "deduction_amount": 30000
+              }
+            ]
+          }
+        },
+        "expense": {
+          "social_insurance": {},
+          "medical": {
+            "income_threshold_rate": { "numer": 5, "denom": 100 },
+            "threshold_cap_amount": 100000,
+            "deduction_cap_amount": 2000000
+          },
+          "life_insurance": {
+            "new_contract_brackets": [
+              {
+                "label": "2万円以下",
+                "paid_from": 0,
+                "paid_to_inclusive": 20000,
+                "rate": { "numer": 1, "denom": 1 },
+                "addition_amount": 0,
+                "deduction_cap_amount": 20000
+              },
+              {
+                "label": "2万円超4万円以下",
+                "paid_from": 20001,
+                "paid_to_inclusive": 40000,
+                "rate": { "numer": 1, "denom": 2 },
+                "addition_amount": 10000,
+                "deduction_cap_amount": 30000
+              },
+              {
+                "label": "4万円超8万円以下",
+                "paid_from": 40001,
+                "paid_to_inclusive": 80000,
+                "rate": { "numer": 1, "denom": 4 },
+                "addition_amount": 20000,
+                "deduction_cap_amount": 40000
+              },
+              {
+                "label": "8万円超",
+                "paid_from": 80001,
+                "paid_to_inclusive": null,
+                "rate": { "numer": 0, "denom": 1 },
+                "addition_amount": 40000,
+                "deduction_cap_amount": 40000
+              }
+            ],
+            "old_contract_brackets": [
+              {
+                "label": "2万5千円以下",
+                "paid_from": 0,
+                "paid_to_inclusive": 25000,
+                "rate": { "numer": 1, "denom": 1 },
+                "addition_amount": 0,
+                "deduction_cap_amount": 25000
+              },
+              {
+                "label": "2万5千円超5万円以下",
+                "paid_from": 25001,
+                "paid_to_inclusive": 50000,
+                "rate": { "numer": 1, "denom": 2 },
+                "addition_amount": 12500,
+                "deduction_cap_amount": 37500
+              },
+              {
+                "label": "5万円超10万円以下",
+                "paid_from": 50001,
+                "paid_to_inclusive": 100000,
+                "rate": { "numer": 1, "denom": 4 },
+                "addition_amount": 25000,
+                "deduction_cap_amount": 50000
+              },
+              {
+                "label": "10万円超",
+                "paid_from": 100001,
+                "paid_to_inclusive": null,
+                "rate": { "numer": 0, "denom": 1 },
+                "addition_amount": 50000,
+                "deduction_cap_amount": 50000
+              }
+            ],
+            "mixed_contract_cap_amount": 40000,
+            "new_contract_cap_amount": 40000,
+            "old_contract_cap_amount": 50000,
+            "combined_cap_amount": 120000
+          },
+          "donation": {
+            "income_cap_rate": { "numer": 40, "denom": 100 },
+            "non_deductible_amount": 2000
+          }
+        }
+      }
+    },
+    {
+      "effective_from": "2028-01-01",
+      "effective_until": null,
+      "status": "active",
+      "citation": {
+        "law_id": "shotoku-deduction",
+        "law_name": "所得税法",
+        "article": 86,
+        "paragraph": 1,
+        "amendment": "令和8年法律第12号",
+        "special_measure": "租税特別措置法第41条の16の2",
+        "related_articles": [
+          "所得税法第83条",
+          "所得税法第84条の2"
+        ],
+        "ministry": "財務省",
+        "sources": [
+          "https://www.nta.go.jp/publication/pamph/gensen/2026kaisei.pdf",
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1199.htm",
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1177.htm",
+          "https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1191.htm"
+        ]
+      },
+      "params": {
+        "personal": {
+          "basic": {
+            "brackets": [
+              {
+                "label": "132万円以下",
+                "income_from": 0,
+                "income_to_inclusive": 1320000,
+                "deduction_amount": 990000
+              },
+              {
+                "label": "132万円超2350万円以下",
+                "income_from": 1320001,
+                "income_to_inclusive": 23500000,
+                "deduction_amount": 620000
+              },
+              {
+                "label": "2350万円超2400万円以下",
+                "income_from": 23500001,
+                "income_to_inclusive": 24000000,
+                "deduction_amount": 480000
+              },
+              {
+                "label": "2400万円超2450万円以下",
+                "income_from": 24000001,
+                "income_to_inclusive": 24500000,
+                "deduction_amount": 320000
+              },
+              {
+                "label": "2450万円超2500万円以下",
+                "income_from": 24500001,
+                "income_to_inclusive": 25000000,
+                "deduction_amount": 160000
+              },
+              {
+                "label": "2500万円超",
+                "income_from": 25000001,
+                "income_to_inclusive": null,
+                "deduction_amount": 0
+              }
+            ]
+          },
+          "spouse": {
+            "qualifying_spouse_income_max": 620000,
+            "taxpayer_income_brackets": [
+              {
+                "label": "900万円以下",
+                "taxpayer_income_from": 0,
+                "taxpayer_income_to_inclusive": 9000000,
+                "deduction_amount": 380000,
+                "elderly_deduction_amount": 480000
+              },
+              {
+                "label": "900万円超950万円以下",
+                "taxpayer_income_from": 9000001,
+                "taxpayer_income_to_inclusive": 9500000,
+                "deduction_amount": 260000,
+                "elderly_deduction_amount": 320000
+              },
+              {
+                "label": "950万円超1000万円以下",
+                "taxpayer_income_from": 9500001,
+                "taxpayer_income_to_inclusive": 10000000,
+                "deduction_amount": 130000,
+                "elderly_deduction_amount": 160000
+              },
+              {
+                "label": "1000万円超",
+                "taxpayer_income_from": 10000001,
+                "taxpayer_income_to_inclusive": null,
+                "deduction_amount": 0,
+                "elderly_deduction_amount": 0
+              }
+            ]
+          },
+          "dependent": {
+            "general_deduction_amount": 380000,
+            "specific_deduction_amount": 630000,
+            "elderly_cohabiting_deduction_amount": 580000,
+            "elderly_other_deduction_amount": 480000
+          },
+          "specific_relative": {
+            "brackets": [
+              {
+                "label": "62万円超85万円以下",
+                "income_from": 620001,
+                "income_to_inclusive": 850000,
+                "deduction_amount": 630000
+              },
+              {
+                "label": "85万円超90万円以下",
+                "income_from": 850001,
+                "income_to_inclusive": 900000,
+                "deduction_amount": 610000
+              },
+              {
+                "label": "90万円超95万円以下",
+                "income_from": 900001,
+                "income_to_inclusive": 950000,
+                "deduction_amount": 510000
+              },
+              {
+                "label": "95万円超100万円以下",
+                "income_from": 950001,
+                "income_to_inclusive": 1000000,
+                "deduction_amount": 410000
+              },
+              {
+                "label": "100万円超105万円以下",
+                "income_from": 1000001,
+                "income_to_inclusive": 1050000,
+                "deduction_amount": 310000
+              },
+              {
+                "label": "105万円超110万円以下",
+                "income_from": 1050001,
+                "income_to_inclusive": 1100000,
+                "deduction_amount": 210000
+              },
+              {
+                "label": "110万円超115万円以下",
+                "income_from": 1100001,
+                "income_to_inclusive": 1150000,
+                "deduction_amount": 110000
+              },
+              {
+                "label": "115万円超120万円以下",
+                "income_from": 1150001,
+                "income_to_inclusive": 1200000,
+                "deduction_amount": 60000
+              },
+              {
+                "label": "120万円超123万円以下",
+                "income_from": 1200001,
+                "income_to_inclusive": 1230000,
+                "deduction_amount": 30000
+              }
+            ]
           }
         },
         "expense": {

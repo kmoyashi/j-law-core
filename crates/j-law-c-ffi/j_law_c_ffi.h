@@ -15,6 +15,9 @@ extern "C" {
 /** 所得控除内訳の最大件数。 */
 #define J_LAW_MAX_DEDUCTION_LINES 8
 
+/** 所得控除入力で受け付ける特定親族の最大人数。 */
+#define J_LAW_MAX_SPECIFIC_RELATIVES 8
+
 /** ティアラベルの最大バイト長（NUL 終端含む）。 */
 #define J_LAW_LABEL_LEN 64
 
@@ -22,7 +25,7 @@ extern "C" {
 #define J_LAW_ERROR_BUF_LEN 256
 
 /** j-law-c-ffi の FFI 互換バージョン。 */
-#define J_LAW_C_FFI_VERSION 4
+#define J_LAW_C_FFI_VERSION 5
 
 /** 所得控除種別定数。 */
 #define J_LAW_INCOME_DEDUCTION_KIND_BASIC 1
@@ -32,6 +35,8 @@ extern "C" {
 #define J_LAW_INCOME_DEDUCTION_KIND_MEDICAL 5
 #define J_LAW_INCOME_DEDUCTION_KIND_LIFE_INSURANCE 6
 #define J_LAW_INCOME_DEDUCTION_KIND_DONATION 7
+/** 特定親族特別控除（2025年分以後のみ内訳に含まれる）。 */
+#define J_LAW_INCOME_DEDUCTION_KIND_SPECIFIC_RELATIVE 8
 
 /** 源泉徴収カテゴリ定数。 */
 #define J_LAW_WITHHOLDING_TAX_CATEGORY_MANUSCRIPT_AND_LECTURE 1
@@ -246,6 +251,15 @@ typedef struct {
     uint64_t life_old_individual_pension_paid_amount;
     int      has_donation;
     uint64_t donation_qualified_amount;
+    /**
+     * 特定親族（所得税法 第84条の2）の人数（最大 J_LAW_MAX_SPECIFIC_RELATIVES）。
+     * WARNING: 特定親族への該当性（年齢19歳以上23歳未満・生計を一にする・
+     * 控除対象扶養親族に該当しない等）の事実認定はライブラリの責任範囲外です。
+     * 呼び出し元が正しく判断した上で指定してください。
+     */
+    uint64_t specific_relative_count;
+    /** 特定親族ごとの合計所得金額（円）。先頭 specific_relative_count 件が有効。 */
+    uint64_t specific_relative_total_income_amounts[J_LAW_MAX_SPECIFIC_RELATIVES];
 } JLawIncomeDeductionInput;
 
 /**
@@ -309,7 +323,8 @@ int j_law_calc_income_tax(
 /**
  * 所得控除額を計算し、課税所得金額までを返す。
  *
- * 法的根拠: 所得税法 第73条 / 第74条 / 第76条 / 第78条 / 第83条 / 第84条 / 第86条
+ * 法的根拠: 所得税法 第73条 / 第74条 / 第76条 / 第78条 / 第83条 / 第84条 / 第84条の2 / 第86条 /
+ *           租税特別措置法 第41条の16の2
  *
  * @param input                 [IN] 所得控除計算の入力
  * @param out_result            [OUT] 計算結果の書き込み先
@@ -327,8 +342,8 @@ int j_law_calc_income_deductions(
 /**
  * 所得控除から所得税額までを通しで計算する。
  *
- * 法的根拠: 所得税法 第73条 / 第74条 / 第76条 / 第78条 / 第83条 / 第84条 / 第86条 /
- *           第89条第1項 / 復興財源確保法 第13条
+ * 法的根拠: 所得税法 第73条 / 第74条 / 第76条 / 第78条 / 第83条 / 第84条 / 第84条の2 / 第86条 /
+ *           第89条第1項 / 租税特別措置法 第41条の16の2 / 復興財源確保法 第13条
  *
  * @param input                    [IN] 所得控除計算の入力
  * @param apply_reconstruction_tax 復興特別所得税を適用するか（0 = false, 非0 = true）

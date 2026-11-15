@@ -39,10 +39,26 @@ pub struct DependentDeductionParamsEntry {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct SpecificRelativeDeductionBracketEntry {
+    pub label: String,
+    pub income_from: u64,
+    pub income_to_inclusive: Option<u64>,
+    pub deduction_amount: u64,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct SpecificRelativeDeductionParamsEntry {
+    pub brackets: Vec<SpecificRelativeDeductionBracketEntry>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct PersonalDeductionParamsEntry {
     pub basic: BasicDeductionParamsEntry,
     pub spouse: SpouseDeductionParamsEntry,
     pub dependent: DependentDeductionParamsEntry,
+    /// 特定親族特別控除（2025年分以後）。制度創設前の期間では省略する。
+    #[serde(default)]
+    pub specific_relative: Option<SpecificRelativeDeductionParamsEntry>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

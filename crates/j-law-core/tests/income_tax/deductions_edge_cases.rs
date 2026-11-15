@@ -83,6 +83,7 @@ fn deduction_params_2024() -> IncomeDeductionParams {
                 elderly_cohabiting_deduction_amount: 580_000,
                 elderly_other_deduction_amount: 480_000,
             },
+            specific_relative: None,
         },
         expense: ExpenseDeductionParams {
             social_insurance: SocialInsuranceDeductionParams,
@@ -137,6 +138,7 @@ fn ctx(
             personal: PersonalDeductionInput {
                 spouse,
                 dependent: DependentDeductionInput::default(),
+                specific_relatives: vec![],
             },
             expense: ExpenseDeductionInput {
                 social_insurance_premium_paid,
@@ -217,6 +219,7 @@ fn medical_deduction_rejects_reimbursement_above_payment() {
                 personal: PersonalDeductionInput {
                     spouse: None,
                     dependent: DependentDeductionInput::default(),
+                    specific_relatives: vec![],
                 },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid: 0,

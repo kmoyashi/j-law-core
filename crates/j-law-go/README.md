@@ -101,7 +101,7 @@ cd crates/j-law-go
 make test
 ```
 
-Rust コアや C ABI を更新して Go 向け配布物を再生成したいメンテナは、リポジトリルートで `make sync-go-native-all` を実行してください。リポジトリルートの `make sync-go-native` と `crates/j-law-go` 直下の `make sync-native` は現在のプラットフォームのみ更新します。
+Rust コアや C ABI を更新して Go 向け配布物を再生成したいメンテナは、リポジトリルートで `make sync-go-native-all` を実行してください。リポジトリルートの `make sync-go-native` と `crates/j-law-go` 直下の `make sync-native` は現在のプラットフォームのみ更新します。再生成には `rustup component add llvm-tools` が必要です。Go 1.26.11 以降の cgo は LTO 用セクション（`.llvmbc` など）を含む静的ライブラリを拒否するため、同期スクリプトがこれらのセクションを取り除いてから同梱します。
 
 ## 関連ドキュメント
 

@@ -31,6 +31,9 @@ pub enum RegistryError {
 
     #[error("JSONのパースに失敗しました: path={path}, cause={cause}")]
     ParseError { path: String, cause: String },
+
+    #[error("法令データの区分テーブルが不正です: path={path}, reason={reason}")]
+    InvalidBracketTable { path: String, reason: String },
 }
 
 /// ユーザー入力の不正エラー。

@@ -15,3 +15,6 @@ mod full_pipeline_examples;
 
 #[path = "income_tax/registry_examples.rs"]
 mod registry_examples;
+
+#[path = "income_tax/reform_2025_2026_examples.rs"]
+mod reform_2025_2026_examples;

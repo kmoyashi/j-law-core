@@ -10,6 +10,7 @@ from . import build_support
 FFI_VERSION = build_support.FFI_VERSION
 MAX_TIERS = 8
 MAX_DEDUCTION_LINES = 8
+MAX_SPECIFIC_RELATIVES = 8
 LABEL_LEN = 64
 ERROR_BUF_LEN = 256
 U64_MAX = (1 << 64) - 1
@@ -97,6 +98,11 @@ class _IncomeDeductionInputStruct(ctypes.Structure):
         ("life_old_individual_pension_paid_amount", ctypes.c_uint64),
         ("has_donation", ctypes.c_int),
         ("donation_qualified_amount", ctypes.c_uint64),
+        ("specific_relative_count", ctypes.c_uint64),
+        (
+            "specific_relative_total_income_amounts",
+            ctypes.c_uint64 * MAX_SPECIFIC_RELATIVES,
+        ),
     ]
 
 
@@ -223,6 +229,7 @@ class IncomeDeductionInputRecord:
     life_old_individual_pension_paid_amount: int = 0
     has_donation: bool = False
     donation_qualified_amount: int = 0
+    specific_relative_total_income_amounts: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -427,6 +434,17 @@ def _build_income_deduction_input_struct(
         record.donation_qualified_amount,
         "donation_qualified_amount",
     )
+    relatives = record.specific_relative_total_income_amounts
+    if len(relatives) > MAX_SPECIFIC_RELATIVES:
+        raise CFFIError(
+            f"specific_relative_count must be <= {MAX_SPECIFIC_RELATIVES}"
+        )
+    struct.specific_relative_count = len(relatives)
+    for index, amount in enumerate(relatives):
+        struct.specific_relative_total_income_amounts[index] = _validate_u64(
+            amount,
+            f"specific_relatives[{index}].total_income_amount",
+        )
     return struct
 
 

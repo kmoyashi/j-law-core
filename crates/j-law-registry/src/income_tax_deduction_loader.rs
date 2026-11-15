@@ -5,7 +5,8 @@ use j_law_core::domains::income_tax::deduction::{
     BasicDeductionBracket, BasicDeductionParams, DependentDeductionParams, DonationDeductionParams,
     ExpenseDeductionParams, IncomeDeductionParams, LifeInsuranceDeductionBracket,
     LifeInsuranceDeductionParams, MedicalDeductionParams, PersonalDeductionParams,
-    SocialInsuranceDeductionParams, SpouseDeductionParams, SpouseIncomeBracket,
+    SocialInsuranceDeductionParams, SpecificRelativeDeductionBracket,
+    SpecificRelativeDeductionParams, SpouseDeductionParams, SpouseIncomeBracket,
 };
 use j_law_core::types::date::LegalDate;
 use j_law_core::{InputError, JLawError, RegistryError};
@@ -19,7 +20,9 @@ use j_law_core::{InputError, JLawError, RegistryError};
 /// 所得税法 第78条（寄附金控除）
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 pub fn load_income_tax_deduction_params(
     target_date: LegalDate,
 ) -> Result<IncomeDeductionParams, JLawError> {
@@ -113,6 +116,20 @@ fn to_params(entry: &IncomeTaxDeductionHistoryEntry) -> IncomeDeductionParams {
                     .dependent
                     .elderly_other_deduction_amount,
             },
+            specific_relative: entry.params.personal.specific_relative.as_ref().map(
+                |specific_relative| SpecificRelativeDeductionParams {
+                    brackets: specific_relative
+                        .brackets
+                        .iter()
+                        .map(|bracket| SpecificRelativeDeductionBracket {
+                            label: bracket.label.clone(),
+                            income_from: bracket.income_from,
+                            income_to_inclusive: bracket.income_to_inclusive,
+                            deduction_amount: bracket.deduction_amount,
+                        })
+                        .collect(),
+                },
+            ),
         },
         expense: ExpenseDeductionParams {
             social_insurance: SocialInsuranceDeductionParams,
@@ -192,7 +209,117 @@ fn to_life_insurance_bracket(
 fn validate_registry(registry: &IncomeTaxDeductionRegistry) -> Result<(), JLawError> {
     validate_periods(registry)?;
     validate_denominators(registry)?;
+    validate_bracket_tables(registry)?;
     Ok(())
+}
+
+/// 所得区分テーブルが空白・重複なく連続しているかを検証する。
+///
+/// 特定親族特別控除の下限は扶養親族の所得要件の直後でなければならない。
+/// registry は扶養親族の所得要件を持たないため、現行法で同額の
+/// 配偶者控除の所得要件（`qualifying_spouse_income_max`）で代用して照合する。
+/// 所得要件の改正時に片方だけ更新する誤りを検出する。
+fn validate_bracket_tables(registry: &IncomeTaxDeductionRegistry) -> Result<(), RegistryError> {
+    for (entry_index, entry) in registry.history.iter().enumerate() {
+        let personal = &entry.params.personal;
+        let path =
+            |name: &str| format!("{}/history[{entry_index}]/personal/{name}", registry.domain);
+
+        validate_contiguous_ranges(
+            &path("basic/brackets"),
+            personal
+                .basic
+                .brackets
+                .iter()
+                .map(|b| (b.income_from, b.income_to_inclusive)),
+            0,
+            true,
+        )?;
+        validate_contiguous_ranges(
+            &path("spouse/taxpayer_income_brackets"),
+            personal
+                .spouse
+                .taxpayer_income_brackets
+                .iter()
+                .map(|b| (b.taxpayer_income_from, b.taxpayer_income_to_inclusive)),
+            0,
+            true,
+        )?;
+
+        if let Some(specific_relative) = &personal.specific_relative {
+            let path = path("specific_relative/brackets");
+            let expected_start = personal
+                .spouse
+                .qualifying_spouse_income_max
+                .checked_add(1)
+                .ok_or_else(|| RegistryError::InvalidBracketTable {
+                    path: path.clone(),
+                    reason: "qualifying_spouse_income_max が上限値です".into(),
+                })?;
+            validate_contiguous_ranges(
+                &path,
+                specific_relative
+                    .brackets
+                    .iter()
+                    .map(|b| (b.income_from, b.income_to_inclusive)),
+                expected_start,
+                false,
+            )?;
+        }
+    }
+
+    Ok(())
+}
+
+fn validate_contiguous_ranges(
+    path: &str,
+    ranges: impl Iterator<Item = (u64, Option<u64>)>,
+    expected_start: u64,
+    last_must_be_open_ended: bool,
+) -> Result<(), RegistryError> {
+    let invalid = |reason: String| RegistryError::InvalidBracketTable {
+        path: path.into(),
+        reason,
+    };
+
+    let mut next_from = Some(expected_start);
+    let mut count = 0_usize;
+    for (index, (from, to_inclusive)) in ranges.enumerate() {
+        count += 1;
+        let Some(expected_from) = next_from else {
+            return Err(invalid(format!(
+                "[{index}] 上限なしの区分の後に区分があります"
+            )));
+        };
+        if from != expected_from {
+            return Err(invalid(format!(
+                "[{index}] income_from={from} は {expected_from} であるべきです（区分の空白または重複）"
+            )));
+        }
+        next_from = match to_inclusive {
+            Some(to) if to < from => {
+                return Err(invalid(format!(
+                    "[{index}] 上限 {to} が下限 {from} を下回っています"
+                )));
+            }
+            Some(to) => Some(
+                to.checked_add(1)
+                    .ok_or_else(|| invalid(format!("[{index}] 上限が u64 の最大値です")))?,
+            ),
+            None => None,
+        };
+    }
+
+    if count == 0 {
+        return Err(invalid("区分が空です".into()));
+    }
+    match (last_must_be_open_ended, next_from) {
+        (true, Some(_)) => Err(invalid(
+            "最後の区分は上限なし（null）である必要があります".into(),
+        )),
+        (false, None) => Err(invalid("最後の区分には上限が必要です".into())),
+        _ => Ok(()),
+    }
 }
 
 fn validate_periods(registry: &IncomeTaxDeductionRegistry) -> Result<(), RegistryError> {
@@ -534,6 +661,99 @@ mod tests {
     }
 
     #[test]
+    fn load_2024_params_has_no_specific_relative_deduction() {
+        let params = load_income_tax_deduction_params(LegalDate::new(2024, 12, 31)).unwrap();
+        assert_eq!(params.personal.basic.brackets[0].deduction_amount, 480_000);
+        assert!(params.personal.specific_relative.is_none());
+    }
+
+    /// 令和7年分（国税庁 タックスアンサー No.1199 / No.1177 / No.1191）。
+    #[test]
+    fn load_2025_params() {
+        let params = load_income_tax_deduction_params(LegalDate::new(2025, 1, 1)).unwrap();
+        let amounts = params
+            .personal
+            .basic
+            .brackets
+            .iter()
+            .map(|b| (b.income_to_inclusive, b.deduction_amount))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            amounts,
+            vec![
+                (Some(1_320_000), 950_000),
+                (Some(3_360_000), 880_000),
+                (Some(4_890_000), 680_000),
+                (Some(6_550_000), 630_000),
+                (Some(23_500_000), 580_000),
+                (Some(24_000_000), 480_000),
+                (Some(24_500_000), 320_000),
+                (Some(25_000_000), 160_000),
+                (None, 0),
+            ]
+        );
+        assert_eq!(params.personal.spouse.qualifying_spouse_income_max, 580_000);
+        let specific_relative = params.personal.specific_relative.unwrap();
+        assert_eq!(specific_relative.brackets[0].income_from, 580_001);
+        assert_eq!(specific_relative.brackets[0].deduction_amount, 630_000);
+    }
+
+    /// 令和8年分・令和9年分（国税庁「源泉所得税の改正のあらまし」令和8年4月）。
+    #[test]
+    fn load_2026_and_2027_params() {
+        for date in [LegalDate::new(2026, 1, 1), LegalDate::new(2027, 12, 31)] {
+            let params = load_income_tax_deduction_params(date).unwrap();
+            let amounts = params
+                .personal
+                .basic
+                .brackets
+                .iter()
+                .map(|b| (b.income_to_inclusive, b.deduction_amount))
+                .collect::<Vec<_>>();
+            assert_eq!(
+                amounts,
+                vec![
+                    (Some(4_890_000), 1_040_000),
+                    (Some(6_550_000), 670_000),
+                    (Some(23_500_000), 620_000),
+                    (Some(24_000_000), 480_000),
+                    (Some(24_500_000), 320_000),
+                    (Some(25_000_000), 160_000),
+                    (None, 0),
+                ]
+            );
+            assert_eq!(params.personal.spouse.qualifying_spouse_income_max, 620_000);
+            let specific_relative = params.personal.specific_relative.unwrap();
+            assert_eq!(specific_relative.brackets[0].income_from, 620_001);
+        }
+    }
+
+    /// 令和10年分以後（国税庁「源泉所得税の改正のあらまし」令和8年4月）。
+    #[test]
+    fn load_2028_params() {
+        let params = load_income_tax_deduction_params(LegalDate::new(2028, 1, 1)).unwrap();
+        let amounts = params
+            .personal
+            .basic
+            .brackets
+            .iter()
+            .map(|b| (b.income_to_inclusive, b.deduction_amount))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            amounts,
+            vec![
+                (Some(1_320_000), 990_000),
+                (Some(23_500_000), 620_000),
+                (Some(24_000_000), 480_000),
+                (Some(24_500_000), 320_000),
+                (Some(25_000_000), 160_000),
+                (None, 0),
+            ]
+        );
+        assert_eq!(params.personal.spouse.qualifying_spouse_income_max, 620_000);
+    }
+
+    #[test]
     fn load_2019_params() {
         let params = load_income_tax_deduction_params(LegalDate::new(2019, 6, 1)).unwrap();
         assert_eq!(params.personal.basic.brackets.len(), 1);
@@ -608,6 +828,98 @@ mod tests {
             result,
             Err(JLawError::Registry(RegistryError::ZeroDenominator { .. }))
         ));
+    }
+
+    fn invalid_bracket(result: Result<(), JLawError>) -> bool {
+        matches!(
+            result,
+            Err(JLawError::Registry(
+                RegistryError::InvalidBracketTable { .. }
+            ))
+        )
+    }
+
+    fn two_basic_brackets(
+        first_to: u64,
+        second_from: u64,
+    ) -> Vec<crate::income_tax_deduction_schema::BasicDeductionBracketEntry> {
+        serde_json::from_value(json!([
+            { "label": "a", "income_from": 0, "income_to_inclusive": first_to, "deduction_amount": 1 },
+            { "label": "b", "income_from": second_from, "income_to_inclusive": null, "deduction_amount": 0 }
+        ]))
+        .unwrap()
+    }
+
+    #[test]
+    fn registry_validation_accepts_contiguous_brackets() {
+        let mut registry = sample_registry();
+        registry.history[0].params.personal.basic.brackets = two_basic_brackets(100, 101);
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_rejects_bracket_gap() {
+        let mut registry = sample_registry();
+        registry.history[0].params.personal.basic.brackets = two_basic_brackets(100, 102);
+        assert!(invalid_bracket(validate_registry(&registry)));
+    }
+
+    #[test]
+    fn registry_validation_rejects_bracket_overlap() {
+        let mut registry = sample_registry();
+        registry.history[0].params.personal.basic.brackets = two_basic_brackets(100, 100);
+        assert!(invalid_bracket(validate_registry(&registry)));
+    }
+
+    #[test]
+    fn registry_validation_rejects_bounded_last_basic_bracket() {
+        let mut registry = sample_registry();
+        registry.history[0].params.personal.basic.brackets[0].income_to_inclusive = Some(100);
+        assert!(invalid_bracket(validate_registry(&registry)));
+    }
+
+    #[test]
+    fn registry_validation_rejects_basic_brackets_not_starting_at_zero() {
+        let mut registry = sample_registry();
+        registry.history[0].params.personal.basic.brackets[0].income_from = 1;
+        assert!(invalid_bracket(validate_registry(&registry)));
+    }
+
+    fn specific_relative(
+        from: u64,
+        to: Option<u64>,
+    ) -> crate::income_tax_deduction_schema::SpecificRelativeDeductionParamsEntry {
+        serde_json::from_value(json!({
+            "brackets": [
+                { "label": "a", "income_from": from, "income_to_inclusive": to, "deduction_amount": 630000 }
+            ]
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn registry_validation_accepts_specific_relative_aligned_with_income_requirement() {
+        let mut registry = sample_registry();
+        registry.history[1].params.personal.specific_relative =
+            Some(specific_relative(480_001, Some(1_230_000)));
+        assert!(validate_registry(&registry).is_ok());
+    }
+
+    #[test]
+    fn registry_validation_rejects_specific_relative_misaligned_with_income_requirement() {
+        // 扶養親族の所得要件（配偶者の所得要件と同額）を更新し忘れたケースを検出する。
+        let mut registry = sample_registry();
+        registry.history[1].params.personal.specific_relative =
+            Some(specific_relative(580_001, Some(1_230_000)));
+        assert!(invalid_bracket(validate_registry(&registry)));
+    }
+
+    #[test]
+    fn registry_validation_rejects_open_ended_specific_relative() {
+        let mut registry = sample_registry();
+        registry.history[1].params.personal.specific_relative =
+            Some(specific_relative(480_001, None));
+        assert!(invalid_bracket(validate_registry(&registry)));
     }
 
     #[test]

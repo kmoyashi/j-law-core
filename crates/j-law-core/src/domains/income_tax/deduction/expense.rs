@@ -362,6 +362,7 @@ mod tests {
                 personal: PersonalDeductionInput {
                     spouse: None,
                     dependent: DependentDeductionInput::default(),
+                    specific_relatives: vec![],
                 },
                 expense,
             },

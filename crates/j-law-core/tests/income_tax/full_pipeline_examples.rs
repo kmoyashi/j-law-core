@@ -159,6 +159,7 @@ fn deduction_params_2024() -> IncomeDeductionParams {
                 elderly_cohabiting_deduction_amount: 580_000,
                 elderly_other_deduction_amount: 480_000,
             },
+            specific_relative: None,
         },
         expense: ExpenseDeductionParams {
             social_insurance: SocialInsuranceDeductionParams,
@@ -223,6 +224,7 @@ fn assessment_connects_deductions_to_income_tax() {
                         elderly_cohabiting_count: 0,
                         elderly_other_count: 0,
                     },
+                    specific_relatives: vec![],
                 },
                 expense: ExpenseDeductionInput {
                     social_insurance_premium_paid: 480_900,

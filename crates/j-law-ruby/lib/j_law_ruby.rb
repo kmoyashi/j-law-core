@@ -233,11 +233,16 @@ module JLawRuby
     end
 
     # 所得控除を計算し、課税所得金額までを返す。
+    #
+    # specific_relatives には特定親族（所得税法 第84条の2）ごとに
+    # `{ total_income_amount: 合計所得金額 }` を指定する（最大 8 人）。
+    # 特定親族への該当性の事実認定はライブラリの責任範囲外。
     def self.calc_income_deductions(
       total_income_amount,
       date,
       spouse: nil,
       dependent: {},
+      specific_relatives: [],
       social_insurance_premium_paid: 0,
       medical: nil,
       life_insurance: nil,
@@ -255,6 +260,7 @@ module JLawRuby
         day: date.day,
         spouse: spouse,
         dependent: dependent,
+        specific_relatives: specific_relatives,
         social_insurance_premium_paid: social_insurance_premium_paid,
         medical: medical,
         life_insurance: life_insurance,
@@ -270,6 +276,7 @@ module JLawRuby
       apply_reconstruction_tax: true,
       spouse: nil,
       dependent: {},
+      specific_relatives: [],
       social_insurance_premium_paid: 0,
       medical: nil,
       life_insurance: nil,
@@ -288,6 +295,7 @@ module JLawRuby
           day: date.day,
           spouse: spouse,
           dependent: dependent,
+          specific_relatives: specific_relatives,
           social_insurance_premium_paid: social_insurance_premium_paid,
           medical: medical,
           life_insurance: life_insurance,

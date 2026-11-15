@@ -15,7 +15,7 @@ use j_law_core::domains::income_tax::{
         DependentDeductionInput, DonationDeductionInput, ExpenseDeductionInput,
         IncomeDeductionContext, IncomeDeductionInput, IncomeDeductionKind,
         LifeInsuranceDeductionInput, MedicalDeductionInput, PersonalDeductionInput,
-        SpouseDeductionInput,
+        SpecificRelativeDeductionInput, SpouseDeductionInput,
     },
     policy::StandardIncomeTaxPolicy,
 };
@@ -49,6 +49,9 @@ pub const J_LAW_MAX_TIERS: usize = 8;
 /// 所得控除内訳の最大件数。
 pub const J_LAW_MAX_DEDUCTION_LINES: usize = 8;
 
+/// 所得控除入力で受け付ける特定親族の最大人数。
+pub const J_LAW_MAX_SPECIFIC_RELATIVES: usize = 8;
+
 /// ティアラベルの最大バイト長（NUL 終端含む）。
 pub const J_LAW_LABEL_LEN: usize = 64;
 
@@ -56,7 +59,7 @@ pub const J_LAW_LABEL_LEN: usize = 64;
 pub const J_LAW_ERROR_BUF_LEN: usize = 256;
 
 /// C FFI の互換バージョン。
-pub const J_LAW_C_FFI_VERSION: u32 = 4;
+pub const J_LAW_C_FFI_VERSION: u32 = 5;
 /// 源泉徴収カテゴリ: 原稿料・講演料等。
 pub const J_LAW_WITHHOLDING_TAX_CATEGORY_MANUSCRIPT_AND_LECTURE: u32 = 1;
 /// 源泉徴収カテゴリ: 税理士等の報酬・料金。
@@ -132,6 +135,7 @@ fn income_deduction_kind_to_c(kind: IncomeDeductionKind) -> u32 {
         IncomeDeductionKind::Medical => 5,
         IncomeDeductionKind::LifeInsurance => 6,
         IncomeDeductionKind::Donation => 7,
+        IncomeDeductionKind::SpecificRelative => 8,
     }
 }
 
@@ -142,6 +146,26 @@ fn try_count_to_u16(value: u64, field: &str) -> Result<u16, JLawError> {
             reason: "u16 の上限を超えています".into(),
         })
     })
+}
+
+fn to_specific_relatives(
+    input: &JLawIncomeDeductionInput,
+) -> Result<Vec<SpecificRelativeDeductionInput>, JLawError> {
+    let count = usize::try_from(input.specific_relative_count)
+        .ok()
+        .filter(|&count| count <= J_LAW_MAX_SPECIFIC_RELATIVES)
+        .ok_or_else(|| {
+            JLawError::Input(j_law_core::InputError::InvalidDeductionInput {
+                field: "specific_relative_count".into(),
+                reason: format!("{J_LAW_MAX_SPECIFIC_RELATIVES} 以下である必要があります"),
+            })
+        })?;
+    Ok(input.specific_relative_total_income_amounts[..count]
+        .iter()
+        .map(|&total_income_amount| SpecificRelativeDeductionInput {
+            total_income_amount,
+        })
+        .collect())
 }
 
 fn to_income_deduction_context(
@@ -207,6 +231,7 @@ fn to_income_deduction_context(
                         "dependent.elderly_other_count",
                     )?,
                 },
+                specific_relatives: to_specific_relatives(input)?,
             },
             expense: ExpenseDeductionInput {
                 social_insurance_premium_paid: input.social_insurance_premium_paid,
@@ -232,6 +257,18 @@ fn write_income_tax_breakdown(
         copy_str_to_fixed_buf(&step.label, &mut out_breakdown[i].label);
     }
     len as c_int
+}
+
+/// 所得控除の内訳が C 側の固定長配列に収まるかを検証する。
+///
+/// 収まらない内訳を黙って切り捨てると控除額の合計と内訳が食い違うため、エラーとして扱う。
+fn ensure_deduction_breakdown_fits(len: usize) -> Result<(), String> {
+    if len > J_LAW_MAX_DEDUCTION_LINES {
+        return Err(format!(
+            "所得控除の内訳が {len} 行あり、J_LAW_MAX_DEDUCTION_LINES ({J_LAW_MAX_DEDUCTION_LINES}) を超えています"
+        ));
+    }
+    Ok(())
 }
 
 fn write_income_deduction_breakdown(
@@ -588,6 +625,10 @@ pub struct JLawIncomeDeductionInput {
     pub has_donation: c_int,
     /// 控除対象寄附金額（円）。
     pub donation_qualified_amount: u64,
+    /// 特定親族特別控除の対象となる特定親族の人数（最大 `J_LAW_MAX_SPECIFIC_RELATIVES`）。
+    pub specific_relative_count: u64,
+    /// 特定親族ごとの合計所得金額（円）。先頭 `specific_relative_count` 件が有効。
+    pub specific_relative_total_income_amounts: [u64; J_LAW_MAX_SPECIFIC_RELATIVES],
 }
 
 /// 所得控除の計算結果（C 互換）。
@@ -729,7 +770,9 @@ pub unsafe extern "C" fn j_law_calc_income_tax(
 /// 所得税法 第78条（寄附金控除）
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 ///
 /// # Safety
 /// - `input` は有効な入力ポインタであること。
@@ -772,6 +815,10 @@ pub unsafe extern "C" fn j_law_calc_income_deductions(
             return 1;
         }
     };
+    if let Err(message) = ensure_deduction_breakdown_fits(result.breakdown.len()) {
+        write_error_msg(&message, error_buf, error_buf_len);
+        return 1;
+    }
 
     let out = &mut *out_result;
     out.total_income_amount = result.total_income_amount.as_yen();
@@ -792,7 +839,9 @@ pub unsafe extern "C" fn j_law_calc_income_deductions(
 /// 所得税法 第78条（寄附金控除）
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 /// 所得税法 第89条第1項（所得税の税率）
 /// 復興財源確保法 第13条（復興特別所得税）
 ///
@@ -856,6 +905,10 @@ pub unsafe extern "C" fn j_law_calc_income_tax_assessment(
             return 1;
         }
     };
+    if let Err(message) = ensure_deduction_breakdown_fits(result.deductions.breakdown.len()) {
+        write_error_msg(&message, error_buf, error_buf_len);
+        return 1;
+    }
 
     let out = &mut *out_result;
     out.total_income_amount = result.deductions.total_income_amount.as_yen();
@@ -1146,6 +1199,8 @@ mod tests {
             life_old_individual_pension_paid_amount: 0,
             has_donation: 1,
             donation_qualified_amount: 500_000,
+            specific_relative_count: 0,
+            specific_relative_total_income_amounts: [0; J_LAW_MAX_SPECIFIC_RELATIVES],
         }
     }
 
@@ -1356,6 +1411,99 @@ mod tests {
         assert_eq!(result.breakdown[4].amount, 350_000);
         assert_eq!(result.breakdown[5].amount, 115_000);
         assert_eq!(result.breakdown[6].amount, 498_000);
+    }
+
+    #[test]
+    fn income_deductions_2026_include_specific_relative_line() {
+        let mut input = sample_income_deduction_input();
+        input.year = 2026;
+        input.specific_relative_count = 2;
+        input.specific_relative_total_income_amounts[0] = 700_000;
+        input.specific_relative_total_income_amounts[1] = 1_000_000;
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeDeductionResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_deductions(
+                &input,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0, "{}", error_buf_to_string(&error_buf));
+        assert_eq!(result.breakdown_len, 8);
+        assert_eq!(result.breakdown[0].amount, 670_000);
+        assert_eq!(result.breakdown[3].kind, 8);
+        assert_eq!(
+            fixed_buf_to_string(&result.breakdown[3].label),
+            "特定親族特別控除"
+        );
+        assert_eq!(result.breakdown[3].amount, 630_000 + 410_000);
+    }
+
+    #[test]
+    fn income_deductions_2026_with_every_deduction_fit_in_c_breakdown() {
+        // 2025年分以後に core が返し得る最大行数（人的4 + 支出系4）が C 側の上限に収まること。
+        let mut input = sample_income_deduction_input();
+        input.year = 2026;
+        input.has_spouse = 1;
+        input.spouse_total_income_amount = 0;
+        input.spouse_is_same_household = 1;
+        input.dependent_general_count = 1;
+        input.specific_relative_count = J_LAW_MAX_SPECIFIC_RELATIVES as u64;
+        input.specific_relative_total_income_amounts = [700_000; J_LAW_MAX_SPECIFIC_RELATIVES];
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeTaxAssessmentResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_tax_assessment(
+                &input,
+                1,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0, "{}", error_buf_to_string(&error_buf));
+        assert_eq!(
+            result.deduction_breakdown_len as usize,
+            J_LAW_MAX_DEDUCTION_LINES
+        );
+        assert_eq!(result.deduction_breakdown[3].kind, 8);
+        assert_eq!(
+            result.deduction_breakdown[3].amount,
+            630_000 * J_LAW_MAX_SPECIFIC_RELATIVES as u64
+        );
+    }
+
+    #[test]
+    fn deduction_breakdown_overflow_is_an_error() {
+        assert!(ensure_deduction_breakdown_fits(J_LAW_MAX_DEDUCTION_LINES).is_ok());
+        assert!(ensure_deduction_breakdown_fits(J_LAW_MAX_DEDUCTION_LINES + 1).is_err());
+    }
+
+    #[test]
+    fn income_deductions_reject_too_many_specific_relatives() {
+        let mut input = sample_income_deduction_input();
+        input.year = 2026;
+        input.specific_relative_count = (J_LAW_MAX_SPECIFIC_RELATIVES + 1) as u64;
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeDeductionResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_deductions(
+                &input,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 1);
+        assert!(error_buf_to_string(&error_buf).contains("specific_relative_count"));
     }
 
     #[test]

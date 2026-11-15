@@ -36,6 +36,19 @@ class DependentDeductionInput:
 
 
 @dataclass(frozen=True)
+class SpecificRelativeDeductionInput:
+    """特定親族特別控除の入力（特定親族1人分）。
+
+    法的根拠: 所得税法 第84条の2
+
+    WARNING: 特定親族への該当性（年齢19歳以上23歳未満・生計を一にする等）の
+    事実認定はライブラリの責任範囲外です。呼び出し元が正しく判断した上で指定してください。
+    """
+
+    total_income_amount: int
+
+
+@dataclass(frozen=True)
 class MedicalDeductionInput:
     medical_expense_paid: int
     reimbursed_amount: int = 0
@@ -61,6 +74,7 @@ class IncomeDeductionInput:
     date: datetime.date
     spouse: SpouseDeductionInput | None = None
     dependent: DependentDeductionInput = field(default_factory=DependentDeductionInput)
+    specific_relatives: tuple[SpecificRelativeDeductionInput, ...] = ()
     social_insurance_premium_paid: int = 0
     medical: MedicalDeductionInput | None = None
     life_insurance: LifeInsuranceDeductionInput | None = None
@@ -218,6 +232,9 @@ def _to_record(input_data: IncomeDeductionInput) -> IncomeDeductionInputRecord:
         has_donation=donation is not None,
         donation_qualified_amount=(
             0 if donation is None else donation.qualified_donation_amount
+        ),
+        specific_relative_total_income_amounts=tuple(
+            relative.total_income_amount for relative in input_data.specific_relatives
         ),
     )
 

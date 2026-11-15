@@ -18,7 +18,9 @@ pub use deduction::{
     IncomeDeductionResult, LifeInsuranceDeductionBracket, LifeInsuranceDeductionInput,
     LifeInsuranceDeductionParams, MedicalDeductionInput, MedicalDeductionParams,
     PersonalDeductionInput, PersonalDeductionParams, SocialInsuranceDeductionParams,
-    SpouseDeductionInput, SpouseDeductionParams, SpouseIncomeBracket,
+    SpecificRelativeDeductionBracket, SpecificRelativeDeductionInput,
+    SpecificRelativeDeductionParams, SpouseDeductionInput, SpouseDeductionParams,
+    SpouseIncomeBracket,
 };
 pub use params::{IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams};
 pub use policy::StandardIncomeTaxPolicy;

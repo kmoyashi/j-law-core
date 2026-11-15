@@ -20,6 +20,10 @@ pub enum IncomeDeductionKind {
     LifeInsurance,
     /// 寄附金控除。
     Donation,
+    /// 特定親族特別控除。
+    ///
+    /// 制度創設（2025年分）以後の年分でのみ内訳に現れる。
+    SpecificRelative,
 }
 
 /// 所得控除の内訳1行。
@@ -45,7 +49,9 @@ pub struct IncomeDeductionLine {
 /// 所得税法 第78条（寄附金控除）
 /// 所得税法 第83条（配偶者控除）
 /// 所得税法 第84条（扶養控除）
+/// 所得税法 第84条の2（特定親族特別控除）
 /// 所得税法 第86条（基礎控除）
+/// 租税特別措置法 第41条の16の2（基礎控除の特例）
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IncomeDeductionResult {
     /// 総所得金額等（円）。
