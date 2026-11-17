@@ -127,6 +127,7 @@ def test_income_tax_assessment(case):
     assert result.deductions.taxable_income == expected["taxable_income"]
     assert result.tax.base_tax == expected["base_tax"]
     assert result.tax.reconstruction_tax == expected["reconstruction_tax"]
+    assert result.tax.defense_tax == expected["defense_tax"]
     assert result.tax.total_tax == expected["total_tax"]
 
 

@@ -61,6 +61,8 @@ class _IncomeTaxResultStruct(ctypes.Structure):
         ("reconstruction_tax_applied", ctypes.c_int),
         ("breakdown", _IncomeTaxStepStruct * MAX_TIERS),
         ("breakdown_len", ctypes.c_int),
+        ("defense_tax", ctypes.c_uint64),
+        ("defense_tax_applied", ctypes.c_int),
     ]
 
 
@@ -131,6 +133,8 @@ class _IncomeTaxAssessmentResultStruct(ctypes.Structure):
         ("deduction_breakdown_len", ctypes.c_int),
         ("tax_breakdown", _IncomeTaxStepStruct * MAX_TIERS),
         ("tax_breakdown_len", ctypes.c_int),
+        ("defense_tax", ctypes.c_uint64),
+        ("defense_tax_applied", ctypes.c_int),
     ]
 
 
@@ -201,6 +205,8 @@ class IncomeTaxRecord:
     total_tax: int
     reconstruction_tax_applied: bool
     breakdown: list[IncomeTaxStepRecord]
+    defense_tax: int = 0
+    defense_tax_applied: bool = False
 
 
 @dataclass(frozen=True)
@@ -616,6 +622,8 @@ def calc_income_tax(
             result.breakdown,
             int(result.breakdown_len),
         ),
+        defense_tax=int(result.defense_tax),
+        defense_tax_applied=bool(result.defense_tax_applied),
     )
 
 
@@ -682,6 +690,8 @@ def calc_income_tax_assessment(
             result.tax_breakdown,
             int(result.tax_breakdown_len),
         ),
+        defense_tax=int(result.defense_tax),
+        defense_tax_applied=bool(result.defense_tax_applied),
     )
     return IncomeTaxAssessmentRecord(deductions=deductions, tax=tax)
 

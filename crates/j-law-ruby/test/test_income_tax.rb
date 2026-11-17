@@ -39,6 +39,8 @@ class TestIncomeTaxFixtures < Minitest::Test
       else
         refute r.reconstruction_tax_applied?, "#{c['id']}: reconstruction_tax_applied"
       end
+      assert_equal exp["defense_tax"], r.defense_tax, "#{c['id']}: defense_tax"
+      assert_equal exp["defense_tax_applied"], r.defense_tax_applied?, "#{c['id']}: defense_tax_applied"
     end
   end
 end

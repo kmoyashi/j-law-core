@@ -639,15 +639,19 @@ pub fn calc_brokerage_fee(
 /// Properties:
 /// - `baseTax`: 基準所得税額（円）BigInt
 /// - `reconstructionTax`: 復興特別所得税額（円）BigInt
+/// - `defenseTax`: 防衛特別所得税額（円・2027年分以後）BigInt
 /// - `totalTax`: 申告納税額（円・100円未満切り捨て）BigInt
 /// - `reconstructionTaxApplied`: 復興特別所得税が適用されたか
+/// - `defenseTaxApplied`: 防衛特別所得税が適用されたか
 /// - `breakdown()`: 計算内訳（`{ label, taxableIncome, rateNumer, rateDenom, deduction, result }[]`）
 #[wasm_bindgen]
 pub struct IncomeTaxResult {
     base_tax: u64,
     reconstruction_tax: u64,
+    defense_tax: u64,
     total_tax: u64,
     reconstruction_tax_applied: bool,
+    defense_tax_applied: bool,
     breakdown_data: Vec<IncomeTaxStepData>,
 }
 
@@ -680,6 +684,16 @@ impl IncomeTaxResult {
     #[wasm_bindgen(getter, js_name = "reconstructionTaxApplied")]
     pub fn reconstruction_tax_applied(&self) -> bool {
         self.reconstruction_tax_applied
+    }
+
+    #[wasm_bindgen(getter, js_name = "defenseTax")]
+    pub fn defense_tax(&self) -> u64 {
+        self.defense_tax
+    }
+
+    #[wasm_bindgen(getter, js_name = "defenseTaxApplied")]
+    pub fn defense_tax_applied(&self) -> bool {
+        self.defense_tax_applied
     }
 
     pub fn breakdown(&self) -> Array {
@@ -728,7 +742,8 @@ impl IncomeTaxResult {
 /// @param taxableIncome - 課税所得金額（円）。JavaScript の Number 型は 53bit 整数精度のため
 ///   安全な整数 Number のみ受け付ける。
 /// @param date - 基準日（JavaScript Date オブジェクト。JST で解釈される）
-/// @param applyReconstructionTax - 復興特別所得税を適用するか
+/// @param applyReconstructionTax - 付加税（復興特別所得税・防衛特別所得税）を適用するか。
+///   基準日の年分に課される付加税をすべて適用する。
 /// @returns IncomeTaxResult（金額フィールドは BigInt）
 /// @throws 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合
 #[wasm_bindgen(js_name = "calcIncomeTax")]
@@ -778,8 +793,10 @@ pub fn calc_income_tax(
     Ok(IncomeTaxResult {
         base_tax: result.base_tax.as_yen(),
         reconstruction_tax: result.reconstruction_tax.as_yen(),
+        defense_tax: result.defense_tax.as_yen(),
         total_tax: result.total_tax.as_yen(),
         reconstruction_tax_applied: result.reconstruction_tax_applied,
+        defense_tax_applied: result.defense_tax_applied,
         breakdown_data,
     })
 }
@@ -866,8 +883,10 @@ pub struct IncomeTaxAssessmentResult {
     taxable_income: u64,
     base_tax: u64,
     reconstruction_tax: u64,
+    defense_tax: u64,
     total_tax: u64,
     reconstruction_tax_applied: bool,
+    defense_tax_applied: bool,
     deduction_breakdown_data: Vec<IncomeDeductionLineData>,
     tax_breakdown_data: Vec<IncomeTaxAssessmentStepData>,
 }
@@ -912,6 +931,16 @@ impl IncomeTaxAssessmentResult {
     #[wasm_bindgen(getter, js_name = "reconstructionTaxApplied")]
     pub fn reconstruction_tax_applied(&self) -> bool {
         self.reconstruction_tax_applied
+    }
+
+    #[wasm_bindgen(getter, js_name = "defenseTax")]
+    pub fn defense_tax(&self) -> u64 {
+        self.defense_tax
+    }
+
+    #[wasm_bindgen(getter, js_name = "defenseTaxApplied")]
+    pub fn defense_tax_applied(&self) -> bool {
+        self.defense_tax_applied
     }
 
     #[wasm_bindgen(js_name = "deductionBreakdown")]
@@ -1070,8 +1099,10 @@ pub fn calc_income_tax_assessment(
         taxable_income: result.deductions.taxable_income.as_yen(),
         base_tax: result.tax.base_tax.as_yen(),
         reconstruction_tax: result.tax.reconstruction_tax.as_yen(),
+        defense_tax: result.tax.defense_tax.as_yen(),
         total_tax: result.tax.total_tax.as_yen(),
         reconstruction_tax_applied: result.tax.reconstruction_tax_applied,
+        defense_tax_applied: result.tax.defense_tax_applied,
         deduction_breakdown_data,
         tax_breakdown_data,
     })

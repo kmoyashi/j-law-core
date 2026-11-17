@@ -20,11 +20,21 @@ pub struct ReconstructionTaxEntry {
     pub effective_to_year_inclusive: u16,
 }
 
+/// 防衛特別所得税パラメータ（JSON）。
+#[derive(Debug, Clone, Deserialize)]
+pub struct DefenseTaxEntry {
+    pub rate: Fraction,
+    pub effective_from_year: u16,
+}
+
 /// 所得税の計算パラメータ（JSON）。
 #[derive(Debug, Clone, Deserialize)]
 pub struct IncomeTaxParamsEntry {
     pub brackets: Vec<IncomeTaxBracketEntry>,
     pub reconstruction_tax: Option<ReconstructionTaxEntry>,
+    /// 防衛特別所得税（2027年分以後）。課税期間外のエントリでは省略する。
+    #[serde(default)]
+    pub defense_tax: Option<DefenseTaxEntry>,
 }
 
 /// 所得税の履歴エントリ（JSON）。

@@ -63,6 +63,7 @@ type incomeTaxDeductionFixtureExpected struct {
 	TaxableIncome                 uint64 `json:"taxable_income"`
 	BaseTax                       uint64 `json:"base_tax"`
 	ReconstructionTax             uint64 `json:"reconstruction_tax"`
+	DefenseTax                    uint64 `json:"defense_tax"`
 	TotalTax                      uint64 `json:"total_tax"`
 }
 
@@ -185,6 +186,9 @@ func TestIncomeTaxAssessmentFixtures(t *testing.T) {
 			}
 			if result.Tax.ReconstructionTax != tc.Expected.ReconstructionTax {
 				t.Errorf("ReconstructionTax: got %d, want %d", result.Tax.ReconstructionTax, tc.Expected.ReconstructionTax)
+			}
+			if result.Tax.DefenseTax != tc.Expected.DefenseTax {
+				t.Errorf("DefenseTax: got %d, want %d", result.Tax.DefenseTax, tc.Expected.DefenseTax)
 			}
 			if result.Tax.TotalTax != tc.Expected.TotalTax {
 				t.Errorf("TotalTax: got %d, want %d", result.Tax.TotalTax, tc.Expected.TotalTax)

@@ -260,13 +260,44 @@ mod tests {
         ));
     }
 
+    fn base_and_excess_rates(date: LegalDate) -> ((u64, u64), (u64, u64)) {
+        let params = load_withholding_tax_params(date).unwrap();
+        match &params.categories[0].method {
+            WithholdingTaxMethod::TwoTier {
+                base_rate_numer,
+                base_rate_denom,
+                excess_rate_numer,
+                excess_rate_denom,
+                ..
+            } => (
+                (*base_rate_numer, *base_rate_denom),
+                (*excess_rate_numer, *excess_rate_denom),
+            ),
+        }
+    }
+
+    /// 2027〜2047年: 所得税 + 復興特別所得税 1.1% + 防衛特別所得税 1%（合計 2.1% は不変）。
     #[test]
-    fn date_after_period_is_out_of_range() {
-        let result = load_withholding_tax_params(LegalDate::new(2038, 1, 1));
-        assert!(matches!(
-            result,
-            Err(JLawError::Input(InputError::DateOutOfRange { .. }))
-        ));
+    fn combined_rate_unchanged_through_2047() {
+        for date in [
+            LegalDate::new(2026, 12, 31),
+            LegalDate::new(2027, 1, 1),
+            LegalDate::new(2047, 12, 31),
+        ] {
+            assert_eq!(
+                base_and_excess_rates(date),
+                ((1021, 10_000), (2042, 10_000))
+            );
+        }
+    }
+
+    /// 2048年以後: 復興特別所得税の課税期間経過後は 所得税 + 防衛特別所得税 1%。
+    #[test]
+    fn from_2048_defense_tax_only() {
+        assert_eq!(
+            base_and_excess_rates(LegalDate::new(2048, 1, 1)),
+            ((1010, 10_000), (2020, 10_000))
+        );
     }
 
     #[test]

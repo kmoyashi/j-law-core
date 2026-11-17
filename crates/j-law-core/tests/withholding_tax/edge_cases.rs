@@ -84,13 +84,44 @@ fn date_before_2013_is_out_of_range() {
     ));
 }
 
+fn manuscript_tax(payment_amount: u64, date: LegalDate) -> u64 {
+    let params = load_withholding_tax_params(date).unwrap();
+    calculate_withholding_tax(
+        &ctx(
+            payment_amount,
+            0,
+            date,
+            WithholdingTaxCategory::ManuscriptAndLecture,
+            HashSet::new(),
+        ),
+        &params,
+    )
+    .unwrap()
+    .tax_amount
+    .as_yen()
+}
+
+/// 国税庁「防衛特別所得税及び復興特別所得税（源泉徴収関係）Q&A」（令和8年5月）Q6 の計算例。
+/// 2027年以後も合計税率（10.21% / 20.42%）は変わらない。
 #[test]
-fn date_after_2037_is_out_of_range() {
-    let result = load_withholding_tax_params(LegalDate::new(2038, 1, 1));
-    assert!(matches!(
-        result,
-        Err(JLawError::Input(InputError::DateOutOfRange { .. }))
-    ));
+fn defense_tax_era_keeps_combined_rate_nta_examples() {
+    for date in [
+        LegalDate::new(2027, 1, 1),
+        LegalDate::new(2038, 1, 1),
+        LegalDate::new(2047, 12, 31),
+    ] {
+        assert_eq!(manuscript_tax(222_222, date), 22_688);
+        assert_eq!(manuscript_tax(1_333_333, date), 170_166);
+    }
+}
+
+/// 復興特別所得税の課税期間（2047年まで）経過後は防衛特別所得税 1% のみが加算される。
+#[test]
+fn from_2048_only_defense_tax_is_added() {
+    let date = LegalDate::new(2048, 1, 1);
+    assert_eq!(manuscript_tax(100_000, date), 10_100);
+    // 1,000,000 × 10.1% + 500,000 × 20.2%
+    assert_eq!(manuscript_tax(1_500_000, date), 202_000);
 }
 
 #[test]

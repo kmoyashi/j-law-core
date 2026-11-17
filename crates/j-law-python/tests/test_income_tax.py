@@ -38,6 +38,8 @@ def test_income_tax(case):
     assert r.reconstruction_tax == exp["reconstruction_tax"], f"{case['id']}: reconstruction_tax"
     assert r.total_tax == exp["total_tax"], f"{case['id']}: total_tax"
     assert r.reconstruction_tax_applied is exp["reconstruction_tax_applied"], f"{case['id']}: reconstruction_tax_applied"
+    assert r.defense_tax == exp["defense_tax"], f"{case['id']}: defense_tax"
+    assert r.defense_tax_applied is exp["defense_tax_applied"], f"{case['id']}: defense_tax_applied"
 
 
 # ─── 言語固有テスト（JSON の外） ──────────────────────────────────────────────

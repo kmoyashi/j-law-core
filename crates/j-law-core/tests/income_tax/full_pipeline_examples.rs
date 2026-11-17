@@ -84,8 +84,9 @@ fn tax_params_2024() -> IncomeTaxParams {
             rate_numer: 21,
             rate_denom: 1000,
             effective_from_year: 2013,
-            effective_to_year_inclusive: 2037,
+            effective_to_year_inclusive: 2047,
         }),
+        defense_tax: None,
     }
 }
 
