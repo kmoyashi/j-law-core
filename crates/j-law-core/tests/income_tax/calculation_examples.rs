@@ -83,8 +83,9 @@ fn tax_params_2024() -> IncomeTaxParams {
             rate_numer: 21,
             rate_denom: 1000,
             effective_from_year: 2013,
-            effective_to_year_inclusive: 2037,
+            effective_to_year_inclusive: 2047,
         }),
+        defense_tax: None,
     }
 }
 
@@ -258,7 +259,8 @@ fn without_reconstruction_tax() {
 
 /// 復興税フラグありだがパラメータに復興税データがない → エラー
 #[test]
-fn missing_reconstruction_params_errors() {
+fn missing_special_tax_params_means_no_special_tax() {
+    // 付加税の課税期間はパラメータで判定する。パラメータに付加税がない年分では課税しない。
     let params = IncomeTaxParams {
         brackets: vec![IncomeTaxBracket {
             label: "195万円以下".into(),
@@ -269,8 +271,16 @@ fn missing_reconstruction_params_errors() {
             deduction: 0,
         }],
         reconstruction_tax: None,
+        defense_tax: None,
     };
     let ctx = ctx_with_reconstruction(1_000_000);
-    let result = calculate_income_tax(&ctx, &params);
-    assert!(result.is_err());
+    let result = calculate_income_tax(&ctx, &params).unwrap();
+    assert_eq!(result.reconstruction_tax.as_yen(), 0);
+    assert_eq!(result.defense_tax.as_yen(), 0);
+    assert!(!result.reconstruction_tax_applied);
+    assert!(!result.defense_tax_applied);
+    assert_eq!(
+        result.total_tax.as_yen(),
+        result.base_tax.as_yen() / 100 * 100
+    );
 }

@@ -141,10 +141,14 @@ type IncomeTaxResult struct {
 	BaseTax uint64
 	// ReconstructionTax は復興特別所得税額（円）。
 	ReconstructionTax uint64
+	// DefenseTax は防衛特別所得税額（円・2027年分以後）。
+	DefenseTax uint64
 	// TotalTax は申告納税額（円・100円未満切り捨て）。
 	TotalTax uint64
 	// ReconstructionTaxApplied は復興特別所得税が適用されたかを示す。
 	ReconstructionTaxApplied bool
+	// DefenseTaxApplied は防衛特別所得税が適用されたかを示す。
+	DefenseTaxApplied bool
 	// Breakdown は計算内訳。
 	Breakdown []IncomeTaxStep
 }
@@ -235,12 +239,13 @@ type IncomeTaxAssessmentResult struct {
 
 // CalcIncomeTax は所得税法第89条に基づく所得税額を計算する。
 //
-// 法的根拠: 所得税法 第89条第1項 / 復興財源確保法 第13条
+// 法的根拠: 所得税法 第89条第1項 / 復興財源確保法 第13条 / 防衛財源確保法 第5条の9
 //
 // 引数:
 //   - taxableIncome: 課税所得金額（円）
 //   - date: 基準日
-//   - applyReconstructionTax: 復興特別所得税を適用するか
+//   - applyReconstructionTax: 付加税（復興特別所得税・防衛特別所得税）を適用するか。
+//     基準日の年分に課される付加税をすべて適用する
 //
 // エラー: 課税所得金額が不正、または対象日に有効な法令パラメータが存在しない場合。
 func CalcIncomeTax(
@@ -352,8 +357,10 @@ func toGoIncomeTaxResult(c *C.JLawIncomeTaxResult) *IncomeTaxResult {
 	return &IncomeTaxResult{
 		BaseTax:                  uint64(c.base_tax),
 		ReconstructionTax:        uint64(c.reconstruction_tax),
+		DefenseTax:               uint64(c.defense_tax),
 		TotalTax:                 uint64(c.total_tax),
 		ReconstructionTaxApplied: c.reconstruction_tax_applied != 0,
+		DefenseTaxApplied:        c.defense_tax_applied != 0,
 		Breakdown:                breakdown,
 	}
 }
@@ -422,8 +429,10 @@ func toGoIncomeTaxResultFromAssessment(
 	return &IncomeTaxResult{
 		BaseTax:                  uint64(c.base_tax),
 		ReconstructionTax:        uint64(c.reconstruction_tax),
+		DefenseTax:               uint64(c.defense_tax),
 		TotalTax:                 uint64(c.total_tax),
 		ReconstructionTaxApplied: c.reconstruction_tax_applied != 0,
+		DefenseTaxApplied:        c.defense_tax_applied != 0,
 		Breakdown:                breakdown,
 	}
 }

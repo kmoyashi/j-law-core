@@ -12,7 +12,9 @@
         "base_tax": 50000,
         "reconstruction_tax": 1050,
         "total_tax": 51000,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -27,7 +29,9 @@
         "base_tax": 572500,
         "reconstruction_tax": 12022,
         "total_tax": 584500,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -42,7 +46,9 @@
         "base_tax": 1204000,
         "reconstruction_tax": 25284,
         "total_tax": 1229200,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -57,7 +63,9 @@
         "base_tax": 1764000,
         "reconstruction_tax": 37044,
         "total_tax": 1801000,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -72,7 +80,9 @@
         "base_tax": 5204000,
         "reconstruction_tax": 109284,
         "total_tax": 5313200,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -87,7 +97,9 @@
         "base_tax": 17704000,
         "reconstruction_tax": 371784,
         "total_tax": 18075700,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -102,7 +114,9 @@
         "base_tax": 572500,
         "reconstruction_tax": 0,
         "total_tax": 572500,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -117,7 +131,9 @@
         "base_tax": 0,
         "reconstruction_tax": 0,
         "total_tax": 0,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -132,7 +148,9 @@
         "base_tax": 97500,
         "reconstruction_tax": 2047,
         "total_tax": 99500,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -147,7 +165,9 @@
         "base_tax": 97500,
         "reconstruction_tax": 2047,
         "total_tax": 99500,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -162,7 +182,9 @@
         "base_tax": 700000,
         "reconstruction_tax": 0,
         "total_tax": 700000,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -177,7 +199,9 @@
         "base_tax": 2100000,
         "reconstruction_tax": 0,
         "total_tax": 2100000,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -192,7 +216,9 @@
         "base_tax": 360000,
         "reconstruction_tax": 0,
         "total_tax": 360000,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -207,7 +233,9 @@
         "base_tax": 330000,
         "reconstruction_tax": 0,
         "total_tax": 330000,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -222,7 +250,9 @@
         "base_tax": 670000,
         "reconstruction_tax": 0,
         "total_tax": 670000,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -237,7 +267,9 @@
         "base_tax": 4970000,
         "reconstruction_tax": 0,
         "total_tax": 4970000,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -252,7 +284,9 @@
         "base_tax": 670000,
         "reconstruction_tax": 0,
         "total_tax": 670000,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -267,7 +301,9 @@
         "base_tax": 4910000,
         "reconstruction_tax": 0,
         "total_tax": 4910000,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -282,7 +318,9 @@
         "base_tax": 572500,
         "reconstruction_tax": 0,
         "total_tax": 572500,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -297,7 +335,9 @@
         "base_tax": 572500,
         "reconstruction_tax": 0,
         "total_tax": 572500,
-        "reconstruction_tax_applied": false
+        "reconstruction_tax_applied": false,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -312,7 +352,9 @@
         "base_tax": 572500,
         "reconstruction_tax": 12022,
         "total_tax": 584500,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
       }
     },
     {
@@ -327,7 +369,77 @@
         "base_tax": 5204000,
         "reconstruction_tax": 109284,
         "total_tax": 5313200,
-        "reconstruction_tax_applied": true
+        "reconstruction_tax_applied": true,
+        "defense_tax": 0,
+        "defense_tax_applied": false
+      }
+    },
+    {
+      "id": "defense_2027_1m",
+      "description": "令和9年分: 課税所得 1,000,000円（復興特別所得税1.1%・防衛特別所得税1%、合計2.1%は不変）",
+      "input": {
+        "taxable_income": 1000000,
+        "date": "2027-06-30",
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 50000,
+        "reconstruction_tax": 550,
+        "defense_tax": 500,
+        "total_tax": 51000,
+        "reconstruction_tax_applied": true,
+        "defense_tax_applied": true
+      }
+    },
+    {
+      "id": "defense_2027_5m",
+      "description": "令和9年分: 課税所得 5,000,000円（付加税合計 12,022円 = 防衛 5,725円 + 復興 6,297円）",
+      "input": {
+        "taxable_income": 5000000,
+        "date": "2027-06-30",
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 572500,
+        "reconstruction_tax": 6297,
+        "defense_tax": 5725,
+        "total_tax": 584500,
+        "reconstruction_tax_applied": true,
+        "defense_tax_applied": true
+      }
+    },
+    {
+      "id": "defense_2027_without_special_taxes",
+      "description": "令和9年分: 付加税を適用しない場合",
+      "input": {
+        "taxable_income": 1000000,
+        "date": "2027-06-30",
+        "apply_reconstruction_tax": false
+      },
+      "expected": {
+        "base_tax": 50000,
+        "reconstruction_tax": 0,
+        "defense_tax": 0,
+        "total_tax": 50000,
+        "reconstruction_tax_applied": false,
+        "defense_tax_applied": false
+      }
+    },
+    {
+      "id": "defense_only_2048_1m",
+      "description": "令和30年分: 復興特別所得税の課税期間経過後は防衛特別所得税1%のみ",
+      "input": {
+        "taxable_income": 1000000,
+        "date": "2048-06-30",
+        "apply_reconstruction_tax": true
+      },
+      "expected": {
+        "base_tax": 50000,
+        "reconstruction_tax": 0,
+        "defense_tax": 500,
+        "total_tax": 50500,
+        "reconstruction_tax_applied": false,
+        "defense_tax_applied": true
       }
     }
   ]

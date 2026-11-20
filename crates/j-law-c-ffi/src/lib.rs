@@ -59,7 +59,7 @@ pub const J_LAW_LABEL_LEN: usize = 64;
 pub const J_LAW_ERROR_BUF_LEN: usize = 256;
 
 /// C FFI の互換バージョン。
-pub const J_LAW_C_FFI_VERSION: u32 = 5;
+pub const J_LAW_C_FFI_VERSION: u32 = 6;
 /// 源泉徴収カテゴリ: 原稿料・講演料等。
 pub const J_LAW_WITHHOLDING_TAX_CATEGORY_MANUSCRIPT_AND_LECTURE: u32 = 1;
 /// 源泉徴収カテゴリ: 税理士等の報酬・料金。
@@ -561,6 +561,10 @@ pub struct JLawIncomeTaxResult {
     pub breakdown: [JLawIncomeTaxStep; J_LAW_MAX_TIERS],
     /// breakdown の有効件数。
     pub breakdown_len: c_int,
+    /// 防衛特別所得税額（円・2027年分以後）。
+    pub defense_tax: u64,
+    /// 防衛特別所得税が適用されたか（0 = false, 1 = true）。
+    pub defense_tax_applied: c_int,
 }
 
 /// 所得控除の内訳1行（C 互換）。
@@ -675,6 +679,10 @@ pub struct JLawIncomeTaxAssessmentResult {
     pub tax_breakdown: [JLawIncomeTaxStep; J_LAW_MAX_TIERS],
     /// tax_breakdown の有効件数。
     pub tax_breakdown_len: c_int,
+    /// 防衛特別所得税額（円・2027年分以後）。
+    pub defense_tax: u64,
+    /// 防衛特別所得税が適用されたか。
+    pub defense_tax_applied: c_int,
 }
 
 // ─── 所得税 C FFI 公開関数 ──────────────────────────────────────────────────────
@@ -682,12 +690,13 @@ pub struct JLawIncomeTaxAssessmentResult {
 /// 所得税法第89条に基づく所得税額を計算する。
 ///
 /// # 法的根拠
-/// 所得税法 第89条第1項 / 復興財源確保法 第13条
+/// 所得税法 第89条第1項 / 復興財源確保法 第13条 / 防衛財源確保法 第5条の9
 ///
 /// # 引数
 /// - `taxable_income`: 課税所得金額（円）
 /// - `year`, `month`, `day`: 基準日
-/// - `apply_reconstruction_tax`: 復興特別所得税を適用するか（0 = false, 非0 = true）
+/// - `apply_reconstruction_tax`: 付加税（復興特別所得税・防衛特別所得税）を適用するか
+///   （0 = false, 非0 = true）。基準日の年分に課される付加税をすべて適用する。
 /// - `out_result`: [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
 /// - `error_buf`: [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
 /// - `error_buf_len`: `error_buf` のバイト長（推奨: `J_LAW_ERROR_BUF_LEN` = 256）
@@ -756,6 +765,8 @@ pub unsafe extern "C" fn j_law_calc_income_tax(
     } else {
         0
     };
+    out.defense_tax = result.defense_tax.as_yen();
+    out.defense_tax_applied = if result.defense_tax_applied { 1 } else { 0 };
     out.breakdown_len = write_income_tax_breakdown(&result.breakdown, &mut out.breakdown);
 
     0
@@ -924,6 +935,8 @@ pub unsafe extern "C" fn j_law_calc_income_tax_assessment(
     } else {
         0
     };
+    out.defense_tax = result.tax.defense_tax.as_yen();
+    out.defense_tax_applied = if result.tax.defense_tax_applied { 1 } else { 0 };
     out.deduction_breakdown_len = write_income_deduction_breakdown(
         &result.deductions.breakdown,
         &mut out.deduction_breakdown,
@@ -1352,6 +1365,8 @@ mod tests {
         assert_eq!(result.reconstruction_tax, 12_022);
         assert_eq!(result.total_tax, 584_500);
         assert_eq!(result.reconstruction_tax_applied, 1);
+        assert_eq!(result.defense_tax, 0);
+        assert_eq!(result.defense_tax_applied, 0);
         assert_eq!(result.breakdown_len, 1);
         assert_eq!(
             fixed_buf_to_string(&result.breakdown[0].label),
@@ -1360,6 +1375,34 @@ mod tests {
         assert_eq!(result.breakdown[0].taxable_income, 5_000_000);
         assert_eq!(result.breakdown[0].deduction, 427_500);
         assert_eq!(result.breakdown[0].result, 572_500);
+    }
+
+    #[test]
+    fn income_tax_2027_writes_defense_tax() {
+        let mut result = unsafe { std::mem::zeroed::<JLawIncomeTaxResult>() };
+        let mut error_buf = [0; J_LAW_ERROR_BUF_LEN];
+
+        let status = unsafe {
+            j_law_calc_income_tax(
+                5_000_000,
+                2027,
+                1,
+                1,
+                1,
+                &mut result,
+                error_buf.as_mut_ptr(),
+                J_LAW_ERROR_BUF_LEN as c_int,
+            )
+        };
+
+        assert_eq!(status, 0, "{}", error_buf_to_string(&error_buf));
+        assert_eq!(result.base_tax, 572_500);
+        // 付加税合計 = 572,500 × 2.1% = 12,022（1円未満切り捨て）
+        assert_eq!(result.defense_tax, 5_725);
+        assert_eq!(result.reconstruction_tax, 12_022 - 5_725);
+        assert_eq!(result.total_tax, 584_500);
+        assert_eq!(result.reconstruction_tax_applied, 1);
+        assert_eq!(result.defense_tax_applied, 1);
     }
 
     #[test]

@@ -25,7 +25,7 @@ extern "C" {
 #define J_LAW_ERROR_BUF_LEN 256
 
 /** j-law-c-ffi の FFI 互換バージョン。 */
-#define J_LAW_C_FFI_VERSION 5
+#define J_LAW_C_FFI_VERSION 6
 
 /** 所得控除種別定数。 */
 #define J_LAW_INCOME_DEDUCTION_KIND_BASIC 1
@@ -209,6 +209,10 @@ typedef struct {
     JLawIncomeTaxStep breakdown[J_LAW_MAX_TIERS];
     /** breakdown の有効件数。 */
     int      breakdown_len;
+    /** 防衛特別所得税額（円・2027年分以後）。 */
+    uint64_t defense_tax;
+    /** 防衛特別所得税が適用されたか（0 = false, 1 = true）。 */
+    int      defense_tax_applied;
 } JLawIncomeTaxResult;
 
 /**
@@ -290,6 +294,10 @@ typedef struct {
     int      deduction_breakdown_len;
     JLawIncomeTaxStep tax_breakdown[J_LAW_MAX_TIERS];
     int      tax_breakdown_len;
+    /** 防衛特別所得税額（円・2027年分以後）。 */
+    uint64_t defense_tax;
+    /** 防衛特別所得税が適用されたか（0 = false, 1 = true）。 */
+    int      defense_tax_applied;
 } JLawIncomeTaxAssessmentResult;
 
 /* ─── 所得税 関数 ─────────────────────────────────────────────────────────── */
@@ -297,13 +305,13 @@ typedef struct {
 /**
  * 所得税法第89条に基づく所得税額を計算する。
  *
- * 法的根拠: 所得税法 第89条第1項 / 復興財源確保法 第13条
+ * 法的根拠: 所得税法 第89条第1項 / 復興財源確保法 第13条 / 防衛財源確保法 第5条の9
  *
  * @param taxable_income          課税所得金額（円）
  * @param year                    対象年度（年）
  * @param month                   基準日（月）
  * @param day                     基準日（日）
- * @param apply_reconstruction_tax 復興特別所得税を適用するか（0 = false, 非0 = true）
+ * @param apply_reconstruction_tax 付加税（復興特別所得税・防衛特別所得税）を適用するか（0 = false, 非0 = true）
  * @param out_result              [OUT] 計算結果の書き込み先（呼び出し元が確保すること）
  * @param error_buf               [OUT] エラーメッセージの書き込み先（呼び出し元が確保すること）
  * @param error_buf_len           error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）
@@ -343,10 +351,11 @@ int j_law_calc_income_deductions(
  * 所得控除から所得税額までを通しで計算する。
  *
  * 法的根拠: 所得税法 第73条 / 第74条 / 第76条 / 第78条 / 第83条 / 第84条 / 第84条の2 / 第86条 /
- *           第89条第1項 / 租税特別措置法 第41条の16の2 / 復興財源確保法 第13条
+ *           第89条第1項 / 租税特別措置法 第41条の16の2 / 復興財源確保法 第13条 /
+ *           防衛財源確保法 第5条の9
  *
  * @param input                    [IN] 所得控除計算の入力
- * @param apply_reconstruction_tax 復興特別所得税を適用するか（0 = false, 非0 = true）
+ * @param apply_reconstruction_tax 付加税（復興特別所得税・防衛特別所得税）を適用するか（0 = false, 非0 = true）
  * @param out_result               [OUT] 計算結果の書き込み先
  * @param error_buf                [OUT] エラーメッセージの書き込み先
  * @param error_buf_len            error_buf のバイト長（推奨: J_LAW_ERROR_BUF_LEN = 256）

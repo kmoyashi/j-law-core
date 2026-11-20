@@ -57,6 +57,8 @@ describe("calcIncomeTax - フィクスチャ駆動", () => {
       assert.equal(r.reconstructionTax, asBigInt(exp.reconstruction_tax), "reconstructionTax");
       assert.equal(r.totalTax, asBigInt(exp.total_tax), "totalTax");
       assert.equal(r.reconstructionTaxApplied, exp.reconstruction_tax_applied, "reconstructionTaxApplied");
+      assert.equal(r.defenseTax, asBigInt(exp.defense_tax), "defenseTax");
+      assert.equal(r.defenseTaxApplied, exp.defense_tax_applied, "defenseTaxApplied");
     });
   }
 });
@@ -185,6 +187,7 @@ describe("calcIncomeTaxAssessment - フィクスチャ駆動", () => {
       assert.equal(r.taxableIncome, asBigInt(exp.taxable_income), "taxableIncome");
       assert.equal(r.baseTax, asBigInt(exp.base_tax), "baseTax");
       assert.equal(r.reconstructionTax, asBigInt(exp.reconstruction_tax), "reconstructionTax");
+      assert.equal(r.defenseTax, asBigInt(exp.defense_tax), "defenseTax");
       assert.equal(r.totalTax, asBigInt(exp.total_tax), "totalTax");
     });
   }

@@ -26,7 +26,8 @@ pub struct IncomeTaxBracket {
 /// 東日本大震災からの復興のための施策を実施するために必要な財源の確保に関する特別措置法
 /// 第13条（復興特別所得税の税率）
 ///
-/// 2013年〜2037年の各年分の基準所得税額に対して課税される。
+/// 2013年〜2047年の各年分の基準所得税額に対して課税される。
+/// 税率は2026年分まで 2.1%、2027年分以後 1.1%（令和8年法律第12号）。
 #[derive(Debug, Clone)]
 pub struct ReconstructionTaxParams {
     /// 税率の分子（例: 2.1% → numer=21）。
@@ -37,6 +38,37 @@ pub struct ReconstructionTaxParams {
     pub effective_from_year: u16,
     /// 適用終了年（含む）。
     pub effective_to_year_inclusive: u16,
+}
+
+impl ReconstructionTaxParams {
+    /// 指定年分が課税期間内かを返す。
+    pub fn applies_to_year(&self, year: u16) -> bool {
+        (self.effective_from_year..=self.effective_to_year_inclusive).contains(&year)
+    }
+}
+
+/// 防衛特別所得税のパラメータ。
+///
+/// # 法的根拠
+/// 我が国の防衛力の抜本的な強化等のために必要な財源の確保に関する特別措置法
+/// 第5条の9（個人に係る防衛特別所得税の税率）
+///
+/// 2027年分以後「当分の間」、各年分の基準所得税額に対して課税される（終期の定めなし）。
+#[derive(Debug, Clone)]
+pub struct DefenseTaxParams {
+    /// 税率の分子（例: 1% → numer=1）。
+    pub rate_numer: u64,
+    /// 税率の分母（例: 1% → denom=100）。
+    pub rate_denom: u64,
+    /// 適用開始年（含む）。
+    pub effective_from_year: u16,
+}
+
+impl DefenseTaxParams {
+    /// 指定年分が課税期間内かを返す。
+    pub fn applies_to_year(&self, year: u16) -> bool {
+        year >= self.effective_from_year
+    }
 }
 
 /// 所得税計算に使うパラメータセット。
@@ -52,6 +84,8 @@ pub struct IncomeTaxParams {
     pub brackets: Vec<IncomeTaxBracket>,
     /// 復興特別所得税のパラメータ（適用期間外の場合は `None`）。
     pub reconstruction_tax: Option<ReconstructionTaxParams>,
+    /// 防衛特別所得税のパラメータ（適用期間外の場合は `None`）。
+    pub defense_tax: Option<DefenseTaxParams>,
 }
 
 #[cfg(test)]
@@ -89,8 +123,9 @@ mod tests {
                 rate_numer: 21,
                 rate_denom: 1000,
                 effective_from_year: 2013,
-                effective_to_year_inclusive: 2037,
+                effective_to_year_inclusive: 2047,
             }),
+            defense_tax: None,
         };
         assert_eq!(params.brackets.len(), 1);
         let rt = params.reconstruction_tax.as_ref().unwrap();
@@ -103,7 +138,34 @@ mod tests {
         let params = IncomeTaxParams {
             brackets: vec![],
             reconstruction_tax: None,
+            defense_tax: None,
         };
         assert!(params.reconstruction_tax.is_none());
+    }
+
+    #[test]
+    fn reconstruction_tax_period_is_inclusive() {
+        let rt = ReconstructionTaxParams {
+            rate_numer: 11,
+            rate_denom: 1000,
+            effective_from_year: 2013,
+            effective_to_year_inclusive: 2047,
+        };
+        assert!(!rt.applies_to_year(2012));
+        assert!(rt.applies_to_year(2013));
+        assert!(rt.applies_to_year(2047));
+        assert!(!rt.applies_to_year(2048));
+    }
+
+    #[test]
+    fn defense_tax_has_no_end_year() {
+        let dt = DefenseTaxParams {
+            rate_numer: 1,
+            rate_denom: 100,
+            effective_from_year: 2027,
+        };
+        assert!(!dt.applies_to_year(2026));
+        assert!(dt.applies_to_year(2027));
+        assert!(dt.applies_to_year(2100));
     }
 }

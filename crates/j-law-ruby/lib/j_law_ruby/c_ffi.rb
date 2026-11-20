@@ -9,7 +9,7 @@ module JLawRuby
     module CFFI
       extend FFI::Library
 
-      FFI_VERSION = 5
+      FFI_VERSION = 6
       MAX_TIERS = 8
       MAX_DEDUCTION_LINES = 8
       MAX_SPECIFIC_RELATIVES = 8
@@ -36,6 +36,7 @@ module JLawRuby
       )
       IncomeTaxRecord = Struct.new(
         :base_tax, :reconstruction_tax, :total_tax, :reconstruction_tax_applied, :breakdown,
+        :defense_tax, :defense_tax_applied,
         keyword_init: true
       )
       IncomeDeductionLineRecord = Struct.new(
@@ -107,7 +108,10 @@ module JLawRuby
                :reconstruction_tax_applied, :int,
                :breakdown_padding, [:char, 4],
                :breakdown_storage, [:char, IncomeTaxStepStruct.size * MAX_TIERS],
-               :breakdown_len, :int
+               :breakdown_len, :int,
+               :defense_padding, [:char, 4],
+               :defense_tax, :uint64,
+               :defense_tax_applied, :int
       end
 
       class IncomeDeductionLineStruct < FFI::Struct
@@ -168,7 +172,10 @@ module JLawRuby
                :deduction_breakdown_len, :int,
                :tax_padding, [:char, 4],
                :tax_breakdown_storage, [:char, IncomeTaxStepStruct.size * MAX_TIERS],
-               :tax_breakdown_len, :int
+               :tax_breakdown_len, :int,
+               :defense_padding, [:char, 4],
+               :defense_tax, :uint64,
+               :defense_tax_applied, :int
       end
 
       class ConsumptionTaxStruct < FFI::Struct
@@ -306,6 +313,8 @@ module JLawRuby
           reconstruction_tax: result[:reconstruction_tax],
           total_tax: result[:total_tax],
           reconstruction_tax_applied: c_int_to_bool(result[:reconstruction_tax_applied]),
+          defense_tax: result[:defense_tax],
+          defense_tax_applied: c_int_to_bool(result[:defense_tax_applied]),
           breakdown: read_struct_array(
             result.pointer + IncomeTaxStruct.offset_of(:breakdown_storage),
             IncomeTaxStepStruct,
@@ -393,6 +402,8 @@ module JLawRuby
           reconstruction_tax: result[:reconstruction_tax],
           total_tax: result[:total_tax],
           reconstruction_tax_applied: c_int_to_bool(result[:reconstruction_tax_applied]),
+          defense_tax: result[:defense_tax],
+          defense_tax_applied: c_int_to_bool(result[:defense_tax_applied]),
           breakdown: read_struct_array(
             result.pointer + IncomeTaxAssessmentStruct.offset_of(:tax_breakdown_storage),
             IncomeTaxStepStruct,

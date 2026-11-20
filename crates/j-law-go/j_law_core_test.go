@@ -60,6 +60,8 @@ type incomeTaxExpected struct {
 	ReconstructionTax        uint64 `json:"reconstruction_tax"`
 	TotalTax                 uint64 `json:"total_tax"`
 	ReconstructionTaxApplied bool   `json:"reconstruction_tax_applied"`
+	DefenseTax               uint64 `json:"defense_tax"`
+	DefenseTaxApplied        bool   `json:"defense_tax_applied"`
 }
 
 type incomeTaxCase struct {
@@ -311,6 +313,12 @@ func TestIncomeTax(t *testing.T) {
 			}
 			if result.ReconstructionTaxApplied != exp.ReconstructionTaxApplied {
 				t.Errorf("ReconstructionTaxApplied: got %v, want %v", result.ReconstructionTaxApplied, exp.ReconstructionTaxApplied)
+			}
+			if result.DefenseTax != exp.DefenseTax {
+				t.Errorf("DefenseTax: got %d, want %d", result.DefenseTax, exp.DefenseTax)
+			}
+			if result.DefenseTaxApplied != exp.DefenseTaxApplied {
+				t.Errorf("DefenseTaxApplied: got %v, want %v", result.DefenseTaxApplied, exp.DefenseTaxApplied)
 			}
 		})
 	}

@@ -1,6 +1,6 @@
 use crate::income_tax_schema::{IncomeTaxHistoryEntry, IncomeTaxRegistry};
 use j_law_core::domains::income_tax::params::{
-    IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams,
+    DefenseTaxParams, IncomeTaxBracket, IncomeTaxParams, ReconstructionTaxParams,
 };
 use j_law_core::types::date::LegalDate;
 use j_law_core::{InputError, JLawError, RegistryError};
@@ -11,6 +11,8 @@ const PATH: &str = "income_tax/income_tax.json";
 ///
 /// # 法的根拠
 /// 所得税法 第89条第1項
+/// 復興財源確保法 第13条（復興特別所得税）
+/// 防衛財源確保法 第5条の9（防衛特別所得税）
 ///
 /// # エラー
 /// - `target_date` がどの有効期間にも該当しない → `InputError::DateOutOfRange`
@@ -40,7 +42,7 @@ pub fn load_income_tax_params(target_date: LegalDate) -> Result<IncomeTaxParams,
 /// # 検証内容
 /// - 適用期間の重複（Overlap）
 /// - 適用期間の空白（Gap）
-/// - 分母ゼロ（ブラケット rate.denom / reconstruction_tax rate.denom）
+/// - 分母ゼロ（ブラケット rate.denom / reconstruction_tax rate.denom / defense_tax rate.denom）
 fn validate_registry(registry: &IncomeTaxRegistry) -> Result<(), RegistryError> {
     let domain = &registry.domain;
 
@@ -57,6 +59,13 @@ fn validate_registry(registry: &IncomeTaxRegistry) -> Result<(), RegistryError> 
             if rt.rate.denom == 0 {
                 return Err(RegistryError::ZeroDenominator {
                     path: format!("{domain}/history[{i}]/reconstruction_tax/rate.denom"),
+                });
+            }
+        }
+        if let Some(dt) = &entry.params.defense_tax {
+            if dt.rate.denom == 0 {
+                return Err(RegistryError::ZeroDenominator {
+                    path: format!("{domain}/history[{i}]/defense_tax/rate.denom"),
                 });
             }
         }
@@ -146,9 +155,20 @@ fn to_params(entry: &IncomeTaxHistoryEntry) -> IncomeTaxParams {
                 effective_to_year_inclusive: rt.effective_to_year_inclusive,
             });
 
+    let defense_tax = entry
+        .params
+        .defense_tax
+        .as_ref()
+        .map(|dt| DefenseTaxParams {
+            rate_numer: dt.rate.numer,
+            rate_denom: dt.rate.denom,
+            effective_from_year: dt.effective_from_year,
+        });
+
     IncomeTaxParams {
         brackets,
         reconstruction_tax,
+        defense_tax,
     }
 }
 
@@ -157,8 +177,8 @@ fn to_params(entry: &IncomeTaxHistoryEntry) -> IncomeTaxParams {
 mod tests {
     use super::*;
     use crate::income_tax_schema::{
-        IncomeTaxBracketEntry, IncomeTaxHistoryEntry, IncomeTaxParamsEntry, IncomeTaxRegistry,
-        ReconstructionTaxEntry,
+        DefenseTaxEntry, IncomeTaxBracketEntry, IncomeTaxHistoryEntry, IncomeTaxParamsEntry,
+        IncomeTaxRegistry, ReconstructionTaxEntry,
     };
     use crate::schema::Fraction;
 
@@ -185,6 +205,7 @@ mod tests {
                     deduction: 0,
                 }],
                 reconstruction_tax: None,
+                defense_tax: None,
             },
         }
     }
@@ -243,10 +264,55 @@ mod tests {
                 denom: 0,
             },
             effective_from_year: 2013,
-            effective_to_year_inclusive: 2037,
+            effective_to_year_inclusive: 2047,
         });
         let err = validate_registry(&reg).unwrap_err();
         assert!(matches!(err, RegistryError::ZeroDenominator { .. }));
+    }
+
+    #[test]
+    fn registry_validation_detects_zero_denominator_defense_tax() {
+        let mut reg = make_registry(vec![make_entry("2027-01-01", None)]);
+        reg.history[0].params.defense_tax = Some(DefenseTaxEntry {
+            rate: Fraction { numer: 1, denom: 0 },
+            effective_from_year: 2027,
+        });
+        let err = validate_registry(&reg).unwrap_err();
+        assert!(matches!(err, RegistryError::ZeroDenominator { .. }));
+    }
+
+    // ─── 付加税（復興特別所得税・防衛特別所得税） ──────────────────────────────
+    // 防衛財源確保法 第5条の9 / 復興財源確保法 第13条（令和8年法律第12号による改正後）
+
+    #[test]
+    fn boundary_2026_12_31_reconstruction_2_1_percent_only() {
+        let params = load_income_tax_params(LegalDate::new(2026, 12, 31)).unwrap();
+        let rt = params.reconstruction_tax.unwrap();
+        assert_eq!((rt.rate_numer, rt.rate_denom), (21, 1000));
+        assert!(params.defense_tax.is_none());
+    }
+
+    #[test]
+    fn from_2027_reconstruction_1_1_percent_and_defense_1_percent() {
+        for date in [LegalDate::new(2027, 1, 1), LegalDate::new(2047, 12, 31)] {
+            let params = load_income_tax_params(date).unwrap();
+            assert_eq!(params.brackets.len(), 7);
+            let rt = params.reconstruction_tax.unwrap();
+            assert_eq!((rt.rate_numer, rt.rate_denom), (11, 1000));
+            assert_eq!(rt.effective_to_year_inclusive, 2047);
+            let dt = params.defense_tax.unwrap();
+            assert_eq!((dt.rate_numer, dt.rate_denom), (1, 100));
+            assert_eq!(dt.effective_from_year, 2027);
+        }
+    }
+
+    #[test]
+    fn from_2048_defense_only() {
+        let params = load_income_tax_params(LegalDate::new(2048, 1, 1)).unwrap();
+        assert_eq!(params.brackets.len(), 7);
+        assert!(params.reconstruction_tax.is_none());
+        let dt = params.defense_tax.unwrap();
+        assert_eq!((dt.rate_numer, dt.rate_denom), (1, 100));
     }
 
     // ─── 現行（2015年〜）7段階 ────────────────────────────────────────────────

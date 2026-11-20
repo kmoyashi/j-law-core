@@ -18,3 +18,6 @@ mod registry_examples;
 
 #[path = "income_tax/reform_2025_2026_examples.rs"]
 mod reform_2025_2026_examples;
+
+#[path = "income_tax/special_income_tax_examples.rs"]
+mod special_income_tax_examples;

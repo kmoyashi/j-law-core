@@ -129,13 +129,15 @@ module JLawRuby
   module IncomeTax
     # 所得税の計算結果。
     class IncomeTaxResult
-      attr_reader :base_tax, :reconstruction_tax, :total_tax, :breakdown
+      attr_reader :base_tax, :reconstruction_tax, :defense_tax, :total_tax, :breakdown
 
       def initialize(r)
         @base_tax = r.base_tax
         @reconstruction_tax = r.reconstruction_tax
+        @defense_tax = r.defense_tax
         @total_tax = r.total_tax
         @reconstruction_tax_applied = r.reconstruction_tax_applied
+        @defense_tax_applied = r.defense_tax_applied
         @breakdown = r.breakdown.map do |step|
           {
             label: step.label,
@@ -153,12 +155,19 @@ module JLawRuby
         @reconstruction_tax_applied
       end
 
+      # 防衛特別所得税（2027年分以後）が適用されたか。
+      def defense_tax_applied?
+        @defense_tax_applied
+      end
+
       def inspect
         "#<JLawRuby::IncomeTax::IncomeTaxResult " \
           "base_tax=#{@base_tax} " \
           "reconstruction_tax=#{@reconstruction_tax} " \
+          "defense_tax=#{@defense_tax} " \
           "total_tax=#{@total_tax} " \
-          "reconstruction_tax_applied=#{@reconstruction_tax_applied}>"
+          "reconstruction_tax_applied=#{@reconstruction_tax_applied} " \
+          "defense_tax_applied=#{@defense_tax_applied}>"
       end
 
       alias to_s inspect
@@ -215,7 +224,8 @@ module JLawRuby
     #
     # @param taxable_income [Integer] 課税所得金額（円）
     # @param date [Date] 基準日
-    # @param apply_reconstruction_tax [true, false] 復興特別所得税を適用するか
+    # @param apply_reconstruction_tax [true, false] 付加税（復興特別所得税・防衛特別所得税）を
+    #   適用するか。基準日の年分に課される付加税をすべて適用する
     # @return [IncomeTaxResult]
     # @raise [TypeError] date が Date / DateTime 以外の場合
     # @raise [RuntimeError] 計算エラーが発生した場合

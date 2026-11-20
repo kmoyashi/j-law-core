@@ -17,8 +17,17 @@
   - 同梱の静的ライブラリに含まれる LTO 用セクション（Rust 標準ライブラリ由来の `.llvmbc` / `__LLVM,__bitcode` など）を cgo が拒否していた
   - `scripts/sync_go_native_archive.sh` で生成後に `llvm-objcopy` でこれらのセクションを除去し、残存しないことを検証する（アーカイブサイズも約 35〜55% 縮小）
 - CI / 公開ワークフローで rustfmt・clippy を事前にインストールし、ビルド途中の rustup による自動インストール（Python バインディングのビルドで競合して失敗していた）を避ける
+- **復興特別所得税の課税期間延長（2037年→2047年）を反映**（令和8年法律第12号）
+  - 所得税: 2038〜2047年分で復興特別所得税が課されていなかった（ポリシーが `2013..=2037` を直書きしていた）
+  - 源泉徴収: 2038年以後の基準日で `DateOutOfRange` エラーになっていた
 
 ### Added
+
+- **防衛特別所得税**（防衛財源確保法 第5条の9、2027年分以後）
+  - 所得税: 2027〜2047年分は復興特別所得税 1.1% + 防衛特別所得税 1%（合計 2.1% は不変）、2048年分以後は防衛特別所得税 1% のみ
+  - 付加税は合計額で1円未満を切り捨て、防衛特別所得税額（1円未満切り捨て）を差し引いた残りを復興特別所得税額とする（防衛財源確保法 第5条の22第2項に基づき申告納税額は合計額で端数計算）
+  - 結果に `defense_tax` / `defense_tax_applied` を追加（Python・Ruby・Go・WASM・C FFI）
+  - 源泉徴収: registry を 2013〜2026年 / 2027〜2047年 / 2048年以後 に分割（合計税率は 2047年まで 10.21% / 20.42%、2048年以後 10.1% / 20.2%）
 
 - **特定親族特別控除**（所得税法 第84条の2、2025年分以後）
   - Rust: `SpecificRelativeDeductionInput` / `SpecificRelativeDeductionParams` / `IncomeDeductionKind::SpecificRelative`
@@ -32,6 +41,10 @@
 - **Breaking (Rust)**: `IncomeDeductionKind::SpecificRelative` と `RegistryError::InvalidBracketTable` を追加（これらの enum を網羅的に `match` しているコードは更新が必要）
 - 2025年分以後の所得控除内訳に「特定親族特別控除」行（kind = 8）を扶養控除の直後に追加（2024年分以前の内訳は変更なし）。社会保険料控除以降の行の位置が1つずれるため、内訳は `kind` で参照すること
 - C FFI: 所得控除の内訳が `J_LAW_MAX_DEDUCTION_LINES` を超える場合、切り捨てずにエラーを返す
+- **Breaking**: C FFI バージョンを 6 に更新。`JLawIncomeTaxResult` / `JLawIncomeTaxAssessmentResult` の末尾に `defense_tax` / `defense_tax_applied` を追加
+- **Breaking (Rust)**: `IncomeTaxParams` に `defense_tax`、`IncomeTaxResult` に `defense_tax` / `defense_tax_applied` フィールドを追加
+- `IncomeTaxFlag::ApplyReconstructionTax`（各言語の `apply_reconstruction_tax`）は「付加税（復興特別所得税・防衛特別所得税）を適用する」の意味に変更。付加税の課税期間・税率は registry で判定し、`StandardIncomeTaxPolicy` は年を判定しない
+- 付加税パラメータがない年分でフラグを指定した場合、エラーではなく付加税 0 円として扱う
 
 ## [0.0.1] - 2026-03-21
 

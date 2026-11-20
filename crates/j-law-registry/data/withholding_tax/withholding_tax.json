@@ -3,12 +3,15 @@
   "history": [
     {
       "effective_from": "2013-01-01",
-      "effective_until": "2037-12-31",
-      "status": "active",
+      "effective_until": "2026-12-31",
+      "status": "superseded",
       "citation": {
         "law_name": "所得税法",
         "article": 204,
-        "paragraph": 1
+        "paragraph": 1,
+        "related": [
+          "復興財源確保法第28条（所得税の源泉徴収に併せて復興特別所得税（所得税額の1000分の21）を徴収）"
+        ]
       },
       "params": {
         "categories": [
@@ -18,14 +21,8 @@
             "method": {
               "kind": "two_tier",
               "threshold": 1000000,
-              "base_rate": {
-                "numer": 1021,
-                "denom": 10000
-              },
-              "excess_rate": {
-                "numer": 2042,
-                "denom": 10000
-              }
+              "base_rate": { "numer": 1021, "denom": 10000 },
+              "excess_rate": { "numer": 2042, "denom": 10000 }
             },
             "submission_prize_exemption_threshold": 50000
           },
@@ -35,14 +32,8 @@
             "method": {
               "kind": "two_tier",
               "threshold": 1000000,
-              "base_rate": {
-                "numer": 1021,
-                "denom": 10000
-              },
-              "excess_rate": {
-                "numer": 2042,
-                "denom": 10000
-              }
+              "base_rate": { "numer": 1021, "denom": 10000 },
+              "excess_rate": { "numer": 2042, "denom": 10000 }
             },
             "submission_prize_exemption_threshold": null
           },
@@ -52,14 +43,117 @@
             "method": {
               "kind": "two_tier",
               "threshold": 1000000,
-              "base_rate": {
-                "numer": 1021,
-                "denom": 10000
-              },
-              "excess_rate": {
-                "numer": 2042,
-                "denom": 10000
-              }
+              "base_rate": { "numer": 1021, "denom": 10000 },
+              "excess_rate": { "numer": 2042, "denom": 10000 }
+            },
+            "submission_prize_exemption_threshold": null
+          }
+        ]
+      }
+    },
+    {
+      "effective_from": "2027-01-01",
+      "effective_until": "2047-12-31",
+      "status": "active",
+      "citation": {
+        "law_name": "所得税法",
+        "article": 204,
+        "paragraph": 1,
+        "related": [
+          "防衛財源確保法第5条の26（所得税の源泉徴収に併せて防衛特別所得税（所得税額の100分の1）を徴収）",
+          "復興財源確保法第28条（復興特別所得税（所得税額の1000分の11）、令和29年まで）",
+          "防衛財源確保法第5条の29第2項（合計額で1円未満切捨て）"
+        ],
+        "sources": [
+          "https://www.nta.go.jp/publication/pamph/pdf/0026005-024_03.pdf"
+        ]
+      },
+      "params": {
+        "categories": [
+          {
+            "code": "manuscript_and_lecture",
+            "label": "原稿料・講演料等",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": { "numer": 1021, "denom": 10000 },
+              "excess_rate": { "numer": 2042, "denom": 10000 }
+            },
+            "submission_prize_exemption_threshold": 50000
+          },
+          {
+            "code": "professional_fee",
+            "label": "税理士等の報酬・料金",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": { "numer": 1021, "denom": 10000 },
+              "excess_rate": { "numer": 2042, "denom": 10000 }
+            },
+            "submission_prize_exemption_threshold": null
+          },
+          {
+            "code": "exclusive_contract_fee",
+            "label": "専属契約金",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": { "numer": 1021, "denom": 10000 },
+              "excess_rate": { "numer": 2042, "denom": 10000 }
+            },
+            "submission_prize_exemption_threshold": null
+          }
+        ]
+      }
+    },
+    {
+      "effective_from": "2048-01-01",
+      "effective_until": null,
+      "status": "active",
+      "citation": {
+        "law_name": "所得税法",
+        "article": 204,
+        "paragraph": 1,
+        "related": [
+          "防衛財源確保法第5条の26（所得税の源泉徴収に併せて防衛特別所得税（所得税額の100分の1）を徴収）",
+          "復興特別所得税は令和29年（2047年）まで"
+        ],
+        "sources": [
+          "https://www.nta.go.jp/publication/pamph/pdf/0026005-024_03.pdf"
+        ]
+      },
+      "params": {
+        "categories": [
+          {
+            "code": "manuscript_and_lecture",
+            "label": "原稿料・講演料等",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": { "numer": 1010, "denom": 10000 },
+              "excess_rate": { "numer": 2020, "denom": 10000 }
+            },
+            "submission_prize_exemption_threshold": 50000
+          },
+          {
+            "code": "professional_fee",
+            "label": "税理士等の報酬・料金",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": { "numer": 1010, "denom": 10000 },
+              "excess_rate": { "numer": 2020, "denom": 10000 }
+            },
+            "submission_prize_exemption_threshold": null
+          },
+          {
+            "code": "exclusive_contract_fee",
+            "label": "専属契約金",
+            "method": {
+              "kind": "two_tier",
+              "threshold": 1000000,
+              "base_rate": { "numer": 1010, "denom": 10000 },
+              "excess_rate": { "numer": 2020, "denom": 10000 }
             },
             "submission_prize_exemption_threshold": null
           }

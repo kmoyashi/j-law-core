@@ -4,10 +4,14 @@ use std::collections::HashSet;
 
 /// 所得税計算のポリシーインターフェース。
 ///
-/// 端数処理戦略や復興特別所得税の適用判定ロジックを差し替えられるようにする。
+/// 端数処理戦略や付加税（復興特別所得税・防衛特別所得税）の適用判定ロジックを
+/// 差し替えられるようにする。
 /// 通常は [`StandardIncomeTaxPolicy`] を使う。
 pub trait IncomeTaxPolicy: std::fmt::Debug {
-    /// 復興特別所得税を適用するかどうかを判定する。
+    /// 付加税（復興特別所得税・防衛特別所得税）を適用するかどうかを判定する。
+    ///
+    /// 各付加税の課税期間・税率はパラメータ（registry）で判定するため、
+    /// ここでは呼び出し元が付加税の適用を求めているかだけを返せばよい。
     fn should_apply_reconstruction_tax(
         &self,
         target_year: u16,
@@ -19,9 +23,9 @@ pub trait IncomeTaxPolicy: std::fmt::Debug {
     /// 所得税法上、課税所得金額 × 税率 の計算結果の端数処理。
     fn tax_rounding(&self) -> RoundingStrategy;
 
-    /// 復興特別所得税額の端数処理戦略。
+    /// 付加税額の端数処理戦略。
     ///
-    /// 基準所得税額 × 2.1% の計算結果の端数処理。
+    /// 基準所得税額 × 付加税率（合計額および防衛特別所得税額）の計算結果の端数処理。
     fn reconstruction_tax_rounding(&self) -> RoundingStrategy;
 }
 
@@ -30,6 +34,7 @@ pub trait IncomeTaxPolicy: std::fmt::Debug {
 /// # 法的根拠
 /// 所得税法 第89条第1項（税率）
 /// 復興財源確保法 第13条（復興特別所得税の税率）
+/// 防衛財源確保法 第5条の9（防衛特別所得税の税率）
 /// 国税通則法 第119条第1項（税額の端数処理 — 100円未満切り捨て）
 #[derive(Debug, Clone, Copy)]
 pub struct StandardIncomeTaxPolicy;
@@ -40,8 +45,9 @@ impl IncomeTaxPolicy for StandardIncomeTaxPolicy {
         target_year: u16,
         flags: &HashSet<IncomeTaxFlag>,
     ) -> bool {
-        (2013..=2037).contains(&target_year)
-            && flags.contains(&IncomeTaxFlag::ApplyReconstructionTax)
+        // 課税期間はパラメータ側で判定する（法改正による期間延長に追随するため）。
+        let _ = target_year;
+        flags.contains(&IncomeTaxFlag::ApplyReconstructionTax)
     }
 
     fn tax_rounding(&self) -> RoundingStrategy {
@@ -52,7 +58,7 @@ impl IncomeTaxPolicy for StandardIncomeTaxPolicy {
     }
 
     fn reconstruction_tax_rounding(&self) -> RoundingStrategy {
-        // 復興特別所得税額は1円未満切り捨て。
+        // 付加税額は1円未満切り捨て。
         RoundingStrategy::Floor
     }
 }
@@ -72,18 +78,12 @@ mod tests {
     }
 
     #[test]
-    fn reconstruction_tax_within_period() {
+    fn special_taxes_follow_flag_regardless_of_year() {
+        // 課税期間の判定はパラメータ側（calculator のテストで検証）。
         let flags = flags_with_reconstruction();
-        assert!(policy().should_apply_reconstruction_tax(2024, &flags));
-        assert!(policy().should_apply_reconstruction_tax(2013, &flags));
-        assert!(policy().should_apply_reconstruction_tax(2037, &flags));
-    }
-
-    #[test]
-    fn reconstruction_tax_outside_period() {
-        let flags = flags_with_reconstruction();
-        assert!(!policy().should_apply_reconstruction_tax(2012, &flags));
-        assert!(!policy().should_apply_reconstruction_tax(2038, &flags));
+        for year in [2012, 2013, 2024, 2027, 2047, 2048] {
+            assert!(policy().should_apply_reconstruction_tax(year, &flags));
+        }
     }
 
     #[test]

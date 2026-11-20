@@ -79,6 +79,7 @@ class TestIncomeTaxAssessmentFixtures < Minitest::Test
       assert_equal exp["taxable_income"], result.deductions.taxable_income
       assert_equal exp["base_tax"], result.tax.base_tax
       assert_equal exp["reconstruction_tax"], result.tax.reconstruction_tax
+      assert_equal exp["defense_tax"], result.tax.defense_tax
       assert_equal exp["total_tax"], result.tax.total_tax
     end
   end

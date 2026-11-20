@@ -109,8 +109,10 @@ class IncomeTaxResult:
     def __init__(self, r: IncomeTaxRecord) -> None:
         self.base_tax: int = r.base_tax
         self.reconstruction_tax: int = r.reconstruction_tax
+        self.defense_tax: int = r.defense_tax
         self.total_tax: int = r.total_tax
         self.reconstruction_tax_applied: bool = r.reconstruction_tax_applied
+        self.defense_tax_applied: bool = r.defense_tax_applied
         self.breakdown: List[IncomeTaxStep] = [IncomeTaxStep(s) for s in r.breakdown]
 
     def __repr__(self) -> str:
@@ -118,8 +120,10 @@ class IncomeTaxResult:
             f"IncomeTaxResult("
             f"base_tax={self.base_tax}, "
             f"reconstruction_tax={self.reconstruction_tax}, "
+            f"defense_tax={self.defense_tax}, "
             f"total_tax={self.total_tax}, "
-            f"reconstruction_tax_applied={self.reconstruction_tax_applied})"
+            f"reconstruction_tax_applied={self.reconstruction_tax_applied}, "
+            f"defense_tax_applied={self.defense_tax_applied})"
         )
 
 
@@ -244,7 +248,11 @@ def calc_income_tax(
     date: datetime.date,
     apply_reconstruction_tax: bool = True,
 ) -> IncomeTaxResult:
-    """課税所得金額から所得税額を計算する。"""
+    """課税所得金額から所得税額を計算する。
+
+    apply_reconstruction_tax を True にすると、基準日の年分に課される付加税
+    （復興特別所得税・2027年分以後の防衛特別所得税）をすべて適用する。
+    """
     _ensure_date(date)
     try:
         r = _calc_income_tax(
