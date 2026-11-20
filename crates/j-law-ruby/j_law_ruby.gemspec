@@ -17,7 +17,7 @@ Gem::Specification.new do |spec|
   spec.homepage = "https://github.com/kmoyashi/j-law-core"
   spec.license  = "MIT"
 
-  spec.required_ruby_version = ">= 3.1"
+  spec.required_ruby_version = ">= 3.3"
 
   spec.metadata = {
     "homepage_uri"    => spec.homepage,

@@ -6,7 +6,7 @@
 # =============================================================================
 
 # ---- ベースステージ: Rust ツールチェイン + ソースコード ----
-FROM rust:1.94-bookworm AS base-rust
+FROM rust:1.100-trixie AS base-rust
 WORKDIR /app
 COPY Cargo.toml Cargo.lock ./
 COPY crates/ crates/
@@ -25,12 +25,12 @@ CMD ["pytest", "crates/j-law-python/tests/", "-v"]
 
 # ---- WASM/JS テスト ----
 FROM base-rust AS test-wasm
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_24.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://rustwasm.github.io/wasm-pack/installer/init.sh | sh
 RUN wasm-pack build --target nodejs crates/j-law-wasm
-CMD ["node", "--test", "crates/j-law-wasm/tests/real_estate.test.mjs", "crates/j-law-wasm/tests/income_tax.test.mjs", "crates/j-law-wasm/tests/stamp_tax.test.mjs"]
+CMD ["node", "--test", "crates/j-law-wasm/tests/*.test.mjs"]
 
 # ---- Ruby テスト ----
 FROM base-rust AS test-ruby
@@ -44,7 +44,7 @@ CMD ["bundle", "exec", "rake", "test"]
 
 # ---- Go テスト ----
 FROM base-rust AS test-go
-ARG GO_VERSION=1.23.6
+ARG GO_VERSION=1.27.4
 RUN curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-$(dpkg --print-architecture).tar.gz" \
     | tar -C /usr/local -xz
 ENV PATH="/usr/local/go/bin:${PATH}"

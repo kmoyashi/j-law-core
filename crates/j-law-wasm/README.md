@@ -30,7 +30,7 @@ npm install j-law-wasm
 ```
 
 公開 npm パッケージは `wasm-pack --target nodejs` で生成した Node.js 向け配布物です。
-CI では Node.js `20` / `22` / `24` / `25` を技術的に検証しています。
+CI では Node.js `22` / `24` / `26` を技術的に検証しています。
 
 ソースからビルドする場合:
 

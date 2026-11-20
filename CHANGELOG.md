@@ -45,6 +45,16 @@
 - **Breaking (Rust)**: `IncomeTaxParams` に `defense_tax`、`IncomeTaxResult` に `defense_tax` / `defense_tax_applied` フィールドを追加
 - `IncomeTaxFlag::ApplyReconstructionTax`（各言語の `apply_reconstruction_tax`）は「付加税（復興特別所得税・防衛特別所得税）を適用する」の意味に変更。付加税の課税期間・税率は registry で判定し、`StandardIncomeTaxPolicy` は年を判定しない
 - 付加税パラメータがない年分でフラグを指定した場合、エラーではなく付加税 0 円として扱う
+- **ツールチェーン・依存の更新**
+  - Rust 1.94.0 → 1.100.0（`rust-toolchain.toml`、各クレートの `rust-version`、CI / 公開ワークフロー、Dockerfile）。source gem / source build に必要な Rust も 1.100.0 以上になる
+  - `thiserror` 1 → 2、`wasm-bindgen` 0.2.130 / `js-sys` 0.3.107 / `serde` / `serde_json` などを互換範囲の最新版に更新
+  - GitHub Actions を最新メジャーに更新（checkout v7、cache v6、setup-python v7、setup-node v7、setup-go v7、upload-artifact v7、download-artifact v8、create-github-app-token v3）
+  - `cibuildwheel` v2.23.3 → v4.3.5（CPython 3.15 wheel のため）。Linux wheel の既定イメージが manylinux_2_28（glibc 2.28 以上）になる。Windows の delvewheel 修復は同梱 DLL を ctypes で読み込む構成のため無効化
+- **Breaking: サポート対象ランタイムを上流のサポート期間に合わせて更新**
+  - Python: 3.11〜3.15（3.10 は 2026-10 に EOL のため除外、3.15 を追加）。`requires-python = ">=3.11"`
+  - Node.js: 22 / 24 / 26（EOL の 20・25 を除外、LTS の 26 を追加）
+  - Ruby: 3.3〜4.0（EOL の 3.1・3.2 を除外）。`required_ruby_version = ">= 3.3"`
+  - Go: 1.26 / 1.27（EOL の 1.21〜1.25 を除外、1.27 を追加）。`go.mod` を `go 1.26` に変更
 
 ## [0.0.1] - 2026-03-21
 

@@ -37,17 +37,17 @@ jobs:
             rust_target: aarch64-apple-darwin
             platform_dir: darwin_arm64
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Verify release tag matches package versions
         shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
 
-      - uses: dtolnay/rust-toolchain@1.94.0
+      - uses: dtolnay/rust-toolchain@1.100.0
         with:
           targets: ${{ matrix.rust_target }}
           components: rustfmt, clippy, llvm-tools
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: |
             ~/.cargo/registry/index
@@ -61,7 +61,7 @@ jobs:
       - name: Clean Rust build outputs
         run: cargo clean --manifest-path Cargo.toml
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: crates/j-law-go/go.mod
           cache-dependency-path: crates/j-law-go/go.mod
@@ -75,7 +75,7 @@ jobs:
         working-directory: crates/j-law-go
         run: go test ./...
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: j-law-go-native-${{ matrix.platform_dir }}
           path: crates/j-law-go/native/${{ matrix.platform_dir }}/libj_law_c_ffi.a
@@ -90,17 +90,17 @@ jobs:
     steps:
       - name: Generate GitHub App token
         id: app-token
-        uses: actions/create-github-app-token@v1
+        uses: actions/create-github-app-token@v3
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           path: /tmp/j-law-go-native
 
