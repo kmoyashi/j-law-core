@@ -25,10 +25,10 @@
 
 ## インストール
 
-CI と publish workflow で検証している Ruby の範囲は `3.1` から `4.0` です。
+CI と publish workflow で検証している Ruby の範囲は `3.3` から `4.0` です。
 RubyGems では `linux/x86_64` `linux/aarch64` `macos/x86_64` `macos/arm64` `windows/amd64`
 向けの build 済み platform gem を配布します。これらの環境では Rust toolchain は不要です。
-その他の環境では source gem にフォールバックし、`gem install` 時に Rust `1.94.0`
+その他の環境では source gem にフォールバックし、`gem install` 時に Rust `1.100.0`
 toolchain を使って `j-law-c-ffi` をビルドします。
 
 ```sh

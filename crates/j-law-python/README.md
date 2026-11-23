@@ -31,9 +31,9 @@ pip install j-law-python
 
 CI と publish workflow で検証している組み合わせは次のとおりです。
 
-- CPython `3.10` から `3.14`
+- CPython `3.11` から `3.15`
 - PyPI wheel: `linux/x86_64` `linux/aarch64` `macos/x86_64` `macos/arm64` `windows/amd64`
-- それ以外の環境は source build 扱いです。Rust `1.94.0` が必要です。
+- それ以外の環境は source build 扱いです。Rust `1.100.0` が必要です。
 
 リポジトリ checkout を直接 install / import する場合は、先に `j-law-c-ffi` をビルドしてください。
 

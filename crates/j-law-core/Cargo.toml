@@ -2,7 +2,7 @@
 name = "j-law-core"
 version = "0.0.8"
 edition = "2021"
-rust-version = "1.94"
+rust-version = "1.100"
 license = "MIT"
 publish = false
 
@@ -10,7 +10,7 @@ publish = false
 workspace = true
 
 [dependencies]
-thiserror = "1"
+thiserror = "2"
 
 [dev-dependencies]
 j-law-registry = { path = "../j-law-registry" }

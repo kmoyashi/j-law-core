@@ -21,16 +21,16 @@ jobs:
             macos_deployment_target: "11.0"
           - os: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Verify release tag matches package versions
         shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
       - if: matrix.os == 'ubuntu-latest'
         uses: docker/setup-qemu-action@v4
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
-      - uses: dtolnay/rust-toolchain@1.94.0
+      - uses: dtolnay/rust-toolchain@1.100.0
         with:
           components: rustfmt, clippy
       - name: Add macOS cross-compilation target (x86_64)
@@ -39,22 +39,25 @@ jobs:
       - name: Clean Rust build outputs
         run: cargo clean --manifest-path Cargo.toml
       - name: Build wheels with cibuildwheel
-        uses: pypa/cibuildwheel@v2.23.3
+        uses: pypa/cibuildwheel@v4.3.5
         env:
           CIBW_BUILD_FRONTEND: build
-          CIBW_BUILD: "cp310-* cp311-* cp312-* cp313-* cp314-*"
+          CIBW_BUILD: "cp311-* cp312-* cp313-* cp314-* cp315-*"
           CIBW_ARCHS_LINUX: "x86_64 aarch64"
           CIBW_ARCHS_MACOS: "${{ matrix.arch || '' }}"
           CIBW_ARCHS_WINDOWS: "AMD64"
-          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.10"
+          # cibuildwheel v4 は Windows で delvewheel による修復を既定で行うが、
+          # このパッケージは同梱 DLL を ctypes で読み込むだけで拡張モジュールを持たないため無効化する。
+          CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: ""
+          CIBW_PROJECT_REQUIRES_PYTHON: ">=3.11"
           CIBW_TEST_COMMAND: 'python -c "import datetime; from j_law_python.consumption_tax import calc_consumption_tax; assert calc_consumption_tax(100_000, datetime.date(2024, 1, 1)).tax_amount == 10_000"'
-          CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && $HOME/.cargo/bin/rustup toolchain install 1.94.0 --profile minimal && $HOME/.cargo/bin/rustup default 1.94.0"
-          CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=1.94.0"
+          CIBW_BEFORE_ALL_LINUX: "curl -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal && $HOME/.cargo/bin/rustup toolchain install 1.100.0 --profile minimal && $HOME/.cargo/bin/rustup default 1.100.0"
+          CIBW_ENVIRONMENT_LINUX: "PATH=$HOME/.cargo/bin:$PATH RUSTUP_TOOLCHAIN=1.100.0"
           CIBW_ENVIRONMENT_MACOS: "MACOSX_DEPLOYMENT_TARGET=${{ matrix.macos_deployment_target || '' }}"
         with:
           package-dir: crates/j-law-python
           output-dir: dist
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.os }}${{ matrix.arch && format('-{0}', matrix.arch) || '' }}
           path: dist
@@ -63,18 +66,18 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Verify release tag matches package versions
         shell: bash
         run: ./scripts/verify_release_versions.sh "${{ github.event.release.tag_name }}"
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Build source distribution
         run: |
           pip install build
           python -m build crates/j-law-python --sdist --outdir dist
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: dist
@@ -87,7 +90,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           merge-multiple: true
           path: dist

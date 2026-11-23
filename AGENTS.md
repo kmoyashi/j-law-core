@@ -298,7 +298,7 @@ tests/fixtures/
 
 ### ファイル構成
 
-- `Dockerfile` — マルチステージビルド（Rust 1.94.0 ベース）
+- `Dockerfile` — マルチステージビルド（Rust 1.100.0 ベース）
 - `docker-compose.yml` — 各言語テストサービス + `test-all` 統合サービス
 - `.dockerignore` — ビルドコンテキスト除外設定
 

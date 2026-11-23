@@ -2,13 +2,17 @@
 name = "j-law-wasm"
 version = "0.0.8"
 edition = "2021"
-rust-version = "1.94"
+rust-version = "1.100"
 license = "MIT"
 publish = false
 description = "日本法令計算の PoC を JavaScript から利用するためのアルファ版 WebAssembly バインディング"
 repository = "https://github.com/kmoyashi/j-law-core"
 homepage = "https://github.com/kmoyashi/j-law-core"
 keywords = ["wasm", "japan", "law", "tax", "real-estate"]
+
+[lints.cargo]
+# homepage は wasm-pack が生成する npm package.json の "homepage" に使われるため残す
+redundant_homepage = "allow"
 
 [lints.clippy]
 # WASMバインディング層では、wasm_bindgenマクロ展開時のpanic!使用とJavaScriptへのf64返却が必要
